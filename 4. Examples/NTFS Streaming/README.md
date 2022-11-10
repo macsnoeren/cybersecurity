@@ -3,7 +3,7 @@ A lot of attacks are based on the limited knowledge of users. Attackers are tryi
 
 To demonstrate this, I would like to show the NTFS streaming functionality. Assuming that you are not aware of this functionality. Attackers can use this functionality to disguise their malicious files. Or you can hide all kind of secrets.
 
-# Teaching instructions
+## Teaching instructions
 * When showing this live in front of the classroom, please share the malicious readme.txt file to your students before hand.
 * Before showing to reveal it, show the image that has been hidden as well: mspaint readme.txt:hacked
 
