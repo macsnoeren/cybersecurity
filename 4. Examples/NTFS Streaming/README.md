@@ -8,6 +8,7 @@ To demonstrate this, I would like to show the NTFS streaming functionality. Assu
 ## Teaching instructions
 * When showing this live in front of the classroom, please share the malicious readme.txt file to your students before hand.
 * Before showing to reveal it, show the image that has been hidden as well: mspaint readme.txt:hacked
+* WinRAR is able to maintain the stream, you can use readme.rar to get it to the students.
 
 ## Streaming
 NTFS stream is a functionality of the NTFS file system. This is also known as alternate data streams (ADS). If you want to know more about this, you can read https://stealthbits.com/blog/ntfs-file-streams/. 
