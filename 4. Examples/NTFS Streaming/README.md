@@ -1,5 +1,7 @@
-# NTSF Streaming
-A lot of attacks are based on the limited knowledge of users. Attackers are trying to trick users to execute malicious activities while they think it is normal.
+# Hide malicious data using NTFS Streaming
+_Maurice Snoeren, 10 November 2022_
+
+A lot of attacks are based on the limited knowledge of people. Attackers are trying to trick users to execute malicious activities while they think it is normal.
 
 To demonstrate this, I would like to show the NTFS streaming functionality. Assuming that you are not aware of this functionality. Attackers can use this functionality to disguise their malicious files. Or you can hide all kind of secrets.
 
