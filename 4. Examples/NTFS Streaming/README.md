@@ -93,7 +93,7 @@ C:\>dir/R readme.txt
 
 You can also see it when you opened the details of the file using Windows explorer. __do you see it?__
 
-![file details](file://file_details.png)
+![file details](file_details.png)
 
 At this moment, you will see the assiocated stream of the readme.txt file. So, it really exist. If you do not know this, you can easily be tricked!
 
