@@ -34,4 +34,6 @@ The main repo for cybersecurity education given by myself.
 ## Attacks
 * Password attacks (page 195)
 
+# Sources
+- https://www.hacksplaining.com/ - Example of web vulnerabilities and OWASP top 10
 

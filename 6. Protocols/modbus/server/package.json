@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "modbus-stream": "^0.46.0",
+    "socketio": "^1.0.0"
+  }
+}
