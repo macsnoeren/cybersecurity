@@ -1,0 +1,153 @@
+<!-- 
+    A local based secrets manager by Maurice Snoeren - 21-11-2022
+    When you do not want to rely on servers, services or third parties. This
+    straigthforward password manager encrypts all your passwords and stores
+    it locally at your browsers local storages. Everything is encrypted in
+    that store. When you type in the password, the encrypted passwords will
+    be visualized in the browser. No server communication, just on your local
+    computer or browser. You can check the source code!
+-->
+<html>
+<head>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        console.log("A local based password manager started...");
+        if (typeof(Storage) == "undefined") {
+            alert("Sorry, your browser does not support this application! Update your browser to support localStorage!");
+            console.log("Sorry, your browser does not support this application! Update your browser to support localStorage!");
+        }
+
+        // Check if the application has been initialized. When it is initialized, the localStorage
+        // contains a vault and an information key. If this is not yet the case, the user gets the
+        // form to start the application.
+        function applicationStarted() {
+            return retrieve("vault") !== null && retrieve("information") !== null;
+        }
+
+        function store(key, value) {
+            localStorage.setItem(key, value);
+        }
+
+        function retrieve(key) {
+            return localStorage.getItem(key);
+        }
+
+        function showInformation(data) {
+            $("#information").html(data);
+        }
+
+        function showVault(data) {
+            //console.log(data);
+            showInformation("<i>created: " + data.created + ", last updated: " + data.updated + "</i>");
+            $("#vault").val(data.vault);
+        }
+
+        function error(error) {
+            $("#error").html(error);
+        }
+
+        function clearVault() {
+            localStorage.clear("vault");
+            localStorage.clear("information");
+            $("#password1").val("");
+            $("#password2").val("");
+            $("#password3").val("");
+            $("#information").val("");
+            $("#vault").val("");
+            $("#error").val("");
+            $("#application_start").show();
+            $("#password").hide();
+        }
+
+        function createVault() {
+            password1 = $("#password1").val();
+            password2 = $("#password2").val();
+            if ( password1 === password2 ) {
+                vault = JSON.stringify({ created: new Date(), updated: new Date(), vault: "This is your vault..." });
+                //console.log(vault);
+                vault_enc = CryptoJS.AES.encrypt(vault, password1);
+                vault = ""; // Remove it again...
+                key_size = vault_enc.key.toString().length*8;
+                iv_size  = vault_enc.iv.toString().length*8
+                salt_size  = vault_enc.salt.toString().length*8
+                if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
+                    store("vault", vault_enc);
+                    information = JSON.stringify( { created: new Date(), key_size: key_size, iv_size: iv_size, salt_size: salt_size } );
+                    //console.log(information);
+                    information_enc = CryptoJS.AES.encrypt(vault, password1);
+                    store("information", information_enc);
+                    $("#application_start").hide();
+                    $("#password").show();
+                    error("");
+                } else {
+                    error("Cipher keys are not correctly generated, please try it again!");
+                }
+            } else {
+                error("Passwords do not match!");
+            }
+            $("#password1").val("");
+            $("#password2").val("");
+        }
+
+        function openVault() {
+            password = $("#password3").val();
+            vault_enc = retrieve("vault");
+            //console.log(vault_enc);
+            vault = CryptoJS.AES.decrypt(vault_enc, password).toString(CryptoJS.enc.Utf8);
+            vault = JSON.parse(vault);
+            return vault;
+        }
+
+        function saveVault() {
+            password = $("#password3").val();
+            vault = openVault();
+            vault.vault = $("#vault").val();
+            vault.updated = new Date();
+            vault = JSON.stringify(vault);
+            //console.log(vault);
+            vault_enc = CryptoJS.AES.encrypt(vault, password);
+            vault = ""; // Remove it again...
+            key_size = vault_enc.key.toString().length*8;
+            iv_size  = vault_enc.iv.toString().length*8
+            salt_size  = vault_enc.salt.toString().length*8
+            if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
+                store("vault", vault_enc)
+                error("");
+            } else {
+                error("Cipher keys are not correctly generated, please try it again!");
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <h1>Your local secret notes manager!</h1>
+    <div id="error" style="color: red;"></div>
+    <div id="application_start">
+        <p>No vault has been detected, please create one by setting your ROOT password. When you forget this password, the information is lost.</p>
+        Your password:<br/>
+        <input id="password1" type="password" name="password"/><br/>
+        Verify password:<br/>
+        <input id="password2" type="password" name="password"/><br/>
+        <button type="button" onclick="createVault()">Start!</button>
+    </div>
+    <div id="password">
+        Your password: <input id="password3"  type="password"/><button type="button" onclick="showVault(openVault()); $('#password3').val('');">Open</button><button type="button" onclick="saveVault(); $('#password3').val('');">Save</button><button type="button" onclick="clearVault(); $('#password3').val('');">Clear</button>
+        <div style="padding-top: 10px;">
+            <div id="information"></div>        
+            <textarea id="vault" style="width: 100%; height: 80%; box-sizing: border-box;">Your vault has not been loaded yet, please open your vault...</textarea>
+        </div>
+    </div>
+    <script>
+        if ( applicationStarted() ) {
+            $("#application_start").hide();
+            $("#password").show();
+        } else {
+            $("#application_start").show();
+            $("#password").hide();
+        }
+    </script>
+</body>
+</html>
