@@ -7,50 +7,68 @@
     be visualized in the browser. No server communication, just on your local
     computer or browser. You can check the source code!
 
-    TODO: SHA integrity controle van de scripts die ingelezen worden
-    TODO: Wanneer het goed is opgeslagen, dit ook tonen
-    TODO: Wanneer het niet is opgeslagen of een fout, dit ook tonen
+    -- 23-11-2022, Maurice Snoeren
+    DONE: SHA integrity controle van de scripts die ingelezen worden
+    DONE: Wanneer het goed is opgeslagen, dit ook tonen
+    DONE: Wanneer het niet is opgeslagen of een fout, dit ook tonen
+    DONE: Source documentation
 -->
 <html>
 <head>
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous"></script>
+
     <script>
+        // Check if the browser implement localStorage
         console.log("A local based password manager started...");
         if (typeof(Storage) == "undefined") {
             alert("Sorry, your browser does not support this application! Update your browser to support localStorage!");
             console.log("Sorry, your browser does not support this application! Update your browser to support localStorage!");
         }
 
-        // Check if the application has been initialized. When it is initialized, the localStorage
-        // contains a vault and an information key. If this is not yet the case, the user gets the
-        // form to start the application.
+        // Function that checks if the application has been initialized.
+        // When it is initialized, the localStorage contains a vault and an information key. 
+        // If this is not yet the case, the user gets the form to start the application.
         function applicationStarted() {
             return retrieve("vault") !== null && retrieve("information") !== null;
         }
 
+        // Function that stores the value to a belonging key in the local storage.
         function store(key, value) {
             localStorage.setItem(key, value);
         }
 
+        // Function that retrieves the value to a belonging key from the local storage.
         function retrieve(key) {
             return localStorage.getItem(key);
         }
 
+        // Function that shows the information on the web page. <div id="information"></div>
         function showInformation(data) {
             $("#information").html(data);
         }
 
+        // Function that shows the vault information on the web page. <div id="vault"></div>
+        // The creation and update dates are shown in the information part of the web page.
         function showVault(data) {
-            //console.log(data);
             showInformation("<i>created: " + data.created + ", last updated: " + data.updated + "</i>");
             $("#vault").val(data.vault);
         }
 
-        function error(error) {
+        // Function that shows the error on the web page. <div id="error"></div>
+        function showError(error) {
             $("#error").html(error);
         }
 
+        // Function that shows the message on the web page. <div id="message"></div>
+        function showMessage(message) {
+            $("#message").html(message);
+        }
+
+        // Function that clears the vault and resets the application. Note that everything will be erased!
         function clearVault() {
             localStorage.clear("vault");
             localStorage.clear("information");
@@ -62,14 +80,16 @@
             $("#error").val("");
             $("#application_start").show();
             $("#password").hide();
+            showMessage("Vault is successfully cleared!")
         }
 
+        // Create a vault based on the two passwords that have been provided.
+        // Passwords need to match and all the information is stored in the local storage.
         function createVault() {
             password1 = $("#password1").val();
             password2 = $("#password2").val();
             if ( password1 === password2 ) {
                 vault = JSON.stringify({ created: new Date(), updated: new Date(), vault: "This is your vault..." });
-                //console.log(vault);
                 vault_enc = CryptoJS.AES.encrypt(vault, password1);
                 vault = ""; // Remove it again...
                 key_size = vault_enc.key.toString().length*8;
@@ -78,57 +98,77 @@
                 if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
                     store("vault", vault_enc);
                     information = JSON.stringify( { created: new Date(), key_size: key_size, iv_size: iv_size, salt_size: salt_size } );
-                    //console.log(information);
                     information_enc = CryptoJS.AES.encrypt(vault, password1);
                     store("information", information_enc);
                     $("#application_start").hide();
                     $("#password").show();
-                    error("");
+                    showError("");
+                    showMessage("Vault is successfully created!")
                 } else {
-                    error("Cipher keys are not correctly generated, please try it again!");
+                    showError("Cipher keys are not correctly generated, please try it again!");
                 }
             } else {
-                error("Passwords do not match!");
+                showError("Passwords do not match!");
             }
             $("#password1").val("");
             $("#password2").val("");
         }
 
+        // Function that reads all the information from the local storage. Opening the vault,
+        // while everything needs to be decrypted based on the password provided.
         function openVault() {
-            password = $("#password3").val();
-            vault_enc = retrieve("vault");
-            //console.log(vault_enc);
-            vault = CryptoJS.AES.decrypt(vault_enc, password).toString(CryptoJS.enc.Utf8);
-            vault = JSON.parse(vault);
-            return vault;
-        }
-
-        function saveVault() {
-            password = $("#password3").val();
-            vault = openVault();
-            vault.vault = $("#vault").val();
-            vault.updated = new Date();
-            vault = JSON.stringify(vault);
-            //console.log(vault);
-            vault_enc = CryptoJS.AES.encrypt(vault, password);
-            vault = ""; // Remove it again...
-            key_size = vault_enc.key.toString().length*8;
-            iv_size  = vault_enc.iv.toString().length*8
-            salt_size  = vault_enc.salt.toString().length*8
-            if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
-                store("vault", vault_enc)
-                error("");
-            } else {
-                error("Cipher keys are not correctly generated, please try it again!");
+            try {
+                password = $("#password3").val();
+                vault_enc = retrieve("vault");
+                vault = CryptoJS.AES.decrypt(vault_enc, password).toString(CryptoJS.enc.Utf8);
+                vault = JSON.parse(vault);
+                showMessage("Vault successfully opened.");
+                showError("");
+                return vault;
+            }
+            catch(err) {
+                showMessage("");
+                showError("Could not open the vault!");
             }
         }
 
+        // Function that saves the secret information to the vault. Everything is encrypt
+        // by the provided password. Before saving, the vault is first retrieved to update
+        // the creation date information. When the password is not correct, it will not 
+        // save the vault information.
+        function saveVault() {
+            try {
+                password = $("#password3").val();
+                vault = openVault();
+                vault.vault = $("#vault").val();
+                vault.updated = new Date();
+                vault = JSON.stringify(vault);
+                vault_enc = CryptoJS.AES.encrypt(vault, password);
+                vault = ""; // Remove it again...
+                key_size = vault_enc.key.toString().length*8;
+                iv_size  = vault_enc.iv.toString().length*8
+                salt_size  = vault_enc.salt.toString().length*8
+                if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
+                    store("vault", vault_enc)
+                    showError("");
+                    showMessage("Vault successfully saved.")
+                } else {
+                    showMessage("");
+                    showError("Cipher keys are not correctly generated, please try it again!");
+                }
+            }
+            catch(err) {
+                showMessage("");
+                showError("Could not save the vault, is your password correct?");
+            }
+        }
     </script>
 </head>
 
 <body>
-    <h1>Your local secret notes manager!</h1>
+    <div id="message" style="color: green;"></div>
     <div id="error" style="color: red;"></div>
+    <h1>Your local secret notes manager!</h1>
     <div id="application_start">
         <p>No vault has been detected, please create one by setting your ROOT password. When you forget this password, the information is lost.</p>
         Your password:<br/>
@@ -145,6 +185,7 @@
         </div>
     </div>
     <script>
+        // When the page is loaded, start the application and show the appropiate parts of the application.
         if ( applicationStarted() ) {
             $("#application_start").hide();
             $("#password").show();
