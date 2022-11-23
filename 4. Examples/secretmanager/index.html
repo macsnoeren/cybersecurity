@@ -7,11 +7,7 @@
     be visualized in the browser. No server communication, just on your local
     computer or browser. You can check the source code!
 
-    -- 23-11-2022, Maurice Snoeren
-    DONE: SHA integrity controle van de scripts die ingelezen worden
-    DONE: Wanneer het goed is opgeslagen, dit ook tonen
-    DONE: Wanneer het niet is opgeslagen of een fout, dit ook tonen
-    DONE: Source documentation
+    TODO: Make it nicer using bootstrap!
 -->
 <html>
 <head>
@@ -60,12 +56,12 @@
 
         // Function that shows the error on the web page. <div id="error"></div>
         function showError(error) {
-            $("#error").html(error);
+            alertMessage(error, 'danger');
         }
 
         // Function that shows the message on the web page. <div id="message"></div>
         function showMessage(message) {
-            $("#message").html(message);
+            alertMessage(message, 'success');
         }
 
         // Function that clears the vault and resets the application. Note that everything will be erased!
@@ -102,7 +98,6 @@
                     store("information", information_enc);
                     $("#application_start").hide();
                     $("#password").show();
-                    showError("");
                     showMessage("Vault is successfully created!")
                 } else {
                     showError("Cipher keys are not correctly generated, please try it again!");
@@ -123,13 +118,12 @@
                 vault = CryptoJS.AES.decrypt(vault_enc, password).toString(CryptoJS.enc.Utf8);
                 vault = JSON.parse(vault);
                 showMessage("Vault successfully opened.");
-                showError("");
-                return vault;
+                showVault(vault);
             }
             catch(err) {
-                showMessage("");
                 showError("Could not open the vault!");
             }
+            $("#password3").val("");
         }
 
         // Function that saves the secret information to the vault. Everything is encrypt
@@ -150,38 +144,47 @@
                 salt_size  = vault_enc.salt.toString().length*8
                 if ( key_size > 255 && iv_size > 100 && salt_size > 100 ) {
                     store("vault", vault_enc)
-                    showError("");
                     showMessage("Vault successfully saved.")
                 } else {
-                    showMessage("");
                     showError("Cipher keys are not correctly generated, please try it again!");
                 }
             }
             catch(err) {
-                showMessage("");
                 showError("Could not save the vault, is your password correct?");
             }
+        }
+
+        // Bootstrap functions
+        function alertMessage(message, type) {
+            console.log("called alertMessage: " + message + ", " + type);
+            $("#liveAlertPlaceholder").append(
+                '<div class="alert alert-' + type + ' alert-dismissible" role="alert">' +
+                '   <div>' + message + '</div>' +
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                '</div>'
+            );
         }
     </script>
 </head>
 
 <body>
-    <div id="message" style="color: green;"></div>
-    <div id="error" style="color: red;"></div>
-    <h1>Your local secret notes manager!</h1>
-    <div id="application_start">
-        <p>No vault has been detected, please create one by setting your ROOT password. When you forget this password, the information is lost.</p>
-        Your password:<br/>
-        <input id="password1" type="password" name="password"/><br/>
-        Verify password:<br/>
-        <input id="password2" type="password" name="password"/><br/>
-        <button type="button" onclick="createVault()">Start!</button>
-    </div>
-    <div id="password">
-        Your password: <input id="password3"  type="password"/><button type="button" onclick="showVault(openVault()); $('#password3').val('');">Open</button><button type="button" onclick="saveVault(); $('#password3').val('');">Save</button><button type="button" onclick="clearVault(); $('#password3').val('');">Clear</button>
-        <div style="padding-top: 10px;">
-            <div id="information"></div>        
-            <textarea id="vault" style="width: 100%; height: 80%; box-sizing: border-box;">Your vault has not been loaded yet, please open your vault...</textarea>
+    <div id="liveAlertPlaceholder"></div>
+    <div class="container">
+        <h1>Your local secret notes manager!</h1>
+        <div id="application_start">
+            <p>No vault has been detected, please create one by setting your ROOT password. When you forget this password, the information is lost.</p>
+            Your password:<br/>
+            <input id="password1" type="password" name="password"/><br/>
+            Verify password:<br/>
+            <input id="password2" type="password" name="password"/><br/>
+            <button type="button" onclick="createVault();">Start!</button>
+        </div>
+        <div id="password">
+            Your password: <input id="password3"  type="password"/><button type="button" onclick="openVault();">Open</button><button type="button" onclick="saveVault(); $('#password3').val('');">Save</button><button type="button" onclick="clearVault(); $('#password3').val('');">Clear</button>
+            <div style="padding-top: 10px;">
+                <div id="information"></div>
+                <textarea id="vault" style="width: 100%; height: 80%; box-sizing: border-box;">Your vault has not been loaded yet, please open your vault...</textarea>
+            </div>
         </div>
     </div>
     <script>
