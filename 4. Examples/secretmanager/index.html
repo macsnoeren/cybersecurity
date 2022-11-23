@@ -5,7 +5,7 @@
     it locally at your browsers local storages. Everything is encrypted in
     that store. When you type in the password, the encrypted passwords will
     be visualized in the browser. No server communication, just on your local
-    computer or browser. You can check the source code!
+    computer or browser. You can check the source code! Use it at your own risk!
 
     TODO: Make it nicer using bootstrap!
 -->
@@ -84,7 +84,7 @@
         function createVault() {
             password1 = $("#password1").val();
             password2 = $("#password2").val();
-            if ( password1 === password2 ) {
+            if ( password1 != "" && password1 === password2 ) {
                 vault = JSON.stringify({ created: new Date(), updated: new Date(), vault: "This is your vault..." });
                 vault_enc = CryptoJS.AES.encrypt(vault, password1);
                 vault = ""; // Remove it again...
@@ -103,7 +103,7 @@
                     showError("Cipher keys are not correctly generated, please try it again!");
                 }
             } else {
-                showError("Passwords do not match!");
+                showError("Password cannot be empty or passwords do not match!");
             }
             $("#password1").val("");
             $("#password2").val("");
@@ -121,7 +121,7 @@
                 showVault(vault);
             }
             catch(err) {
-                showError("Could not open the vault!");
+                showError("Could not open the vault, is your password correct?");
             }
             $("#password3").val("");
         }
@@ -133,9 +133,17 @@
         function saveVault() {
             try {
                 password = $("#password3").val();
-                vault = openVault();
+
+                // Get the saved vault first
+                vault_enc = retrieve("vault");
+                vault = CryptoJS.AES.decrypt(vault_enc, password).toString(CryptoJS.enc.Utf8);
+                vault = JSON.parse(vault);
+
+                // Update the vault with the existing values
                 vault.vault = $("#vault").val();
                 vault.updated = new Date();
+
+                // Save the vault again
                 vault = JSON.stringify(vault);
                 vault_enc = CryptoJS.AES.encrypt(vault, password);
                 vault = ""; // Remove it again...
@@ -151,39 +159,80 @@
             }
             catch(err) {
                 showError("Could not save the vault, is your password correct?");
+                console.log(err)
             }
+            $("#password3").val("");
         }
 
         // Bootstrap functions
         function alertMessage(message, type) {
-            console.log("called alertMessage: " + message + ", " + type);
             $("#liveAlertPlaceholder").append(
-                '<div class="alert alert-' + type + ' alert-dismissible" role="alert">' +
+                '<div class="alert alert-' + type + ' alert-dismissible fade show" style="position: fixed; width: 100%" role="alert">' +
                 '   <div>' + message + '</div>' +
                 '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                '</div>'
-            );
+                '</div>' +
+                '<script>window.setTimeout(function() { $(".alert").fadeTo(500, 0).slideUp(500, function() { $(this).remove(); }); }, 4000);<\/script>'
+             );
         }
     </script>
 </head>
 
 <body>
+    <!-- Modal -->
+    <div class="modal fade" id="clearVaultModal" tabindex="-1" aria-labelledby="clearVaultModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h1 class="modal-title fs-5" id="clearVaultModalLabel">Are you sure to clear your vault?</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                By clearing your vault all data will be lost and cannot be recovered! This is a destructive function!
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" onclick="clearVault();" data-bs-dismiss="modal">Clear vault</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    
     <div id="liveAlertPlaceholder"></div>
     <div class="container">
-        <h1>Your local secret notes manager!</h1>
         <div id="application_start">
-            <p>No vault has been detected, please create one by setting your ROOT password. When you forget this password, the information is lost.</p>
-            Your password:<br/>
-            <input id="password1" type="password" name="password"/><br/>
-            Verify password:<br/>
-            <input id="password2" type="password" name="password"/><br/>
-            <button type="button" onclick="createVault();">Start!</button>
+            <h1>Your local secret notes manager!</h1>
+            <p>Client based, no cookies and no communication with the Internet. It do stores the vault in your local browser storage (<5MB).<br/>
+               Please initialize your vault to store your secrets by setting your ROOT password. Note, when you forget this password, the information is lost.</p>
+            <div class="mb-3">
+                <label for="formGroupPassword1" class="form-label">Password</label>
+                <input id="password1" type="password" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label for="formGroupPassword2" class="form-label">Verify password</label>
+                <input id="password2" type="password" class="form-control">
+            </div>
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary btn-sm" onclick="createVault();">Start!</button>
+            </div>
         </div>
         <div id="password">
-            Your password: <input id="password3"  type="password"/><button type="button" onclick="openVault();">Open</button><button type="button" onclick="saveVault(); $('#password3').val('');">Save</button><button type="button" onclick="clearVault(); $('#password3').val('');">Clear</button>
+            <h1>Your local secret notes manager!
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#clearVaultModal">Clear vault</button>
+            </h1>
+            <p>Client based, no cookies and no communication with the Internet. It do stores the vault in your local browser storage (<5MB).<br/>
+               Great, you already have initialized a vault. Type your password and open your secrets!</p>
+            <div class="input-group">
+                <span class="input-group-text">Your password</span>
+                <input id="password3" type="password" class="form-control" style="width: 250px" />
+                <button type="button" class="btn btn-primary btn-sm" onclick="openVault();">Open</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="saveVault(); $('#password3').val('');">Save</button>
+            </div>    
             <div style="padding-top: 10px;">
-                <div id="information"></div>
-                <textarea id="vault" style="width: 100%; height: 80%; box-sizing: border-box;">Your vault has not been loaded yet, please open your vault...</textarea>
+            <div id="information"></div>
+                <div class="input-group">
+                    <span class="input-group-text">Vault</span>
+                    <textarea id="vault" rows="20" class="form-control" aria-label="Vault" placeholder="Your vault has not been loaded yet, please open your vault..."></textarea>
+                </div>
             </div>
         </div>
     </div>
