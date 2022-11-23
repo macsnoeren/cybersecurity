@@ -6,8 +6,6 @@
     that store. When you type in the password, the encrypted passwords will
     be visualized in the browser. No server communication, just on your local
     computer or browser. You can check the source code! Use it at your own risk!
-
-    TODO: Make it nicer using bootstrap!
 -->
 <html>
 <head>
@@ -178,7 +176,7 @@
 </head>
 
 <body>
-    <!-- Modal -->
+    <!-- Bootstrap Modal -->
     <div class="modal fade" id="clearVaultModal" tabindex="-1" aria-labelledby="clearVaultModalLabel" aria-hidden="true">
         <div class="modal-dialog">
         <div class="modal-content">
@@ -201,7 +199,7 @@
     <div class="container">
         <div id="application_start">
             <h1>Your local secret notes manager!</h1>
-            <p>Client based, no cookies and no communication with the Internet. It do stores the vault in your local browser storage (<5MB).<br/>
+            <p>Client based, no cookies and no communication with the Internet. It do stores the vault AES encrypted in your local browser storage (<5MB).<br/>
                Please initialize your vault to store your secrets by setting your ROOT password. Note, when you forget this password, the information is lost.</p>
             <div class="mb-3">
                 <label for="formGroupPassword1" class="form-label">Password</label>
