@@ -1,8 +1,8 @@
 # bcrypt is a password hashing function designed by Niels Provos and David Mazières.
 
 from base64 import b64encode
-from Crypto.Hash import SHA256
-from Crypto.Protocol.KDF import bcrypt, bcrypt_check
+from Cryptodome.Hash import SHA256
+from Cryptodome.Protocol.KDF import bcrypt, bcrypt_check
 
 password = b"my_password123"
 b64pwd = b64encode(SHA256.new(password).digest())

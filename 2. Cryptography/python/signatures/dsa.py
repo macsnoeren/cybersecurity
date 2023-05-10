@@ -1,15 +1,15 @@
 import os
 
-from Crypto.PublicKey import DSA
-from Crypto.Signature import DSS
-from Crypto.Hash import SHA256
+from Cryptodome.PublicKey import DSA
+from Cryptodome.Signature import DSS
+from Cryptodome.Hash import SHA256
 
 working_dir = os.path.dirname(os.path.realpath(__file__))
 
 # Create a new DSA key - private/public key pari
 key = DSA.generate(2048)
 f = open(working_dir + "\mypublickey.pem", "wb")
-f.write(key.public_key().export_key('PEM'))
+f.write(key.publickey().export_key('PEM'))
 f.close()
 
 # Sign a message

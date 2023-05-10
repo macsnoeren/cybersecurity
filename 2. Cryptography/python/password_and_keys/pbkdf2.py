@@ -1,6 +1,6 @@
-from Crypto.Protocol.KDF import PBKDF2
-from Crypto.Hash import SHA512
-from Crypto.Random import get_random_bytes
+from Cryptodome.Protocol.KDF import PBKDF2
+from Cryptodome.Hash import SHA512
+from Cryptodome.Random import get_random_bytes
 
 password = b'my super secret password'
 salt = get_random_bytes(16)

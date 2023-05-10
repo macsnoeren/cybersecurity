@@ -1,10 +1,7 @@
-from Crypto.Hash import MD5, SHA1, SHA256, SHA512 # pip install pycryptodome
+from Crypto.Hash import MD5, SHA256, SHA512 # pip install pycryptodome
 
 md5 = MD5.new(data=b'This is my message!')
 print("MD5:    " + md5.hexdigest())
-
-sha1 = SHA1.new(data=b'This is my message!')
-print("SHA1:   " + sha1.hexdigest())
 
 sha256 = SHA256.new(data=b'This is my message!')
 print("SHA256: " + sha256.hexdigest())

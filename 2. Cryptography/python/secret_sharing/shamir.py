@@ -4,18 +4,20 @@ import os
 # https://pycryptodome.readthedocs.io/en/latest/src/protocol/ss.html
 
 from binascii import hexlify, unhexlify
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-from Crypto.Protocol.SecretSharing import Shamir
+from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes
+from Cryptodome.Protocol.SecretSharing import Shamir
 
 working_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(working_dir)
 
 key = get_random_bytes(16)
+print("Key: %s" % (hexlify(key)))
 shares = Shamir.split(2, 5, key)
 for idx, share in shares:
     print("Index #%d: %s" % (idx, hexlify(share)))
 
-with open(working_dir + "\clear.txt", "rb") as fi, open(working_dir + "\enc.txt", "wb") as fo:
+with open("./clear.txt", "rb") as fi, open("./enc.txt", "wb") as fo:
     cipher = AES.new(key, AES.MODE_EAX)
     ct, tag = cipher.encrypt(fi.read()), cipher.digest()
 #    fo.write(nonce + tag + ct)
@@ -23,10 +25,9 @@ with open(working_dir + "\clear.txt", "rb") as fi, open(working_dir + "\enc.txt"
 
 # Als twee personen bij elkaar komen kunnen ze het geheim ontrafelen
 
-for x in range(2):
-    in_str = int( input("Enter index and share separated by comma: ") )
-    idx, share = [ s.strip() for s in in_str.split(",") ]
-    shares.append((idx, unhexlify(share)))
+in_str = int( input("Enter index and share separated by comma: ") )
+idx, share = [ s.strip() for s in in_str.split(",") ]
+shares.append((idx, unhexlify(share)))
 key = Shamir.combine(shares)
 
 with open("enc.txt", "rb") as fi:
