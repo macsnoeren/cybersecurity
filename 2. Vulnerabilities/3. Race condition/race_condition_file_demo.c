@@ -1,0 +1,209 @@
+// race_condition_file_demo.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <errno.h>
+
+#define TEMP_FILE "/tmp/user_temp_file"
+#define LOG_FILE "/tmp/system_log"
+
+void create_user_file() {
+    // User creates a temporary file
+    int fd = open(TEMP_FILE, O_CREAT | O_WRONLY, 0644);
+    if (fd == -1) {
+        perror("create_user_file");
+        return;
+    }
+    write(fd, "User data\n", 10);
+    close(fd);
+    printf("👤 User: Created temp file %s\n", TEMP_FILE);
+}
+
+void vulnerable_privileged_operation() {
+    printf("🔐 System: Starting privileged operation...\n");
+    
+    // VULNERABLE: Time-of-check to time-of-use (TOCTOU) race condition
+    
+    // Check if file exists and is safe to process
+    struct stat st;
+    if (stat(TEMP_FILE, &st) == -1) {
+        printf("❌ System: File doesn't exist\n");
+        return;
+    }
+    
+    // Check if it's a regular file (not a symlink)
+    if (!S_ISREG(st.st_mode)) {
+        printf("❌ System: Not a regular file\n");
+        return;
+    }
+    
+    printf("✅ System: File checks passed, processing...\n");
+    
+    // Simulate some processing time - VULNERABILITY WINDOW
+    sleep(1);  // This is where the race condition can be exploited
+    
+    // Time-of-use: Open and process the file (as root/privileged user)
+    printf("🔐 System: Opening file with elevated privileges...\n");
+    int fd = open(TEMP_FILE, O_RDONLY);
+    if (fd == -1) {
+        perror("vulnerable_privileged_operation");
+        return;
+    }
+    
+    // Process the file content (simulated)
+    char buffer[256];
+    ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+    if (bytes_read > 0) {
+        buffer[bytes_read] = '\0';
+        printf("🔐 System: Processing content: %s", buffer);
+        
+        // Write to privileged log file
+        int log_fd = open(LOG_FILE, O_CREAT | O_WRONLY | O_APPEND, 0600);
+        if (log_fd != -1) {
+            write(log_fd, "PRIVILEGED LOG: ", 16);
+            write(log_fd, buffer, bytes_read);
+            close(log_fd);
+            printf("📝 System: Logged to privileged file\n");
+        }
+    }
+    
+    close(fd);
+}
+
+void safe_privileged_operation() {
+    printf("🔐 Safe System: Starting secure privileged operation...\n");
+    
+    // SAFE: Open file descriptor first, then validate using fstat
+    int fd = open(TEMP_FILE, O_RDONLY);
+    if (fd == -1) {
+        printf("❌ Safe System: Cannot open file\n");
+        return;
+    }
+    
+    // Use fstat on the open file descriptor (not the filename)
+    struct stat st;
+    if (fstat(fd, &st) == -1) {
+        printf("❌ Safe System: Cannot stat file\n");
+        close(fd);
+        return;
+    }
+    
+    // Security checks on the actual opened file
+    if (!S_ISREG(st.st_mode)) {
+        printf("❌ Safe System: Not a regular file\n");
+        close(fd);
+        return;
+    }
+    
+    if (st.st_uid != getuid()) {
+        printf("❌ Safe System: File not owned by current user\n");
+        close(fd);
+        return;
+    }
+    
+    printf("✅ Safe System: File validated, processing...\n");
+    
+    // Process the already-opened file descriptor
+    char buffer[256];
+    ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+    if (bytes_read > 0) {
+        buffer[bytes_read] = '\0';
+        printf("🔐 Safe System: Processing content: %s", buffer);
+    }
+    
+    close(fd);
+}
+
+void exploit_race_condition() {
+    printf("🎯 Attacker: Starting race condition exploit...\n");
+    
+    // Wait a moment for the privileged process to start
+    usleep(500000);  // 0.5 seconds
+    
+    // Remove the original file and create a symlink to sensitive file
+    if (unlink(TEMP_FILE) == 0) {
+        printf("🎯 Attacker: Removed original file\n");
+        
+        // Create symlink to sensitive system file
+        if (symlink("/etc/passwd", TEMP_FILE) == 0) {
+            printf("🎯 Attacker: Created symlink to /etc/passwd\n");
+            printf("💀 Attacker: If successful, system will process /etc/passwd with elevated privileges!\n");
+        } else {
+            perror("symlink");
+        }
+    } else {
+        perror("unlink");
+    }
+}
+
+int main(int argc, char* argv[]) {
+    printf("=== Race Condition (TOCTOU) Demonstration ===\n\n");
+    
+    if (argc > 1 && strcmp(argv[1], "safe") == 0) {
+        printf("Running SAFE version:\n");
+        create_user_file();
+        safe_privileged_operation();
+        return 0;
+    }
+    
+    printf("Running VULNERABLE version:\n");
+    printf("This demonstrates a Time-of-Check-Time-of-Use (TOCTOU) race condition\n\n");
+    
+    // Clean up any existing files
+    unlink(TEMP_FILE);
+    unlink(LOG_FILE);
+    
+    create_user_file();
+    
+    // Fork to simulate concurrent processes
+    pid_t pid = fork();
+    
+    if (pid == 0) {
+        // Child process: The attacker
+        exploit_race_condition();
+        exit(0);
+    } else if (pid > 0) {
+        // Parent process: The privileged system process
+        vulnerable_privileged_operation();
+        
+        // Wait for child to complete
+        int status;
+        wait(&status);
+        
+        printf("\n--- Final State ---\n");
+        
+        // Check what actually got processed
+        if (access(LOG_FILE, F_OK) == 0) {
+            printf("📄 Contents of privileged log file:\n");
+            system("cat /tmp/system_log");
+        }
+        
+        // Check current state of temp file
+        struct stat st;
+        if (lstat(TEMP_FILE, &st) == 0) {
+            if (S_ISLNK(st.st_mode)) {
+                printf("⚠️  EXPLOIT SUCCESSFUL: Temp file is now a symlink!\n");
+                char link_target[256];
+                ssize_t len = readlink(TEMP_FILE, link_target, sizeof(link_target) - 1);
+                if (len != -1) {
+                    link_target[len] = '\0';
+                    printf("🎯 Symlink points to: %s\n", link_target);
+                }
+            }
+        }
+        
+        // Cleanup
+        unlink(TEMP_FILE);
+        unlink(LOG_FILE);
+        
+    } else {
+        perror("fork");
+        return 1;
+    }
+    
+    return 0;
+}
