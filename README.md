@@ -1,5 +1,5 @@
-# cybersecurity
-The main repo for cybersecurity education given by myself.
+# Cyber security
+The main repo for cyber security education given by myself.
 
 # Wishlist
 

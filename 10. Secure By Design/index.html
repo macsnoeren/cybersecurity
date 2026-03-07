@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security by Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #10141c;
+    --border: #1e2535;
+    --accent1: #00d4aa;
+    --accent2: #3b82f6;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --accent5: #a78bfa;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header { margin-bottom: 56px; display: flex; flex-direction: column; gap: 12px; }
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent1);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent1); }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  h1 span { color: var(--accent1); }
+  .header-sub { font-size: 16px; color: var(--muted); max-width: 560px; line-height: 1.65; font-weight: 300; }
+
+  .phase-nav { display: flex; gap: 4px; margin-bottom: 32px; flex-wrap: wrap; }
+  .phase-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .phase-btn:hover { color: var(--text); border-color: var(--muted); }
+  .phase-btn.active { color: var(--bg); border-color: transparent; font-weight: 500; }
+
+  .phase-panel { display: none; }
+  .phase-panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .phase-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 32px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-header::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; }
+  .phase-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+    opacity: 0.12;
+    letter-spacing: -0.03em;
+    flex-shrink: 0;
+  }
+  .phase-info h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .phase-info p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .phase-badge {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    align-self: flex-start;
+    text-transform: uppercase;
+  }
+
+  .activities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .activity-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .activity-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 10px;
+    pointer-events: none;
+  }
+  .activity-card:hover { border-color: transparent; transform: translateY(-2px); }
+  .activity-card:hover::after { opacity: 1; }
+
+  .activity-icon { font-size: 22px; margin-bottom: 12px; display: block; }
+  .activity-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .activity-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+  .activity-items { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .activity-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .activity-item::before { content: '→'; opacity: 0.4; flex-shrink: 0; margin-top: 1px; }
+
+  .activity-resources {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .resources-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    opacity: 0.55;
+  }
+  .resource-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.18s;
+  }
+  .resource-link:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateX(2px);
+  }
+  .resource-link .r-icon { font-size: 12px; flex-shrink: 0; opacity: 0.65; }
+  .resource-link .r-text {
+    font-size: 11.5px;
+    color: var(--text);
+    opacity: 0.65;
+    font-weight: 400;
+    line-height: 1.3;
+    flex: 1;
+    transition: opacity 0.15s;
+  }
+  .resource-link:hover .r-text { opacity: 1; }
+  .resource-link .r-arrow {
+    font-size: 10px;
+    opacity: 0.25;
+    flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .resource-link:hover .r-arrow { opacity: 0.6; transform: translateX(2px); }
+
+  /* Color themes */
+  .c1 { --pc: var(--accent2); }
+  .c2 { --pc: var(--accent1); }
+  .c3 { --pc: var(--accent3); }
+  .c4 { --pc: var(--accent4); }
+  .c5 { --pc: var(--accent5); }
+  .c6 { --pc: #34d399; }
+  .c7 { --pc: #f472b6; }
+
+  .phase-btn.active { background: var(--pc, var(--accent1)); }
+  .phase-header::before { background: var(--pc, var(--accent1)); }
+  .phase-num { color: var(--pc, var(--accent1)); }
+  .phase-badge {
+    background: color-mix(in srgb, var(--pc, var(--accent1)) 12%, transparent);
+    color: var(--pc, var(--accent1));
+    border: 1px solid color-mix(in srgb, var(--pc, var(--accent1)) 30%, transparent);
+  }
+  .activity-card:hover {
+    box-shadow: 0 0 0 1px var(--pc, var(--accent1)),
+                0 8px 24px color-mix(in srgb, var(--pc, var(--accent1)) 10%, transparent);
+  }
+  .activity-card:hover::after {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--pc, var(--accent1)) 4%, transparent), transparent);
+  }
+  .activity-title { color: var(--pc, var(--accent1)); }
+  .resource-link:hover .r-text { color: var(--pc, var(--accent1)); opacity: 1; }
+
+  /* SDLC bar */
+  .sdlc-bar {
+    display: flex;
+    margin-bottom: 48px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sdlc-step {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sdlc-step:last-child { border-right: none; }
+  .sdlc-step .sdlc-num { font-size: 18px; display: block; margin-bottom: 4px; opacity: 0.4; }
+  .sdlc-step:hover, .sdlc-step.active { color: var(--text); background: var(--surface); }
+  .sdlc-step.active .sdlc-num { opacity: 1; }
+
+  /* Principles */
+  .principles {
+    margin-top: 48px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .principles h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .principle-item { display: flex; gap: 10px; align-items: flex-start; }
+  .principle-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .principle-text { font-size: 13px; line-height: 1.5; color: var(--text); }
+  .principle-text strong { font-weight: 500; display: block; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-tag">Framework</div>
+    <h1>Security <span>by Design</span></h1>
+    <p class="header-sub">A structured process integrating security activities across every phase of the software development lifecycle — from requirements to operations.</p>
+  </div>
+
+  <div class="sdlc-bar">
+    <div class="sdlc-step active" onclick="switchPhase(0)"><span class="sdlc-num">①</span>Requirements</div>
+    <div class="sdlc-step" onclick="switchPhase(1)"><span class="sdlc-num">②</span>Architecture</div>
+    <div class="sdlc-step" onclick="switchPhase(2)"><span class="sdlc-num">③</span>Design</div>
+    <div class="sdlc-step" onclick="switchPhase(3)"><span class="sdlc-num">④</span>Implementation</div>
+    <div class="sdlc-step" onclick="switchPhase(4)"><span class="sdlc-num">⑤</span>Testing</div>
+    <div class="sdlc-step" onclick="switchPhase(5)"><span class="sdlc-num">⑥</span>Deployment</div>
+    <div class="sdlc-step" onclick="switchPhase(6)"><span class="sdlc-num">⑦</span>Operations</div>
+  </div>
+
+  <div class="phase-nav">
+    <button class="phase-btn c1 active" onclick="switchPhase(0)">01 · Requirements</button>
+    <button class="phase-btn c2" onclick="switchPhase(1)">02 · Architecture</button>
+    <button class="phase-btn c3" onclick="switchPhase(2)">03 · Design</button>
+    <button class="phase-btn c4" onclick="switchPhase(3)">04 · Implementation</button>
+    <button class="phase-btn c5" onclick="switchPhase(4)">05 · Testing</button>
+    <button class="phase-btn c6" onclick="switchPhase(5)">06 · Deployment</button>
+    <button class="phase-btn c7" onclick="switchPhase(6)">07 · Operations</button>
+  </div>
+
+  <!-- PHASE 1 -->
+  <div class="phase-panel c1 active" id="phase-0">
+    <div class="phase-header">
+      <div class="phase-num">01</div>
+      <div class="phase-info"><h2>Requirements & Planning</h2><p>Establish security goals before any code is written. Define what "secure" means for your product and who is responsible.</p></div>
+      <div class="phase-badge">Foundation</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">🎯</span>
+        <div class="activity-title">Security Requirements Elicitation</div>
+        <div class="activity-desc">Define explicit security requirements alongside functional ones. Distinguish confidentiality, integrity, and availability needs.</div>
+        <div class="activity-items">
+          <div class="activity-item">Define CIA triad priorities per asset</div>
+          <div class="activity-item">Interview stakeholders on risk tolerance</div>
+          <div class="activity-item">Capture compliance requirements (GDPR, PCI-DSS, ISO 27001)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP ASVS — Application Security Verification Standard</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://csrc.nist.gov/publications/detail/sp/800-160/vol-1/final" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST SP 800-160 — Systems Security Engineering</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.microsoft.com/en-us/securityengineering/sdl" target="_blank"><span class="r-icon">🪟</span><span class="r-text">Microsoft SDL — Security Development Lifecycle</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">👤</span>
+        <div class="activity-title">Abuse Case & Misuse Case Modeling</div>
+        <div class="activity-desc">Complement use cases with "abuse cases" that describe how attackers could exploit the system.</div>
+        <div class="activity-items">
+          <div class="activity-item">Identify attacker personas and motivations</div>
+          <div class="activity-item">Map misuse cases to each use case</div>
+          <div class="activity-item">Prioritize by impact and likelihood</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Abuse_Case_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Abuse Case Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.sei.cmu.edu/our-work/cybersecurity/" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SEI Carnegie Mellon — Cybersecurity Research</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📋</span>
+        <div class="activity-title">Compliance & Regulatory Mapping</div>
+        <div class="activity-desc">Identify applicable laws, standards, and frameworks early to bake controls in, not bolt them on.</div>
+        <div class="activity-items">
+          <div class="activity-item">OWASP ASVS level selection</div>
+          <div class="activity-item">Map regulatory obligations to controls</div>
+          <div class="activity-item">Define audit trail requirements</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://gdpr.eu/checklist/" target="_blank"><span class="r-icon">🇪🇺</span><span class="r-text">GDPR Compliance Checklist</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.pcisecuritystandards.org/document_library/" target="_blank"><span class="r-icon">💳</span><span class="r-text">PCI-DSS Standard Documents</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.iso.org/isoiec-27001-information-security.html" target="_blank"><span class="r-icon">🏅</span><span class="r-text">ISO/IEC 27001 — Information Security</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">👥</span>
+        <div class="activity-title">Roles & Responsibilities</div>
+        <div class="activity-desc">Assign security ownership across the team. Security is everyone's job — but someone must lead.</div>
+        <div class="activity-items">
+          <div class="activity-item">Designate a Security Champion per team</div>
+          <div class="activity-item">Define RACI for security activities</div>
+          <div class="activity-item">Set security acceptance criteria in Definition of Done</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-security-champions-guidebook/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Security Champions Guidebook</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owaspsamm.org/" target="_blank"><span class="r-icon">📊</span><span class="r-text">OWASP SAMM — Software Assurance Maturity Model</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📊</span>
+        <div class="activity-title">Risk Assessment</div>
+        <div class="activity-desc">Perform an initial risk assessment to identify high-value assets and likely attack surfaces.</div>
+        <div class="activity-items">
+          <div class="activity-item">Asset inventory and classification</div>
+          <div class="activity-item">Threat landscape survey for your domain</div>
+          <div class="activity-item">Risk register creation</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://csrc.nist.gov/publications/detail/sp/800-30/rev-1/final" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST SP 800-30 — Risk Assessment Guide</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.enisa.europa.eu/topics/risk-management" target="_blank"><span class="r-icon">🇪🇺</span><span class="r-text">ENISA — Risk Management Resources</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🏋️</span>
+        <div class="activity-title">Security Training</div>
+        <div class="activity-desc">Ensure developers, architects, and QA understand secure development fundamentals before building.</div>
+        <div class="activity-items">
+          <div class="activity-item">OWASP Top 10 awareness</div>
+          <div class="activity-item">Secure coding guidelines rollout</div>
+          <div class="activity-item">Social engineering awareness</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-top-ten/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Top 10</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.sans.org/cyber-security-courses/" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SANS — Cybersecurity Training Courses</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.securecodewarrior.com/" target="_blank"><span class="r-icon">⚔️</span><span class="r-text">Secure Code Warrior — Developer Training Platform</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase-panel c2" id="phase-1">
+    <div class="phase-header">
+      <div class="phase-num">02</div>
+      <div class="phase-info"><h2>Architecture & Threat Modeling</h2><p>Design the system's security posture at the structural level. Find threats before they become vulnerabilities.</p></div>
+      <div class="phase-badge">High Impact</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">🗺️</span>
+        <div class="activity-title">Threat Modeling (STRIDE / PASTA)</div>
+        <div class="activity-desc">Systematically identify threats against your architecture. STRIDE covers Spoofing, Tampering, Repudiation, Info Disclosure, DoS, Elevation of Privilege.</div>
+        <div class="activity-items">
+          <div class="activity-item">Create data flow diagrams (DFDs)</div>
+          <div class="activity-item">Identify trust boundaries and entry points</div>
+          <div class="activity-item">Apply STRIDE per element; document mitigations</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-community/Application_Threat_Modeling" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Threat Modeling Guide</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://learn.microsoft.com/en-us/azure/security/develop/threat-modeling-tool" target="_blank"><span class="r-icon">🪟</span><span class="r-text">Microsoft Threat Modeling Tool</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-threat-dragon/" target="_blank"><span class="r-icon">🐉</span><span class="r-text">OWASP Threat Dragon (open-source tool)</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🏗️</span>
+        <div class="activity-title">Secure Architecture Patterns</div>
+        <div class="activity-desc">Apply proven security patterns at the design stage to avoid structural vulnerabilities.</div>
+        <div class="activity-items">
+          <div class="activity-item">Defense in depth layering</div>
+          <div class="activity-item">Principle of least privilege for components</div>
+          <div class="activity-item">Fail-secure / fail-safe defaults</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://learn.microsoft.com/en-us/azure/architecture/framework/security/" target="_blank"><span class="r-icon">🪟</span><span class="r-text">Microsoft Azure Security Architecture</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.ncsc.gov.uk/collection/cyber-security-design-principles" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NCSC — Cyber Security Design Principles</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔐</span>
+        <div class="activity-title">Authentication & Authorization Design</div>
+        <div class="activity-desc">Define identity and access management architecture before any code is written.</div>
+        <div class="activity-items">
+          <div class="activity-item">Choose AuthN protocol (OAuth 2.0, SAML, OIDC)</div>
+          <div class="activity-item">Design RBAC / ABAC model</div>
+          <div class="activity-item">Plan MFA integration points</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Authentication Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://oauth.net/2/" target="_blank"><span class="r-icon">🔑</span><span class="r-text">OAuth 2.0 — Official Specification</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://openid.net/connect/" target="_blank"><span class="r-icon">🪪</span><span class="r-text">OpenID Connect — Official Docs</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔒</span>
+        <div class="activity-title">Cryptography Strategy</div>
+        <div class="activity-desc">Select and standardize cryptographic algorithms and key management approaches.</div>
+        <div class="activity-items">
+          <div class="activity-item">Algorithm selection (AES-256, RSA-2048+, SHA-256+)</div>
+          <div class="activity-item">Key lifecycle management plan</div>
+          <div class="activity-item">Secrets management (Vault, AWS KMS, etc.)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Cryptographic Storage Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST Cryptographic Standards & Guidelines</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📡</span>
+        <div class="activity-title">Network & Data Flow Security</div>
+        <div class="activity-desc">Design how data moves securely through and between systems.</div>
+        <div class="activity-items">
+          <div class="activity-item">TLS everywhere — no plaintext internal channels</div>
+          <div class="activity-item">Network segmentation and firewall zoning</div>
+          <div class="activity-item">API gateway and rate limiting strategy</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP TLS Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-api-security/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP API Security Top 10</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📝</span>
+        <div class="activity-title">Security Architecture Review</div>
+        <div class="activity-desc">Have a second set of eyes validate architectural security decisions before design begins.</div>
+        <div class="activity-items">
+          <div class="activity-item">Internal or external security architect review</div>
+          <div class="activity-item">Architecture Decision Records (ADRs)</div>
+          <div class="activity-item">Sign-off gate before moving to design</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST SP 800-53 — Security & Privacy Controls</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.ncsc.gov.uk/section/advice-guidance/all-topics" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NCSC — Security Guidance Library</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase-panel c3" id="phase-2">
+    <div class="phase-header">
+      <div class="phase-num">03</div>
+      <div class="phase-info"><h2>Secure Design</h2><p>Translate architecture decisions into detailed, secure component and interface designs. Prevent vulnerabilities at the blueprint stage.</p></div>
+      <div class="phase-badge">Blueprint</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">✅</span>
+        <div class="activity-title">Security Design Checklist</div>
+        <div class="activity-desc">Use a structured checklist to verify each component meets security requirements before implementation.</div>
+        <div class="activity-items">
+          <div class="activity-item">Input validation design for all data entry points</div>
+          <div class="activity-item">Output encoding strategy per context (HTML, SQL, shell)</div>
+          <div class="activity-item">Error handling — no sensitive data in stack traces</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Cheat Sheet Series — full library</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.microsoft.com/en-us/securityengineering/sdl/practices" target="_blank"><span class="r-icon">🪟</span><span class="r-text">Microsoft SDL Security Practices</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🛡️</span>
+        <div class="activity-title">Input Validation & Output Encoding</div>
+        <div class="activity-desc">Design validation at every trust boundary. Define allowlist-based validation rules per field/API.</div>
+        <div class="activity-items">
+          <div class="activity-item">Define validation schema per input field</div>
+          <div class="activity-item">Parameterized query patterns for all DB access</div>
+          <div class="activity-item">Content Security Policy planning</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Input Validation Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP SQL Injection Prevention</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://content-security-policy.com/" target="_blank"><span class="r-icon">🔐</span><span class="r-text">CSP Reference & Examples</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔏</span>
+        <div class="activity-title">Data Classification & Protection</div>
+        <div class="activity-desc">Classify all data by sensitivity and design appropriate protection for each class.</div>
+        <div class="activity-items">
+          <div class="activity-item">PII / sensitive data inventory</div>
+          <div class="activity-item">Encryption at rest plan per data class</div>
+          <div class="activity-item">Data minimization and retention policies</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Cryptographic Storage Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.enisa.europa.eu/publications/guidelines-for-smarter-eu-funded-ict-procurement" target="_blank"><span class="r-icon">🇪🇺</span><span class="r-text">ENISA Data Protection Guidelines</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📜</span>
+        <div class="activity-title">Audit Logging Design</div>
+        <div class="activity-desc">Design comprehensive, tamper-evident logging before building features.</div>
+        <div class="activity-items">
+          <div class="activity-item">Define security event taxonomy</div>
+          <div class="activity-item">Centralized log aggregation architecture</div>
+          <div class="activity-item">Log integrity protection plan</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Logging Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.cisa.gov/resources-tools/resources/logging-made-easy" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">CISA — Logging Made Easy</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">⚡</span>
+        <div class="activity-title">Session & State Management</div>
+        <div class="activity-desc">Design session lifecycle: creation, maintenance, timeout, and termination with security controls.</div>
+        <div class="activity-items">
+          <div class="activity-item">Secure session token generation (entropy requirements)</div>
+          <div class="activity-item">Idle and absolute timeout policies</div>
+          <div class="activity-item">CSRF protection mechanisms</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Session Management Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP CSRF Prevention Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🧩</span>
+        <div class="activity-title">Third-Party & Dependency Review</div>
+        <div class="activity-desc">Evaluate the security of libraries, APIs, and services before committing to their use.</div>
+        <div class="activity-items">
+          <div class="activity-item">Known vulnerability check (OSV, NVD)</div>
+          <div class="activity-item">License and support status review</div>
+          <div class="activity-item">Minimal dependency principle</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://osv.dev/" target="_blank"><span class="r-icon">🔍</span><span class="r-text">OSV.dev — Open Source Vulnerability Database</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://nvd.nist.gov/" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST NVD — National Vulnerability Database</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-dependency-check/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Dependency-Check</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="phase-panel c4" id="phase-3">
+    <div class="phase-header">
+      <div class="phase-num">04</div>
+      <div class="phase-info"><h2>Secure Implementation</h2><p>Write code securely from the first keystroke. Catch issues during development — when fixes are cheapest.</p></div>
+      <div class="phase-badge">Build Phase</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">📖</span>
+        <div class="activity-title">Secure Coding Standards</div>
+        <div class="activity-desc">Adopt and enforce language-specific secure coding guidelines. Make the right way the easy way.</div>
+        <div class="activity-items">
+          <div class="activity-item">Language-specific guidelines (CERT, SEI)</div>
+          <div class="activity-item">Forbidden functions list (strcpy, eval, etc.)</div>
+          <div class="activity-item">Linter rules encoding security standards</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://wiki.sei.cmu.edu/confluence/display/seccode" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SEI CERT Secure Coding Standards</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-secure-coding-practices-quick-reference-guide/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Secure Coding Practices Quick Reference</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔍</span>
+        <div class="activity-title">Static Application Security Testing (SAST)</div>
+        <div class="activity-desc">Integrate automated code analysis into the developer workflow to catch vulnerabilities at write-time.</div>
+        <div class="activity-items">
+          <div class="activity-item">IDE plugin integration (SonarLint, Semgrep)</div>
+          <div class="activity-item">Pre-commit hooks for critical checks</div>
+          <div class="activity-item">CI pipeline SAST gates (fail on HIGH/CRITICAL)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-community/Source_Code_Analysis_Tools" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Source Code Analysis Tools</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://semgrep.dev/docs/" target="_blank"><span class="r-icon">🔎</span><span class="r-text">Semgrep — SAST Documentation</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.sonarsource.com/products/sonarqube/" target="_blank"><span class="r-icon">📡</span><span class="r-text">SonarQube — Code Quality & Security</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📦</span>
+        <div class="activity-title">Software Composition Analysis (SCA)</div>
+        <div class="activity-desc">Continuously scan open-source dependencies for known CVEs. Maintain a software bill of materials (SBOM).</div>
+        <div class="activity-items">
+          <div class="activity-item">Dependency scanning (Dependabot, Snyk, OWASP DC)</div>
+          <div class="activity-item">SBOM generation per build</div>
+          <div class="activity-item">License compliance enforcement</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-dependency-check/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Dependency-Check</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://docs.github.com/en/code-security/dependabot" target="_blank"><span class="r-icon">🐙</span><span class="r-text">GitHub Dependabot Documentation</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://ntia.gov/page/software-bill-materials" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NTIA — Software Bill of Materials (SBOM)</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🕵️</span>
+        <div class="activity-title">Secrets Detection</div>
+        <div class="activity-desc">Prevent credentials, API keys, and tokens from being committed to source control.</div>
+        <div class="activity-items">
+          <div class="activity-item">Pre-commit hooks (git-secrets, Gitleaks)</div>
+          <div class="activity-item">Repository scanning for historical leaks</div>
+          <div class="activity-item">Secrets rotation procedures</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://github.com/gitleaks/gitleaks" target="_blank"><span class="r-icon">🐙</span><span class="r-text">Gitleaks — Secrets Scanner (GitHub)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://docs.github.com/en/code-security/secret-scanning" target="_blank"><span class="r-icon">🔐</span><span class="r-text">GitHub Secret Scanning</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Secrets Management Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">👁️</span>
+        <div class="activity-title">Security-Focused Code Review</div>
+        <div class="activity-desc">Integrate security into pull request reviews. Security champions lead targeted reviews for sensitive changes.</div>
+        <div class="activity-items">
+          <div class="activity-item">Security review checklist for PRs</div>
+          <div class="activity-item">Mandatory security champion approval for auth changes</div>
+          <div class="activity-item">Pair review for cryptographic code</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-code-review-guide/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Code Review Guide</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://google.github.io/eng-practices/review/" target="_blank"><span class="r-icon">🔵</span><span class="r-text">Google Engineering — Code Review Practices</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🏠</span>
+        <div class="activity-title">Secure Development Environment</div>
+        <div class="activity-desc">Harden the development environment itself — supply chain attacks start here.</div>
+        <div class="activity-items">
+          <div class="activity-item">Signed commits enforcement</div>
+          <div class="activity-item">Developer workstation hardening policy</div>
+          <div class="activity-item">Artifact registry with integrity checks</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://slsa.dev/" target="_blank"><span class="r-icon">🔗</span><span class="r-text">SLSA — Supply Chain Security Framework</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://docs.github.com/en/authentication/managing-commit-signature-verification" target="_blank"><span class="r-icon">🐙</span><span class="r-text">GitHub — Commit Signing Verification</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="phase-panel c5" id="phase-4">
+    <div class="phase-header">
+      <div class="phase-num">05</div>
+      <div class="phase-info"><h2>Security Testing & Verification</h2><p>Validate that security controls work as designed. Attempt to break the system before attackers do.</p></div>
+      <div class="phase-badge">Validation</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">🌐</span>
+        <div class="activity-title">Dynamic Application Security Testing (DAST)</div>
+        <div class="activity-desc">Test the running application by simulating attacker behavior from the outside.</div>
+        <div class="activity-items">
+          <div class="activity-item">Automated scanning (OWASP ZAP, Burp Suite)</div>
+          <div class="activity-item">Integration in CI/CD staging environments</div>
+          <div class="activity-item">API security testing (REST, GraphQL, gRPC)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.zaproxy.org/" target="_blank"><span class="r-icon">⚡</span><span class="r-text">OWASP ZAP — Free DAST Scanner</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://portswigger.net/burp" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">Burp Suite — Web Security Testing</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Web Security Testing Guide (WSTG)</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">⚔️</span>
+        <div class="activity-title">Penetration Testing</div>
+        <div class="activity-desc">Engage skilled testers to manually probe the system as a real attacker would, finding logic and chained vulnerabilities.</div>
+        <div class="activity-items">
+          <div class="activity-item">Internal pen test before major releases</div>
+          <div class="activity-item">Third-party pen test annually or post major changes</div>
+          <div class="activity-item">Scope: web, API, mobile, network, social engineering</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP WSTG — Penetration Testing Guide</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.pentest-standard.org/" target="_blank"><span class="r-icon">📋</span><span class="r-text">PTES — Penetration Testing Execution Standard</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.kali.org/" target="_blank"><span class="r-icon">🐉</span><span class="r-text">Kali Linux — Pen Testing Distribution</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔬</span>
+        <div class="activity-title">Interactive Application Security Testing (IAST)</div>
+        <div class="activity-desc">Instrument the application during functional testing to detect vulnerabilities with full code context.</div>
+        <div class="activity-items">
+          <div class="activity-item">Agent-based IAST in QA environments</div>
+          <div class="activity-item">Combine with existing functional test suites</div>
+          <div class="activity-item">Near-zero false positive rate advantage</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-community/IAST" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — IAST Overview</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.contrastsecurity.com/knowledge-hub/glossary/interactive-application-security-testing" target="_blank"><span class="r-icon">🔬</span><span class="r-text">Contrast Security — IAST Explained</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📋</span>
+        <div class="activity-title">Security Test Cases & Regression</div>
+        <div class="activity-desc">Write and maintain security-specific test cases. Every fixed vulnerability becomes a regression test.</div>
+        <div class="activity-items">
+          <div class="activity-item">OWASP ASVS as test basis</div>
+          <div class="activity-item">Negative test cases for all access controls</div>
+          <div class="activity-item">Automated regression for past vulnerabilities</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP ASVS — Verification Standard</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://mas.owasp.org/MASTG/" target="_blank"><span class="r-icon">📱</span><span class="r-text">OWASP MASTG — Mobile Security Testing Guide</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">☁️</span>
+        <div class="activity-title">Infrastructure & Configuration Testing</div>
+        <div class="activity-desc">Validate that the infrastructure hosting your application is configured securely.</div>
+        <div class="activity-items">
+          <div class="activity-item">CIS Benchmark compliance scanning</div>
+          <div class="activity-item">IaC security linting (Checkov, tfsec)</div>
+          <div class="activity-item">Cloud misconfiguration scanning (CSPM)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.cisecurity.org/cis-benchmarks/" target="_blank"><span class="r-icon">🛡️</span><span class="r-text">CIS Benchmarks — Hardening Standards</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.checkov.io/" target="_blank"><span class="r-icon">✅</span><span class="r-text">Checkov — IaC Security Scanner</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🧠</span>
+        <div class="activity-title">Fuzzing</div>
+        <div class="activity-desc">Feed malformed, unexpected, or random inputs to discover crashes, memory errors, and unhandled edge cases.</div>
+        <div class="activity-items">
+          <div class="activity-item">Protocol and API fuzzing (Boofuzz, Atheris)</div>
+          <div class="activity-item">File format fuzzing for parsers</div>
+          <div class="activity-item">Continuous fuzzing integration</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://google.github.io/oss-fuzz/" target="_blank"><span class="r-icon">🔵</span><span class="r-text">Google OSS-Fuzz — Continuous Fuzzing</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-community/Fuzzing" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — Fuzzing Overview</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 6 -->
+  <div class="phase-panel c6" id="phase-5">
+    <div class="phase-header">
+      <div class="phase-num">06</div>
+      <div class="phase-info"><h2>Secure Deployment & Release</h2><p>Ship securely. Harden the deployment pipeline, infrastructure, and release process to prevent post-deployment compromise.</p></div>
+      <div class="phase-badge">Release Gate</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">🚦</span>
+        <div class="activity-title">Security Release Gate</div>
+        <div class="activity-desc">Enforce a mandatory security checklist before any production release. No ship without sign-off.</div>
+        <div class="activity-items">
+          <div class="activity-item">All critical/high vulnerabilities resolved or risk-accepted</div>
+          <div class="activity-item">Pen test findings addressed</div>
+          <div class="activity-item">Security champion sign-off in release process</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owaspsamm.org/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP SAMM — Software Assurance Maturity Model</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.microsoft.com/en-us/securityengineering/sdl/practices" target="_blank"><span class="r-icon">🪟</span><span class="r-text">Microsoft SDL — Release Security Practices</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔑</span>
+        <div class="activity-title">Secrets & Configuration Management</div>
+        <div class="activity-desc">Ensure production secrets are injected securely at runtime, never baked into images or configs.</div>
+        <div class="activity-items">
+          <div class="activity-item">Vault / secrets manager integration</div>
+          <div class="activity-item">Environment-specific config separation</div>
+          <div class="activity-item">Rotation schedule for all credentials</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://developer.hashicorp.com/vault/docs" target="_blank"><span class="r-icon">🔐</span><span class="r-text">HashiCorp Vault — Secrets Management Docs</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Secrets Management Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🐳</span>
+        <div class="activity-title">Container & Image Security</div>
+        <div class="activity-desc">Harden container images and the build pipeline. Verify integrity from build to production.</div>
+        <div class="activity-items">
+          <div class="activity-item">Minimal base images (distroless, Alpine)</div>
+          <div class="activity-item">Container image scanning (Trivy, Grype)</div>
+          <div class="activity-item">Image signing and provenance (Sigstore/Cosign)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://github.com/aquasecurity/trivy" target="_blank"><span class="r-icon">🔍</span><span class="r-text">Trivy — Container Vulnerability Scanner</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://docs.sigstore.dev/" target="_blank"><span class="r-icon">✍️</span><span class="r-text">Sigstore / Cosign — Image Signing</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Docker Security Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔒</span>
+        <div class="activity-title">Infrastructure Hardening</div>
+        <div class="activity-desc">Apply CIS Benchmarks and least-privilege principles to all infrastructure components.</div>
+        <div class="activity-items">
+          <div class="activity-item">OS hardening and patch management</div>
+          <div class="activity-item">Network security groups / firewall rules review</div>
+          <div class="activity-item">Disable unnecessary services and ports</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.cisecurity.org/cis-benchmarks/" target="_blank"><span class="r-icon">🛡️</span><span class="r-text">CIS Benchmarks</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://public.cyber.mil/stigs/" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">DISA STIGs — Security Technical Implementation Guides</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔄</span>
+        <div class="activity-title">CI/CD Pipeline Security</div>
+        <div class="activity-desc">Treat the deployment pipeline as an attack surface. Protect it with the same rigor as production.</div>
+        <div class="activity-items">
+          <div class="activity-item">Pipeline runner isolation and least privilege</div>
+          <div class="activity-item">Dependency pinning with hash verification</div>
+          <div class="activity-item">Supply chain security (SLSA framework)</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://slsa.dev/" target="_blank"><span class="r-icon">🔗</span><span class="r-text">SLSA — Supply Chain Security Framework</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-devsecops-guideline/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP DevSecOps Guideline</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🌊</span>
+        <div class="activity-title">Blue/Green & Canary Deployments</div>
+        <div class="activity-desc">Use staged rollout strategies to limit blast radius and enable rapid rollback if security issues emerge.</div>
+        <div class="activity-items">
+          <div class="activity-item">Canary deployments with security monitoring</div>
+          <div class="activity-item">Automated rollback on anomaly detection</div>
+          <div class="activity-item">Feature flags for rapid disable of risky features</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://martinfowler.com/bliki/CanaryRelease.html" target="_blank"><span class="r-icon">📝</span><span class="r-text">Martin Fowler — Canary Release Pattern</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://openfeature.dev/" target="_blank"><span class="r-icon">🚩</span><span class="r-text">OpenFeature — Feature Flags Standard</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PHASE 7 -->
+  <div class="phase-panel c7" id="phase-6">
+    <div class="phase-header">
+      <div class="phase-num">07</div>
+      <div class="phase-info"><h2>Operations & Continuous Security</h2><p>Security doesn't end at launch. Monitor, detect, respond, and improve continuously throughout the product lifetime.</p></div>
+      <div class="phase-badge">Ongoing</div>
+    </div>
+    <div class="activities-grid">
+
+      <div class="activity-card">
+        <span class="activity-icon">👁️‍🗨️</span>
+        <div class="activity-title">Security Monitoring & SIEM</div>
+        <div class="activity-desc">Collect, correlate, and alert on security events in real time across all systems.</div>
+        <div class="activity-items">
+          <div class="activity-item">Centralized logging and SIEM integration</div>
+          <div class="activity-item">Security dashboards and alert rules</div>
+          <div class="activity-item">Anomaly detection and behavioral analytics</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://attack.mitre.org/" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE ATT&CK — Adversary Tactics & Techniques</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.elastic.co/what-is/siem" target="_blank"><span class="r-icon">🔍</span><span class="r-text">Elastic — SIEM Explained</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.splunk.com/en_us/solutions/security.html" target="_blank"><span class="r-icon">📡</span><span class="r-text">Splunk Security — SIEM Platform</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🚨</span>
+        <div class="activity-title">Incident Response</div>
+        <div class="activity-desc">Be ready to respond fast. A plan written during an incident is already too late.</div>
+        <div class="activity-items">
+          <div class="activity-item">Documented IR playbooks per threat type</div>
+          <div class="activity-item">Regular tabletop exercises and drills</div>
+          <div class="activity-item">Defined escalation paths and communication plans</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NIST SP 800-61 — Incident Handling Guide</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.cisa.gov/topics/cyber-threats-and-advisories/cybersecurity-incident-response" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">CISA — Cybersecurity Incident Response</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.sans.org/white-papers/incident-handlers-handbook/" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SANS — Incident Handler's Handbook</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔎</span>
+        <div class="activity-title">Vulnerability Management</div>
+        <div class="activity-desc">Continuously discover, prioritize, and remediate vulnerabilities across your production environment.</div>
+        <div class="activity-items">
+          <div class="activity-item">Continuous vulnerability scanning</div>
+          <div class="activity-item">SLA-based remediation by severity</div>
+          <div class="activity-item">Patch management and tracking</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.first.org/cvss/" target="_blank"><span class="r-icon">📊</span><span class="r-text">FIRST — CVSS Scoring System</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">CISA KEV — Known Exploited Vulnerabilities Catalog</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📬</span>
+        <div class="activity-title">Vulnerability Disclosure Program</div>
+        <div class="activity-desc">Invite external researchers to responsibly report vulnerabilities. Give them a safe channel to do so.</div>
+        <div class="activity-items">
+          <div class="activity-item">Security.txt and disclosure policy</div>
+          <div class="activity-item">Bug bounty program (HackerOne, Bugcrowd)</div>
+          <div class="activity-item">Triage SLA and researcher communication process</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://securitytxt.org/" target="_blank"><span class="r-icon">📄</span><span class="r-text">Security.txt — Standard for Disclosure Policies</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.hackerone.com/vulnerability-management/vulnerability-disclosure-policy-best-practices" target="_blank"><span class="r-icon">🏆</span><span class="r-text">HackerOne — VDP Best Practices</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Vulnerability Disclosure Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">📈</span>
+        <div class="activity-title">Security Metrics & KPIs</div>
+        <div class="activity-desc">Measure your security program's effectiveness. What gets measured gets improved.</div>
+        <div class="activity-items">
+          <div class="activity-item">Mean time to detect (MTTD) and remediate (MTTR)</div>
+          <div class="activity-item">Vulnerability backlog trends</div>
+          <div class="activity-item">Security training completion rates</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owaspsamm.org/guidance/quick-start-guide/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP SAMM — Maturity Measurement</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.bsimm.com/" target="_blank"><span class="r-icon">📊</span><span class="r-text">BSIMM — Building Security In Maturity Model</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <div class="activity-card">
+        <span class="activity-icon">🔁</span>
+        <div class="activity-title">Continuous Improvement</div>
+        <div class="activity-desc">Use lessons from incidents, audits, and industry intelligence to evolve your security posture.</div>
+        <div class="activity-items">
+          <div class="activity-item">Post-incident reviews with blameless retrospectives</div>
+          <div class="activity-item">Annual security program maturity assessment (BSIMM, SAMM)</div>
+          <div class="activity-item">Threat intelligence feeds integration</div>
+        </div>
+        <div class="activity-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.bsimm.com/" target="_blank"><span class="r-icon">📊</span><span class="r-text">BSIMM — Software Security Maturity Model</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owaspsamm.org/" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP SAMM — Software Assurance Maturity</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://www.cisa.gov/resources-tools/resources/free-cybersecurity-services-and-tools" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">CISA — Free Cybersecurity Tools & Resources</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Core Principles -->
+  <div class="principles">
+    <h3>Core Principles — Always Active</h3>
+    <div class="principles-grid">
+      <div class="principle-item"><div class="principle-dot" style="background:#3b82f6"></div><div class="principle-text"><strong>Least Privilege</strong>Every component gets only the access it needs.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#00d4aa"></div><div class="principle-text"><strong>Defense in Depth</strong>Multiple independent controls protect each asset.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#f59e0b"></div><div class="principle-text"><strong>Fail Secure</strong>Failures default to deny, not allow.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#ef4444"></div><div class="principle-text"><strong>Minimize Attack Surface</strong>Disable everything not actively needed.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#a78bfa"></div><div class="principle-text"><strong>Separation of Concerns</strong>Isolate components to limit blast radius.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#34d399"></div><div class="principle-text"><strong>Shift Left</strong>Find issues earlier — they cost exponentially less to fix.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#f472b6"></div><div class="principle-text"><strong>Zero Trust</strong>Never assume trust; always verify, regardless of network location.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#60a5fa"></div><div class="principle-text"><strong>Privacy by Design</strong>Data protection embedded, not added after.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchPhase(idx) {
+  document.querySelectorAll('.phase-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.phase-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+  document.querySelectorAll('.sdlc-step').forEach((s,i) => s.classList.toggle('active', i === idx));
+}
+</script>
+</body>
+</html>
