@@ -237,8 +237,13 @@
 </div>
 <script>
 function setLang(lang) {
+  localStorage.setItem('lang', lang);
   document.body.className = 'lang-' + lang;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
+}
+
+if (localStorage.getItem('lang')) {
+  setLang(localStorage.getItem('lang'));
 }
 </script>
 </body>
