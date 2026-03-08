@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Software Vulnerabilities</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #10141c;
+    --surface2: #141820;
+    --border: #1e2535;
+    --accent1: #00d4aa;
+    --c-mem: #ef4444;
+    --c-struct: #f59e0b;
+    --c-race: #a78bfa;
+    --c-side: #3b82f6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Header ── */
+  .header { margin-bottom: 52px; display: flex; flex-direction: column; gap: 12px; }
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent1);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent1); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(30px, 5vw, 54px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  h1 span { color: var(--accent1); }
+  .header-sub {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 640px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ── Warning strip ── */
+  .warning-strip {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    background: color-mix(in srgb, #f59e0b 6%, transparent);
+    border: 1px solid color-mix(in srgb, #f59e0b 25%, transparent);
+    border-radius: 10px;
+    margin-bottom: 48px;
+  }
+  .warning-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .warning-text { font-size: 13px; color: var(--text); opacity: 0.75; line-height: 1.65; }
+  .warning-text strong { color: #f59e0b; font-weight: 500; }
+
+  /* ── Category nav ── */
+  .cat-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 700px) { .cat-nav { grid-template-columns: repeat(2, 1fr); } }
+
+  .cat-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cat-btn::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--pc);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+    transform-origin: left;
+  }
+  .cat-btn:hover::before, .cat-btn.active::before { transform: scaleX(1); }
+  .cat-btn:hover { border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+  .cat-btn.active {
+    background: color-mix(in srgb, var(--pc) 8%, var(--surface));
+    border-color: color-mix(in srgb, var(--pc) 45%, transparent);
+  }
+  .cat-btn-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--pc);
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+  .cat-btn-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .cat-btn-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .cat-btn.active .cat-btn-title { color: var(--pc); }
+
+  .c-mem  { --pc: var(--c-mem); }
+  .c-struct { --pc: var(--c-struct); }
+  .c-race { --pc: var(--c-race); }
+  .c-side { --pc: var(--c-side); }
+
+  /* ── Panels ── */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Panel header ── */
+  .panel-header {
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, var(--pc), transparent);
+  }
+  .panel-header::after {
+    content: attr(data-bg);
+    position: absolute;
+    right: 24px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 80px;
+    font-weight: 800;
+    color: var(--pc);
+    opacity: 0.05;
+    letter-spacing: -0.04em;
+    pointer-events: none;
+    line-height: 1;
+  }
+  .panel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--pc);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .panel-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+  .panel-header p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.75;
+    max-width: 680px;
+  }
+  .panel-header p strong { color: var(--text); font-weight: 500; }
+  .impact-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .impact-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--pc) 12%, transparent);
+    color: var(--pc);
+    border: 1px solid color-mix(in srgb, var(--pc) 25%, transparent);
+    text-transform: uppercase;
+  }
+  .severity-badge {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    padding: 4px 12px;
+    border-radius: 4px;
+    align-self: flex-start;
+    text-transform: uppercase;
+    border: 1px solid;
+    display: inline-block;
+  }
+  .sev-critical { background: color-mix(in srgb, #ef4444 12%, transparent); color: #ef4444; border-color: color-mix(in srgb, #ef4444 30%, transparent); }
+  .sev-high { background: color-mix(in srgb, #f59e0b 12%, transparent); color: #f59e0b; border-color: color-mix(in srgb, #f59e0b 30%, transparent); }
+  .sev-medium { background: color-mix(in srgb, #a78bfa 12%, transparent); color: #a78bfa; border-color: color-mix(in srgb, #a78bfa 30%, transparent); }
+
+  /* ── Section title ── */
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; }
+
+  /* ── Vuln cards grid ── */
+  .vuln-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .vuln-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.22s;
+    display: flex;
+    flex-direction: column;
+  }
+  .vuln-card:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--pc) 35%, transparent);
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--pc) 8%, transparent);
+  }
+
+  .vuln-card-top {
+    padding: 20px 20px 0;
+  }
+  .vuln-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .vuln-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--pc) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pc) 20%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .vuln-title-block { flex: 1; }
+  .vuln-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--pc);
+    margin-bottom: 2px;
+  }
+  .vuln-cwe {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .vuln-cwe a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .vuln-cwe a:hover { color: var(--pc); }
+
+  .vuln-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+
+  /* Code example */
+  .vuln-code {
+    margin: 0 0 14px;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .code-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .code-label .cl-vuln { color: #ef4444; }
+  .code-label .cl-fix { color: #00d4aa; }
+  .code-label .cl-lang { color: var(--muted); margin-left: auto; }
+  pre {
+    padding: 12px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: #c9d1d9;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .hl-red { color: #ff7b72; }
+  .hl-green { color: #3fb950; }
+  .hl-yellow { color: #e3b341; }
+  .hl-blue { color: #79c0ff; }
+  .hl-purple { color: #d2a8ff; }
+  .hl-gray { color: #8b949e; }
+
+  /* How it works steps */
+  .how-it-works {
+    padding: 0 20px 14px;
+  }
+  .hiw-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+  .hiw-steps { display: flex; flex-direction: column; gap: 5px; }
+  .hiw-step {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .hiw-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--pc);
+    opacity: 0.6;
+    flex-shrink: 0;
+    margin-top: 1px;
+    min-width: 16px;
+  }
+
+  /* Mitigations */
+  .mitigations {
+    padding: 14px 20px;
+    background: color-mix(in srgb, var(--pc) 4%, var(--surface2));
+    border-top: 1px solid var(--border);
+    flex: 1;
+  }
+  .mit-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--pc);
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+  .mit-items { display: flex; flex-direction: column; gap: 4px; }
+  .mit-item {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+  .mit-item::before { content: '✓'; color: var(--pc); font-size: 11px; flex-shrink: 0; margin-top: 1px; opacity: 0.7; }
+
+  /* Resources */
+  .card-resources {
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .resources-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    opacity: 0.5;
+  }
+  .resource-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: all 0.18s;
+  }
+  .resource-link:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateX(2px);
+  }
+  .resource-link .r-icon { font-size: 12px; flex-shrink: 0; opacity: 0.65; }
+  .resource-link .r-text {
+    font-size: 11.5px;
+    color: var(--text);
+    opacity: 0.6;
+    flex: 1;
+    line-height: 1.3;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .resource-link:hover .r-text { opacity: 1; color: var(--pc); }
+  .resource-link .r-arrow { font-size: 10px; opacity: 0.25; flex-shrink: 0; transition: opacity 0.15s, transform 0.15s; }
+  .resource-link:hover .r-arrow { opacity: 0.6; transform: translateX(2px); }
+
+  /* ── Real-world examples ── */
+  .examples-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .example-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .example-card:hover { border-color: color-mix(in srgb, var(--pc) 30%, transparent); }
+  .example-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .example-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--pc) 12%, transparent);
+    color: var(--pc);
+    flex-shrink: 0;
+  }
+  .example-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .example-type {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .example-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .example-impact {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--text);
+    opacity: 0.5;
+    font-style: italic;
+  }
+
+  /* ── How to find / test box ── */
+  .test-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .test-box h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--pc);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tools-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tool-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text);
+    opacity: 0.7;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .tool-pill:hover { opacity: 1; border-color: var(--pc); color: var(--pc); }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── Language Switcher ── */
+  .lang-switch { position: absolute; top: 24px; right: 140px; display: flex; gap: 8px; z-index: 10; }
+  .lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; transition: all 0.2s; }
+  .lang-btn:hover { color: var(--text); border-color: var(--muted); }
+  .lang-btn.active { border-color: var(--accent1); color: var(--accent1); background: color-mix(in srgb, var(--accent1) 10%, transparent); }
+
+  body.lang-nl [data-lang="en"] { display: none !important; }
+  body.lang-en [data-lang="nl"] { display: none !important; }
+</style>
+</head>
+<body class="lang-en">
+<div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn" onclick="setLang('nl')">NL</button>
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  </div>
+
+  <!-- ════ HEADER ════ -->
+  <div class="header">
+    <div class="header-tag">Reference</div>
+    <div class="header-meta">Author: Maurice Snoeren</div>
+    <h1><span data-lang="en">Software <span>Vulnerabilities</span></span><span data-lang="nl">Software <span>Kwetsbaarheden</span></span></h1>
+    <p class="header-sub" data-lang="en">Four general categories of software vulnerabilities — each with many real-world manifestations. Understanding these is the foundation of writing secure software.</p>
+    <p class="header-sub" data-lang="nl">Vier algemene categorieën van softwarekwetsbaarheden — elk met vele praktijkvoorbeelden. Het begrijpen hiervan is de basis voor het schrijven van veilige software.</p>
+  </div>
+
+  <div class="warning-strip">
+    <span class="warning-icon">⚠️</span>
+    <div class="warning-text">
+      <span data-lang="en"><strong>Complexity warning:</strong> Only four general categories does not mean this is easy. Each category contains dozens of real-world vulnerability types, and exploiting or preventing them requires deep expertise. This reference is a starting point — not a complete guide.</span>
+      <span data-lang="nl"><strong>Complexiteitswaarschuwing:</strong> Slechts vier categorieën betekent niet dat het eenvoudig is. Elke categorie bevat tientallen soorten kwetsbaarheden, en het misbruiken of voorkomen ervan vereist diepgaande expertise. Dit is een startpunt — geen volledige gids.</span>
+    </div>
+  </div>
+
+  <!-- ════ CATEGORY NAV ════ -->
+  <div class="cat-nav">
+    <button class="cat-btn c-mem active" onclick="switchPanel(0)">
+      <div class="cat-btn-num">01 — CRITICAL</div>
+      <div class="cat-btn-title"><span data-lang="en">Memory Management</span><span data-lang="nl">Geheugenbeheer</span></div>
+      <div class="cat-btn-count"><span data-lang="en">8 vulnerability types</span><span data-lang="nl">8 kwetsbaarheidstypes</span></div>
+    </button>
+    <button class="cat-btn c-struct" onclick="switchPanel(1)">
+      <div class="cat-btn-num">02 — HIGH</div>
+      <div class="cat-btn-title"><span data-lang="en">Structured Output</span><span data-lang="nl">Gestructureerde Output</span></div>
+      <div class="cat-btn-count"><span data-lang="en">7 vulnerability types</span><span data-lang="nl">7 kwetsbaarheidstypes</span></div>
+    </button>
+    <button class="cat-btn c-race" onclick="switchPanel(2)">
+      <div class="cat-btn-num">03 — HIGH</div>
+      <div class="cat-btn-title"><span data-lang="en">Race Conditions</span><span data-lang="nl">Race Condities</span></div>
+      <div class="cat-btn-count"><span data-lang="en">5 vulnerability types</span><span data-lang="nl">5 kwetsbaarheidstypes</span></div>
+    </button>
+    <button class="cat-btn c-side" onclick="switchPanel(3)">
+      <div class="cat-btn-num">04 — MEDIUM</div>
+      <div class="cat-btn-title"><span data-lang="en">Side-Channel</span><span data-lang="nl">Side-Channel</span></div>
+      <div class="cat-btn-count"><span data-lang="en">6 vulnerability types</span><span data-lang="nl">6 kwetsbaarheidstypes</span></div>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PANEL 1: MEMORY MANAGEMENT                                    -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="panel c-mem active" id="panel-0">
+
+    <div class="panel-header c-mem" data-bg="MEM">
+      <div class="panel-label">Category 01 · Memory Safety</div>
+      <h2><span data-lang="en">Memory Management Vulnerabilities</span><span data-lang="nl">Geheugenbeheer Kwetsbaarheden</span></h2>
+      <p data-lang="en">Memory stores variables, executable code, and function return addresses. When an attacker can <strong>read or write outside intended memory boundaries</strong>, they can modify control flow, leak sensitive data, or execute arbitrary code — potentially gaining full system access.</p>
+      <p data-lang="nl">Geheugen slaat variabelen, uitvoerbare code en functie-retouradressen op. Wanneer een aanvaller <strong>buiten de bedoelde geheugengrenzen kan lezen of schrijven</strong>, kunnen ze de control flow wijzigen, gevoelige data lekken of willekeurige code uitvoeren — wat kan leiden tot volledige systeemovername.</p>
+      <div class="impact-row">
+        <span class="impact-pill" data-lang="en">Code execution</span><span class="impact-pill" data-lang="nl">Code-uitvoering</span>
+        <span class="impact-pill" data-lang="en">Privilege escalation</span><span class="impact-pill" data-lang="nl">Rechtenescalatie</span>
+        <span class="impact-pill" data-lang="en">Data exfiltration</span><span class="impact-pill" data-lang="nl">Data-exfiltratie</span>
+        <span class="impact-pill" data-lang="en">System compromise</span><span class="impact-pill" data-lang="nl">Systeemcompromis</span>
+        <span class="severity-badge sev-critical" data-lang="en">Critical severity</span><span class="severity-badge sev-critical" data-lang="nl">Kritieke ernst</span>
+      </div>
+    </div>
+
+    <div class="section-title">Vulnerability Types</div>
+    <div class="vuln-grid">
+
+      <!-- Buffer Overflow -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">💥</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Buffer Overflow</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/120.html" target="_blank">CWE-120 / CWE-121 (Stack) / CWE-122 (Heap)</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc" data-lang="en">Writing more data into a buffer than it can hold, overwriting adjacent memory. Stack overflows can overwrite return addresses to redirect execution; heap overflows corrupt heap metadata or adjacent objects.</p>
+          <p class="vuln-desc" data-lang="nl">Meer data in een buffer schrijven dan deze kan bevatten, waardoor aangrenzend geheugen wordt overschreven. Stack overflows kunnen retouradressen overschrijven om de uitvoering om te leiden; heap overflows corrumperen heap-metadata of aangrenzende objecten.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-gray">// No bounds check — attacker controls input</span>
+<span class="hl-blue">void</span> <span class="hl-yellow">copy_input</span>(<span class="hl-blue">char</span> *input) {
+    <span class="hl-blue">char</span> buf[<span class="hl-purple">64</span>];
+    <span class="hl-red">strcpy</span>(buf, input); <span class="hl-gray">// DANGEROUS</span>
+}
+
+<span class="hl-gray">// Safe alternative</span>
+<span class="hl-blue">void</span> <span class="hl-yellow">copy_input_safe</span>(<span class="hl-blue">char</span> *input) {
+    <span class="hl-blue">char</span> buf[<span class="hl-purple">64</span>];
+    <span class="hl-green">strncpy</span>(buf, input, <span class="hl-blue">sizeof</span>(buf) - <span class="hl-purple">1</span>);
+    buf[<span class="hl-blue">sizeof</span>(buf)-<span class="hl-purple">1</span>] = <span class="hl-purple">'\0'</span>;
+}</pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title"><span data-lang="en">How it works</span><span data-lang="nl">Hoe het werkt</span></div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span><span data-lang="en">Attacker sends input larger than the buffer size</span><span data-lang="nl">Aanvaller stuurt input groter dan de buffergrootte</span></div>
+            <div class="hiw-step"><span class="hiw-num">2.</span><span data-lang="en">Excess bytes overwrite adjacent stack/heap memory</span><span data-lang="nl">Overtollige bytes overschrijven aangrenzend stack/heap geheugen</span></div>
+            <div class="hiw-step"><span class="hiw-num">3.</span><span data-lang="en">Return address or function pointer is overwritten</span><span data-lang="nl">Retouradres of functiepointer wordt overschreven</span></div>
+            <div class="hiw-step"><span class="hiw-num">4.</span><span data-lang="en">CPU jumps to attacker-controlled code (shellcode)</span><span data-lang="nl">CPU springt naar code van de aanvaller (shellcode)</span></div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title"><span data-lang="en">Mitigations</span><span data-lang="nl">Mitigaties</span></div>
+          <div class="mit-items">
+            <div class="mit-item"><span data-lang="en">Use safe string functions (strncpy, strlcpy, snprintf)</span><span data-lang="nl">Gebruik veilige stringfuncties (strncpy, strlcpy, snprintf)</span></div>
+            <div class="mit-item"><span data-lang="en">Enable stack canaries (compiler flag -fstack-protector)</span><span data-lang="nl">Schakel stack canaries in (compiler flag -fstack-protector)</span></div>
+            <div class="mit-item"><span data-lang="en">Enable ASLR (Address Space Layout Randomization)</span><span data-lang="nl">Schakel ASLR in (Address Space Layout Randomization)</span></div>
+            <div class="mit-item"><span data-lang="en">Enable DEP/NX (non-executable stack/heap)</span><span data-lang="nl">Schakel DEP/NX in (niet-uitvoerbare stack/heap)</span></div>
+            <div class="mit-item"><span data-lang="en">Use memory-safe languages (Rust, Go) where possible</span><span data-lang="nl">Gebruik geheugenveilige talen (Rust, Go) waar mogelijk</span></div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/120.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-120 — Buffer Copy Without Checking Size</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-community/vulnerabilities/Buffer_Overflow" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — Buffer Overflow Explained</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://portswigger.net/web-security/memory-corruption" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — Memory Corruption</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Use-After-Free -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">👻</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Use-After-Free (UAF)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/416.html" target="_blank">CWE-416</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Accessing heap memory after it has been freed. The freed chunk can be reallocated to another object; the original pointer now points into attacker-controlled data, enabling type confusion or code execution.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-blue">char</span> *ptr = <span class="hl-red">malloc</span>(<span class="hl-purple">100</span>);
+<span class="hl-red">free</span>(ptr);
+<span class="hl-gray">// ... attacker allocates here ...</span>
+<span class="hl-red">strcpy</span>(ptr, <span class="hl-purple">"data"</span>); <span class="hl-gray">// UAF!</span>
+
+<span class="hl-gray">// Safe: nullify after free</span>
+<span class="hl-green">free</span>(ptr);
+ptr = <span class="hl-blue">NULL</span>; <span class="hl-gray">// Prevents accidental reuse</span></pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">How it works</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Object A is allocated and a pointer is kept</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Object A is freed but pointer not nullified</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>Attacker allocates Object B at the same address</div>
+            <div class="hiw-step"><span class="hiw-num">4.</span>Old pointer now references attacker-controlled Object B</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Set pointers to NULL immediately after free()</div>
+            <div class="mit-item">Use smart pointers in C++ (unique_ptr, shared_ptr)</div>
+            <div class="mit-item">Employ memory-safe languages (Rust's borrow checker)</div>
+            <div class="mit-item">Use AddressSanitizer (ASan) during testing</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/416.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-416 — Use After Free</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://googleprojectzero.blogspot.com/" target="_blank"><span class="r-icon">🔵</span><span class="r-text">Google Project Zero — UAF Research</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Integer Overflow -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🔢</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Integer Overflow / Underflow</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/190.html" target="_blank">CWE-190 / CWE-191</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Arithmetic results exceed the maximum (or minimum) value of the integer type, wrapping around to an unexpected value. Commonly leads to undersized buffer allocations or bypassed length checks.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-blue">size_t</span> len = attacker_controlled_len;
+<span class="hl-gray">// If len = SIZE_MAX, len+1 wraps to 0!</span>
+<span class="hl-blue">char</span> *buf = <span class="hl-red">malloc</span>(len + <span class="hl-purple">1</span>);
+<span class="hl-red">memcpy</span>(buf, src, len); <span class="hl-gray">// heap overflow</span>
+
+<span class="hl-gray">// Safe: check before arithmetic</span>
+<span class="hl-blue">if</span> (len >= <span class="hl-yellow">SIZE_MAX</span>) <span class="hl-green">return</span> ERROR;
+<span class="hl-blue">char</span> *buf = <span class="hl-green">malloc</span>(len + <span class="hl-purple">1</span>);</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Always validate integer bounds before arithmetic on untrusted values</div>
+            <div class="mit-item">Use safe integer libraries (SafeInt, checked_add in Rust)</div>
+            <div class="mit-item">Enable compiler warnings (-Winteger-overflow)</div>
+            <div class="mit-item">Use static analysis tools that detect integer issues</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/190.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-190 — Integer Overflow</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://wiki.sei.cmu.edu/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SEI CERT — INT32-C Integer Overflow Rules</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Null Pointer Dereference -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🎯</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Null Pointer Dereference</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/476.html" target="_blank">CWE-476</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Dereferencing a NULL pointer causes undefined behavior. In userspace this usually crashes the program (DoS). In kernel code it can be exploited for privilege escalation via NULL pointer dereference techniques.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-blue">User</span> *u = find_user(id);
+<span class="hl-gray">// u may be NULL if user not found!</span>
+<span class="hl-red">printf</span>(<span class="hl-purple">"%s"</span>, u->name); <span class="hl-gray">// CRASH</span>
+
+<span class="hl-gray">// Safe: always null-check first</span>
+<span class="hl-blue">if</span> (u == <span class="hl-blue">NULL</span>) { <span class="hl-green">return</span> NOT_FOUND; }
+<span class="hl-green">printf</span>(<span class="hl-purple">"%s"</span>, u->name);</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Always check return values of functions that may return NULL</div>
+            <div class="mit-item">Use optional types (Rust Option, C++ std::optional)</div>
+            <div class="mit-item">Enable static analysis tools to detect null dereferences</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/476.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-476 — Null Pointer Dereference</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Format String -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📝</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Format String Attack</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/134.html" target="_blank">CWE-134</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">When user input is used directly as a printf format string, the attacker controls format specifiers (%x, %n). This can leak stack contents (%x) or write to arbitrary memory addresses (%n).</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-gray">// User controls 'input'</span>
+<span class="hl-red">printf</span>(input);  <span class="hl-gray">// DANGEROUS!</span>
+<span class="hl-gray">// Input "%x %x %x" leaks stack</span>
+<span class="hl-gray">// Input "%n" writes to memory</span>
+
+<span class="hl-gray">// Safe: always use a literal format</span>
+<span class="hl-green">printf</span>(<span class="hl-purple">"%s"</span>, input);</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Never pass user-controlled data as printf format string</div>
+            <div class="mit-item">Always use a literal format string: printf("%s", user_input)</div>
+            <div class="mit-item">Enable compiler warnings (-Wformat-security)</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://owasp.org/www-community/attacks/Format_string_attack" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — Format String Attack</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/134.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-134 — Format String</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Heap Spray -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">💦</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Heap Spray</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/119.html" target="_blank">CWE-119</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">An exploitation technique — not a standalone bug — where the attacker fills large amounts of heap memory with shellcode/NOP sleds. Combined with another memory vulnerability, it increases the probability of jumping to attacker-controlled code.</p>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">ASLR makes spray targets unpredictable</div>
+            <div class="mit-item">Heap randomization and guard pages</div>
+            <div class="mit-item">Control-Flow Integrity (CFI) prevents arbitrary jumps</div>
+            <div class="mit-item">Limit large allocation patterns in untrusted context</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://attack.mitre.org/techniques/T1055/" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE ATT&CK — Process Injection Techniques</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Double Free -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">♻️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Double Free</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/415.html" target="_blank">CWE-415</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Calling free() twice on the same pointer corrupts heap metadata, which allocators use internally. This can be abused to redirect subsequent allocations or execute arbitrary code.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-blue">char</span> *p = <span class="hl-red">malloc</span>(<span class="hl-purple">64</span>);
+<span class="hl-red">free</span>(p);
+<span class="hl-gray">// ... error path also calls free ...</span>
+<span class="hl-red">free</span>(p); <span class="hl-gray">// heap corruption!</span>
+
+<span class="hl-gray">// Safe</span>
+<span class="hl-green">free</span>(p); p = <span class="hl-blue">NULL</span>;
+<span class="hl-blue">if</span> (p) { <span class="hl-green">free</span>(p); } <span class="hl-gray">// no-op</span></pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Set pointer to NULL after every free()</div>
+            <div class="mit-item">Use smart pointers or RAII patterns in C++</div>
+            <div class="mit-item">Static analysis tools detect double-free paths</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/415.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-415 — Double Free</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Out-of-bounds Read -->
+      <div class="vuln-card c-mem">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🔭</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Out-of-Bounds Read</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/125.html" target="_blank">CWE-125</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Reading beyond the allocated bounds of a buffer exposes adjacent memory contents — potentially revealing passwords, keys, or other sensitive data. The famous Heartbleed bug was an out-of-bounds read in OpenSSL.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● Heartbleed pattern</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-gray">// Client sends: payload_length=64KB</span>
+<span class="hl-gray">// Actual data:  payload_length=3 bytes</span>
+<span class="hl-red">memcpy</span>(response, payload,
+       attacker_claimed_length); <span class="hl-gray">// reads past buffer</span>
+<span class="hl-gray">// Returns up to 64KB of heap memory!</span></pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Always validate claimed lengths against actual buffer size</div>
+            <div class="mit-item">Use bounds-checked abstractions (std::span in C++)</div>
+            <div class="mit-item">Enable ASan / Valgrind in testing pipelines</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://heartbleed.com/" target="_blank"><span class="r-icon">💔</span><span class="r-text">Heartbleed.com — The Heartbleed Bug</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/125.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-125 — Out-of-Bounds Read</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Real-world examples -->
+    <div class="section-title">Real-World Incidents</div>
+    <div class="examples-grid">
+      <div class="example-card c-mem">
+        <div class="example-header">
+          <span class="example-year">2014</span>
+          <span class="example-name">Heartbleed (CVE-2014-0160)</span>
+          <span class="example-type">OOB Read</span>
+        </div>
+        <p class="example-desc">Out-of-bounds read in OpenSSL's TLS heartbeat extension. Allowed reading up to 64KB of server memory per request — exposing private keys, passwords, and session tokens without leaving a trace.</p>
+        <p class="example-impact">Impact: ~500,000 servers vulnerable; forced mass certificate revocations worldwide.</p>
+      </div>
+      <div class="example-card c-mem">
+        <div class="example-header">
+          <span class="example-year">2017</span>
+          <span class="example-name">WannaCry (EternalBlue)</span>
+          <span class="example-type">Buffer Overflow</span>
+        </div>
+        <p class="example-desc">NSA-developed exploit targeting a buffer overflow in Windows SMBv1. Used as the propagation mechanism for the WannaCry ransomware outbreak that spread to 150+ countries.</p>
+        <p class="example-impact">Impact: $4–8 billion in damages; NHS hospitals, FedEx, and Telefónica disrupted.</p>
+      </div>
+      <div class="example-card c-mem">
+        <div class="example-header">
+          <span class="example-year">2021</span>
+          <span class="example-name">Log4Shell (CVE-2021-44228)</span>
+          <span class="example-type">Memory / RCE</span>
+        </div>
+        <p class="example-desc">Remote code execution via JNDI injection in Apache Log4j. Attackers could trigger arbitrary class loading simply by getting their string logged by a vulnerable application.</p>
+        <p class="example-impact">Impact: CVSS 10.0; hundreds of millions of systems affected.</p>
+      </div>
+      <div class="example-card c-mem">
+        <div class="example-header">
+          <span class="example-year">2022</span>
+          <span class="example-name">Follina (CVE-2022-30190)</span>
+          <span class="example-type">Use-After-Free</span>
+        </div>
+        <p class="example-desc">Use-After-Free in Microsoft Support Diagnostic Tool (MSDT) triggered via malicious Office documents. No macros required — simply previewing the document was enough.</p>
+        <p class="example-impact">Impact: Zero-day exploited in the wild before patch was available.</p>
+      </div>
+    </div>
+
+    <!-- Tools -->
+    <div class="test-box c-mem">
+      <h3>🔧 Detection & Testing Tools</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://github.com/google/sanitizers/wiki/AddressSanitizer" target="_blank">AddressSanitizer (ASan)</a>
+        <a class="tool-pill" href="https://valgrind.org/" target="_blank">Valgrind</a>
+        <a class="tool-pill" href="https://clang.llvm.org/docs/MemorySanitizer.html" target="_blank">MemorySanitizer</a>
+        <a class="tool-pill" href="https://github.com/google/sanitizers/wiki/ThreadSanitizerCppManual" target="_blank">ThreadSanitizer</a>
+        <a class="tool-pill" href="https://aflplus.plus/" target="_blank">AFL++ (Fuzzer)</a>
+        <a class="tool-pill" href="https://github.com/libsndfile/libsndfile" target="_blank">libFuzzer</a>
+        <a class="tool-pill" href="https://www.immunityinc.com/products/debugger/" target="_blank">Immunity Debugger</a>
+        <a class="tool-pill" href="https://ghidra-sre.org/" target="_blank">Ghidra (Reverse Engineering)</a>
+      </div>
+    </div>
+
+  </div><!-- /panel-0 -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PANEL 2: STRUCTURED OUTPUT                                    -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="panel c-struct" id="panel-1">
+
+    <div class="panel-header c-struct" data-bg="INJ">
+      <div class="panel-label">Category 02 · Injection</div>
+      <h2>Structured Output Vulnerabilities</h2>
+      <p>When user-controlled data is embedded in a <strong>structured output</strong> (SQL query, HTML page, shell command, file path) without proper encoding, attackers can break the structure and inject their own commands or markup. The root cause is always the same: <strong>conflating data and instructions</strong>.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Data theft</span>
+        <span class="impact-pill">Authentication bypass</span>
+        <span class="impact-pill">Remote code execution</span>
+        <span class="impact-pill">Full system access</span>
+        <span class="severity-badge sev-critical">Critical severity</span>
+      </div>
+    </div>
+
+    <div class="section-title">Vulnerability Types</div>
+    <div class="vuln-grid">
+
+      <!-- SQL Injection -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🗄️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">SQL Injection</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank">CWE-89</a> · OWASP A03:2021</div>
+            </div>
+          </div>
+          <p class="vuln-desc">User input is concatenated directly into SQL queries. Attackers can break out of the string context to add their own SQL — bypassing authentication, extracting entire databases, or deleting data.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">Python</span></div>
+            <pre><span class="hl-gray"># Input: ' OR '1'='1</span>
+query = <span class="hl-purple">"SELECT * FROM users WHERE "</span>
+        <span class="hl-purple">"name='"</span> + <span class="hl-red">user_input</span> + <span class="hl-purple">"'"</span>
+<span class="hl-gray"># Becomes: WHERE name='' OR '1'='1'</span>
+<span class="hl-gray"># Returns ALL users!</span>
+
+<span class="hl-gray"># Safe: parameterized query</span>
+query = <span class="hl-purple">"SELECT * FROM users WHERE name=?"</span>
+cursor.<span class="hl-green">execute</span>(query, (user_input,))</pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">Attack types</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>In-band:</strong> Error-based or UNION-based data extraction</div>
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>Blind:</strong> Boolean or time-based (no visible output)</div>
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>Out-of-band:</strong> DNS/HTTP exfiltration channels</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Always use parameterized queries / prepared statements</div>
+            <div class="mit-item">Use an ORM that handles escaping (SQLAlchemy, Hibernate)</div>
+            <div class="mit-item">Apply least privilege to database accounts</div>
+            <div class="mit-item">Web Application Firewall (WAF) as additional layer</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/sql-injection" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — SQL Injection (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP SQL Injection Prevention Cheat Sheet</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://github.com/sqlmapproject/sqlmap" target="_blank"><span class="r-icon">🐙</span><span class="r-text">SQLMap — Automated SQLi Detection Tool</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- XSS -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🌐</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Cross-Site Scripting (XSS)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/79.html" target="_blank">CWE-79</a> · OWASP A03:2021</div>
+            </div>
+          </div>
+          <p class="vuln-desc">User input is embedded in HTML output without encoding. Attackers inject scripts that execute in other users' browsers — stealing session cookies, redirecting users, or defacing pages.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">JavaScript</span></div>
+            <pre><span class="hl-gray">// Stored XSS: name from DB</span>
+elem.innerHTML = <span class="hl-red">user.name</span>;
+<span class="hl-gray">// name = "&lt;script&gt;steal()&lt;/script&gt;"</span>
+
+<span class="hl-gray">// Safe: use textContent</span>
+elem.<span class="hl-green">textContent</span> = user.name;
+<span class="hl-gray">// Or encode server-side</span>
+<span class="hl-green">encodeHTML</span>(user.name);</pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">XSS types</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>Stored:</strong> Malicious script saved in DB, served to all visitors</div>
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>Reflected:</strong> Script in URL parameter, reflected in response</div>
+            <div class="hiw-step"><span class="hiw-num">→</span><strong>DOM-based:</strong> JavaScript itself writes attacker-controlled data to DOM</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Output encoding per context (HTML, JS, CSS, URL)</div>
+            <div class="mit-item">Content Security Policy (CSP) header</div>
+            <div class="mit-item">Use textContent instead of innerHTML in JS</div>
+            <div class="mit-item">HttpOnly and Secure flags on session cookies</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/cross-site-scripting" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — XSS (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP XSS Prevention Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Path Traversal -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📁</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Path Traversal</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/22.html" target="_blank">CWE-22</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">User-controlled input is used to construct file paths without sanitizing "../" sequences. Attackers can escape the intended directory and read or write arbitrary files (e.g., /etc/passwd, private keys).</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">Python</span></div>
+            <pre><span class="hl-gray"># Input: ../../etc/passwd</span>
+path = <span class="hl-purple">"/app/files/"</span> + <span class="hl-red">filename</span>
+<span class="hl-blue">with</span> <span class="hl-red">open</span>(path) <span class="hl-blue">as</span> f: ...
+
+<span class="hl-gray"># Safe: resolve and check prefix</span>
+base = <span class="hl-yellow">Path</span>(<span class="hl-purple">"/app/files"</span>).resolve()
+full = (base / filename).<span class="hl-green">resolve</span>()
+<span class="hl-blue">if not</span> str(full).<span class="hl-green">startswith</span>(str(base)):
+    <span class="hl-red">raise</span> <span class="hl-yellow">PermissionError</span></pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Resolve canonical path and verify it starts with allowed base</div>
+            <div class="mit-item">Use allowlist of valid filenames (not blocklist of "../")</div>
+            <div class="mit-item">Run file server with minimal OS permissions (chroot/container)</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/file-path-traversal" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — Path Traversal (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-community/attacks/Path_Traversal" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — Path Traversal</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Command Injection -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">💻</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Command Injection (OS)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/78.html" target="_blank">CWE-78</a> · OWASP A03:2021</div>
+            </div>
+          </div>
+          <p class="vuln-desc">User input is passed to a shell command without sanitization. Attackers inject shell metacharacters (;, &&, |) to append their own commands, executed with the application's privileges.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">Python</span></div>
+            <pre><span class="hl-gray"># Input: 8.8.8.8; rm -rf /</span>
+<span class="hl-blue">import</span> os
+os.<span class="hl-red">system</span>(<span class="hl-purple">"ping "</span> + <span class="hl-red">user_ip</span>)
+
+<span class="hl-gray"># Safe: use subprocess with list</span>
+<span class="hl-blue">import</span> subprocess
+subprocess.<span class="hl-green">run</span>([<span class="hl-purple">"ping"</span>, user_ip],
+    shell=<span class="hl-blue">False</span>)</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Never pass user input to shell (system(), exec())</div>
+            <div class="mit-item">Use subprocess with list args, shell=False</div>
+            <div class="mit-item">Use language APIs instead of shell where possible</div>
+            <div class="mit-item">Strictly allowlist valid input values</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/os-command-injection" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — OS Command Injection (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP Command Injection Defense</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- LDAP Injection -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📂</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">LDAP Injection</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/90.html" target="_blank">CWE-90</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">User-controlled data is embedded in LDAP queries without escaping. Attackers inject LDAP filter syntax to bypass authentication, enumerate directory contents, or extract sensitive attributes.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">Java</span></div>
+            <pre><span class="hl-gray">// Input: *)(uid=*))(|(uid=*</span>
+String filter = <span class="hl-purple">"(uid="</span> + <span class="hl-red">username</span> + <span class="hl-purple">")"</span>;
+<span class="hl-gray">// Becomes: (uid=*)(uid=*))(|(uid=*)</span>
+<span class="hl-gray">// Matches ALL users → auth bypass!</span>
+
+<span class="hl-gray">// Safe: use LDAP escaping library</span>
+String safe = <span class="hl-green">LdapEncoder.encode</span>(username);</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Escape all special LDAP characters in user input</div>
+            <div class="mit-item">Use allowlist validation on username/password fields</div>
+            <div class="mit-item">Apply least privilege to LDAP service accounts</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/LDAP_Injection_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP LDAP Injection Prevention</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- XXE -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📄</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">XML External Entity (XXE)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/611.html" target="_blank">CWE-611</a> · OWASP A05:2021</div>
+            </div>
+          </div>
+          <p class="vuln-desc">XML parsers that process external entity references allow attackers to read local files, perform SSRF, or cause denial of service via billion laughs expansion attacks.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● malicious XML</span><span class="cl-lang">XML</span></div>
+            <pre><span class="hl-purple">&lt;!DOCTYPE foo [</span>
+<span class="hl-red">  &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;</span>
+<span class="hl-purple">]&gt;</span>
+<span class="hl-blue">&lt;foo&gt;</span><span class="hl-red">&amp;xxe;</span><span class="hl-blue">&lt;/foo&gt;</span>
+<span class="hl-gray">&lt;!-- Returns /etc/passwd content --&gt;</span></pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Disable external entity processing in XML parser configuration</div>
+            <div class="mit-item">Use JSON instead of XML where possible</div>
+            <div class="mit-item">Keep XML parser libraries up to date</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/xxe" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — XXE Injection (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP XXE Prevention Cheat Sheet</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Server-Side Template Injection -->
+      <div class="vuln-card c-struct">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🖥️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Server-Side Template Injection (SSTI)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/94.html" target="_blank">CWE-94</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">User input is embedded directly in a server-side template (Jinja2, Twig, Freemarker). Attacker injects template expressions that execute server-side — potentially achieving full RCE.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">Python / Jinja2</span></div>
+            <pre><span class="hl-gray"># Input: {{7*7}} → outputs "49"</span>
+<span class="hl-gray"># Confirms SSTI!</span>
+tmpl = <span class="hl-yellow">Template</span>(<span class="hl-red">user_input</span>)
+<span class="hl-gray"># Advanced: {{''.__class__.__mro__[1]</span>
+<span class="hl-gray"># .__subclasses__()}} → RCE</span>
+
+<span class="hl-gray"># Safe: pass data as template variable</span>
+tmpl = <span class="hl-yellow">Template</span>(<span class="hl-purple">"Hello {{ name }}"</span>)
+tmpl.<span class="hl-green">render</span>(name=user_input)</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Never render user input as template code — pass as data variable</div>
+            <div class="mit-item">Use sandboxed template environments</div>
+            <div class="mit-item">Allowlist template variables exposed to users</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/web-security/server-side-template-injection" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — SSTI (with labs)</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_Server-Side_Template_Injection" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP WSTG — Testing for SSTI</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Real-World Incidents</div>
+    <div class="examples-grid">
+      <div class="example-card c-struct">
+        <div class="example-header"><span class="example-year">2008</span><span class="example-name">Heartland Payment Systems</span><span class="example-type">SQL Injection</span></div>
+        <p class="example-desc">SQL injection into Heartland's web application gave attackers access to the payment processing network. Over 130 million credit card numbers were stolen.</p>
+        <p class="example-impact">Impact: $140 million in fines and settlements. Largest data breach at the time.</p>
+      </div>
+      <div class="example-card c-struct">
+        <div class="example-header"><span class="example-year">2017</span><span class="example-name">Equifax Breach</span><span class="example-type">Unpatched RCE</span></div>
+        <p class="example-desc">Attackers exploited CVE-2017-5638 in Apache Struts — a command injection vulnerability in the file upload parser. An unpatched server allowed full RCE.</p>
+        <p class="example-impact">Impact: 147 million records exposed; $575 million FTC settlement.</p>
+      </div>
+      <div class="example-card c-struct">
+        <div class="example-header"><span class="example-year">2023</span><span class="example-name">MOVEit Transfer</span><span class="example-type">SQL Injection</span></div>
+        <p class="example-desc">Critical SQL injection (CVE-2023-34362) in Progress MOVEit Transfer exploited by Cl0p ransomware group. Enabled authentication bypass and file extraction.</p>
+        <p class="example-impact">Impact: 2,700+ organizations affected; 94 million individuals' data exposed.</p>
+      </div>
+    </div>
+
+    <div class="test-box c-struct">
+      <h3>🔧 Detection & Testing Tools</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://github.com/sqlmapproject/sqlmap" target="_blank">SQLMap</a>
+        <a class="tool-pill" href="https://portswigger.net/burp" target="_blank">Burp Suite</a>
+        <a class="tool-pill" href="https://www.zaproxy.org/" target="_blank">OWASP ZAP</a>
+        <a class="tool-pill" href="https://github.com/swisskyrepo/PayloadsAllTheThings" target="_blank">PayloadsAllTheThings</a>
+        <a class="tool-pill" href="https://github.com/nicowillis/tplmap" target="_blank">tplmap (SSTI)</a>
+        <a class="tool-pill" href="https://github.com/swisskyrepo/SSRFmap" target="_blank">SSRFmap</a>
+        <a class="tool-pill" href="https://github.com/EnableSecurity/wafw00f" target="_blank">wafw00f (WAF detection)</a>
+      </div>
+    </div>
+
+  </div><!-- /panel-1 -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PANEL 3: RACE CONDITIONS                                      -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="panel c-race" id="panel-2">
+
+    <div class="panel-header c-race" data-bg="RACE">
+      <div class="panel-label">Category 03 · Concurrency</div>
+      <h2>Race Condition Vulnerabilities</h2>
+      <p>Race conditions occur when the behavior of a system depends on the <strong>relative timing of events</strong> — and that timing can be influenced by an attacker. A check made at one point in time may no longer be valid when an operation is performed moments later. These bugs are notoriously hard to reproduce and test.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Privilege escalation</span>
+        <span class="impact-pill">Authentication bypass</span>
+        <span class="impact-pill">Double-spend attacks</span>
+        <span class="impact-pill">Data corruption</span>
+        <span class="severity-badge sev-high">High severity</span>
+      </div>
+    </div>
+
+    <div class="section-title">Vulnerability Types</div>
+    <div class="vuln-grid">
+
+      <!-- TOCTOU -->
+      <div class="vuln-card c-race">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">⏱️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">TOCTOU (Time-of-Check to Time-of-Use)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/367.html" target="_blank">CWE-367</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">A security check (access(), exists()) is performed at one moment, but the resource is used at a later moment. Between check and use, an attacker can swap the resource (via symlink) to bypass the check.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C (Unix)</span></div>
+            <pre><span class="hl-gray">// CHECK: is this a safe file?</span>
+<span class="hl-blue">if</span> (<span class="hl-red">access</span>(path, W_OK) == <span class="hl-purple">0</span>) {
+    <span class="hl-gray">// ... attacker replaces with symlink ...</span>
+    <span class="hl-gray">// USE: now writes to /etc/passwd!</span>
+    fd = <span class="hl-red">open</span>(path, O_WRONLY);
+}
+<span class="hl-gray">// Safe: open() then fstat() the fd</span>
+<span class="hl-gray">// Don't use path-based checks</span></pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">Classic attack pattern</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Attacker creates a file they own: /tmp/safe.txt</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Victim process checks /tmp/safe.txt → OK</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>Attacker replaces with symlink → /etc/shadow</div>
+            <div class="hiw-step"><span class="hiw-num">4.</span>Victim process opens /tmp/safe.txt → writes to /etc/shadow</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Use open() to obtain file descriptor, then fstat() on the fd (not path)</div>
+            <div class="mit-item">Use O_NOFOLLOW flag to prevent symlink following</div>
+            <div class="mit-item">Avoid predictable temp file paths; use mkstemp()</div>
+            <div class="mit-item">Operate in private directories inaccessible to attackers</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/367.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-367 — TOCTOU Race Condition</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://owasp.org/www-community/vulnerabilities/Time_of_check_time_of_use" target="_blank"><span class="r-icon">📘</span><span class="r-text">OWASP — TOCTOU Explained</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Double-Submit / Race in Web -->
+      <div class="vuln-card c-race">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">⚡</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Web Race Conditions</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/362.html" target="_blank">CWE-362</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Modern web apps perform check-then-act logic (check balance → deduct). Sending concurrent requests can execute the action multiple times before the state is updated — enabling double-spending, limit bypasses, or repeated use of single-use tokens.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● race window</span><span class="cl-lang">Python (Flask)</span></div>
+            <pre><span class="hl-gray"># Two requests hit simultaneously</span>
+balance = db.<span class="hl-red">get</span>(user_id)   <span class="hl-gray"># both read $100</span>
+<span class="hl-blue">if</span> balance >= amount:       <span class="hl-gray"># both pass check</span>
+    db.<span class="hl-red">set</span>(user_id,           <span class="hl-gray"># both deduct!</span>
+          balance - amount)  <span class="hl-gray"># balance = $0, not -$100</span>
+
+<span class="hl-gray"># Safe: atomic DB transaction</span>
+db.<span class="hl-green">execute</span>(<span class="hl-purple">"UPDATE ... WHERE balance >= ?"</span>)</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Use database transactions with proper isolation levels</div>
+            <div class="mit-item">Use atomic compare-and-swap (CAS) operations</div>
+            <div class="mit-item">Apply pessimistic locking (SELECT FOR UPDATE)</div>
+            <div class="mit-item">Rate-limit sensitive endpoints; deduplicate requests with idempotency keys</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://portswigger.net/research/smashing-the-state-machine" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger Research — Smashing the State Machine</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://portswigger.net/web-security/race-conditions" target="_blank"><span class="r-icon">🕷️</span><span class="r-text">PortSwigger — Web Race Conditions (with labs)</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Signal Handler Race -->
+      <div class="vuln-card c-race">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📡</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Signal Handler Race Condition</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/364.html" target="_blank">CWE-364</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Unix signal handlers interrupt execution at unpredictable points. If a signal handler calls non-reentrant functions (malloc, free, printf) that were already executing, it can corrupt global state or cause use-after-free scenarios.</p>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Only call async-signal-safe functions from signal handlers</div>
+            <div class="mit-item">Use volatile sig_atomic_t flags; handle logic in main loop</div>
+            <div class="mit-item">Block signals during critical sections with sigprocmask()</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://wiki.sei.cmu.edu/confluence/display/c/SIG31-C.+Do+not+access+shared+objects+in+signal+handlers" target="_blank"><span class="r-icon">🎓</span><span class="r-text">SEI CERT — SIG31-C Signal Handler Safety</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Symlink Race -->
+      <div class="vuln-card c-race">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🔗</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Symlink Race (Insecure Temp Files)</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/377.html" target="_blank">CWE-377</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Using predictable temp file names in world-writable directories (/tmp). An attacker creates a symlink with the predicted name pointing to a sensitive file before the victim process creates it.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable</span><span class="cl-lang">C</span></div>
+            <pre><span class="hl-gray">// Predictable name — attacker pre-creates</span>
+<span class="hl-gray">// /tmp/myapp.tmp -> /etc/passwd</span>
+<span class="hl-blue">char</span> *tmp = <span class="hl-purple">"/tmp/myapp.tmp"</span>;
+fd = <span class="hl-red">open</span>(tmp, O_WRONLY|O_CREAT);
+
+<span class="hl-gray">// Safe: unpredictable, exclusive create</span>
+<span class="hl-blue">char</span> tmp[] = <span class="hl-purple">"/tmp/myapp.XXXXXX"</span>;
+fd = <span class="hl-green">mkstemp</span>(tmp);</pre>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Always use mkstemp() / mkdtemp() for temp files</div>
+            <div class="mit-item">Use O_CREAT | O_EXCL flags for atomic exclusive creation</div>
+            <div class="mit-item">Operate in application-owned directories, not /tmp</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/377.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-377 — Insecure Temporary File</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Kernel Race / Dirty COW -->
+      <div class="vuln-card c-race">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🐄</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Kernel-Level Race Conditions</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/362.html" target="_blank">CWE-362</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Race conditions in kernel code can escalate local user privileges to root. The famous Dirty COW (CVE-2016-5195) was a race in Linux's copy-on-write memory subsystem that allowed writing to read-only files.</p>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Apply kernel security patches promptly</div>
+            <div class="mit-item">Use proper kernel locking primitives (mutexes, spinlocks)</div>
+            <div class="mit-item">Enable kernel hardening features (grsecurity, SELinux)</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://dirtycow.ninja/" target="_blank"><span class="r-icon">🐄</span><span class="r-text">DirtyCOW.ninja — CVE-2016-5195 Documentation</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://nvd.nist.gov/vuln/detail/CVE-2016-5195" target="_blank"><span class="r-icon">🏛️</span><span class="r-text">NVD — CVE-2016-5195 (Dirty COW)</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Real-World Incidents</div>
+    <div class="examples-grid">
+      <div class="example-card c-race">
+        <div class="example-header"><span class="example-year">2016</span><span class="example-name">Dirty COW (CVE-2016-5195)</span><span class="example-type">Kernel Race</span></div>
+        <p class="example-desc">Race condition in Linux kernel's memory subsystem present for 9 years. Any local user could write to read-only root-owned files and gain full root access in seconds.</p>
+        <p class="example-impact">Impact: All Linux versions since 2.6.22 affected; widely exploited in wild before patch.</p>
+      </div>
+      <div class="example-card c-race">
+        <div class="example-header"><span class="example-year">2022</span><span class="example-name">Ethereum DeFi Double-Spend</span><span class="example-type">Web Race</span></div>
+        <p class="example-desc">Multiple DeFi protocol exploits used flash loan attacks combined with race conditions in smart contract state checks, allowing attackers to drain liquidity pools.</p>
+        <p class="example-impact">Impact: Hundreds of millions of dollars lost across multiple protocols.</p>
+      </div>
+      <div class="example-card c-race">
+        <div class="example-header"><span class="example-year">2023</span><span class="example-name">GitLab Account Takeover</span><span class="example-type">Web Race</span></div>
+        <p class="example-desc">CVE-2023-7028 — password reset race condition allowed account takeover by manipulating the timing of password reset token delivery to an attacker-controlled email.</p>
+        <p class="example-impact">Impact: CVSS 10.0; required immediate patching across all GitLab installations.</p>
+      </div>
+    </div>
+
+    <div class="test-box c-race">
+      <h3>🔧 Detection & Testing Tools</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://github.com/google/sanitizers/wiki/ThreadSanitizerCppManual" target="_blank">ThreadSanitizer (TSan)</a>
+        <a class="tool-pill" href="https://portswigger.net/burp" target="_blank">Burp Suite Turbo Intruder</a>
+        <a class="tool-pill" href="https://helgrind.livejournal.com/" target="_blank">Helgrind (Valgrind)</a>
+        <a class="tool-pill" href="https://github.com/nicowillis/racepwn" target="_blank">RacePWN</a>
+        <a class="tool-pill" href="https://github.com/ToolsHD/Toolkit" target="_blank">Intel Inspector</a>
+        <a class="tool-pill" href="https://www.codeql.com/" target="_blank">CodeQL (TOCTOU queries)</a>
+      </div>
+    </div>
+
+  </div><!-- /panel-2 -->
+
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- PANEL 4: SIDE-CHANNEL                                        -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="panel c-side" id="panel-3">
+
+    <div class="panel-header c-side" data-bg="SIDE">
+      <div class="panel-label">Category 04 · Information Leakage</div>
+      <h2>Side-Channel Vulnerabilities</h2>
+      <p>Side-channel attacks extract secret information not from the <strong>algorithm's output</strong>, but from <strong>physical or observable side effects</strong> of its execution — timing, power consumption, electromagnetic emissions, or cache behavior. These attacks bypass cryptographic correctness entirely and are often invisible to standard security testing.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Cryptographic key recovery</span>
+        <span class="impact-pill">Password extraction</span>
+        <span class="impact-pill">Cross-VM data leakage</span>
+        <span class="impact-pill">Cross-origin data theft</span>
+        <span class="severity-badge sev-high">High severity</span>
+      </div>
+    </div>
+
+    <div class="section-title">Vulnerability Types</div>
+    <div class="vuln-grid">
+
+      <!-- Timing Attack -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">⏱️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Timing Attack</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/208.html" target="_blank">CWE-208</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Code that short-circuits comparison (returns early on first mismatch) leaks information about the secret through response time differences. By measuring response time, attackers can brute-force secrets byte-by-byte.</p>
+          <div class="vuln-code">
+            <div class="code-label"><span class="cl-vuln">● vulnerable (early exit)</span><span class="cl-lang">Python</span></div>
+            <pre><span class="hl-gray"># Returns faster when more chars match!</span>
+<span class="hl-blue">def</span> <span class="hl-yellow">check_token</span>(provided, expected):
+    <span class="hl-blue">if</span> <span class="hl-red">provided == expected</span>:  <span class="hl-gray"># timing leak</span>
+        <span class="hl-blue">return</span> <span class="hl-blue">True</span>
+
+<span class="hl-gray"># Safe: constant-time comparison</span>
+<span class="hl-blue">import</span> hmac
+<span class="hl-blue">return</span> hmac.<span class="hl-green">compare_digest</span>(provided, expected)</pre>
+          </div>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">Attack method</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Attacker sends hundreds of requests with varying first byte</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Measures which first byte causes slightly longer response</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>Correct first byte found → moves to second byte</div>
+            <div class="hiw-step"><span class="hiw-num">4.</span>Repeats — recovers entire secret in O(n×256) requests</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Use constant-time comparison functions (hmac.compare_digest)</div>
+            <div class="mit-item">Use HMAC-based token verification instead of direct comparison</div>
+            <div class="mit-item">Add random jitter to responses (less reliable — use constant-time instead)</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://codahale.com/a-lesson-in-timing-attacks/" target="_blank"><span class="r-icon">📝</span><span class="r-text">Coda Hale — A Lesson in Timing Attacks</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://cwe.mitre.org/data/definitions/208.html" target="_blank"><span class="r-icon">🎯</span><span class="r-text">MITRE CWE-208 — Observable Timing Discrepancy</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Cache-Timing (Spectre/Meltdown) -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">💻</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Cache-Timing (Spectre / Meltdown)</div>
+              <div class="vuln-cwe"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5753" target="_blank">CVE-2017-5753 / CVE-2017-5754</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">CPU performance optimizations (speculative execution, out-of-order execution) leave traces in the CPU cache. By measuring cache access times, attackers can infer the values of speculatively accessed memory — including kernel memory from userspace.</p>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">Spectre in brief</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Train branch predictor to speculatively execute attacker's code path</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Speculative execution accesses secret memory (e.g., kernel data)</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>CPU reverts the logical result, but cache state persists</div>
+            <div class="hiw-step"><span class="hiw-num">4.</span>Attacker measures cache timing to recover the secret bits</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Apply OS and firmware microcode patches (Retpoline, IBRS, STIBP)</div>
+            <div class="mit-item">Site isolation in browsers (prevents cross-origin exploitation)</div>
+            <div class="mit-item">Reduce timer resolution in browser APIs (SharedArrayBuffer restrictions)</div>
+            <div class="mit-item">Process isolation for sensitive workloads</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://meltdownattack.com/" target="_blank"><span class="r-icon">💥</span><span class="r-text">MeltdownAttack.com — Original Research Papers</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://spectreattack.com/" target="_blank"><span class="r-icon">👻</span><span class="r-text">SpectreAttack.com — Research & Resources</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Power Analysis -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">⚡</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Power Analysis</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/1300.html" target="_blank">CWE-1300</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">The power consumed by a microprocessor during cryptographic operations correlates with the data being processed. Simple Power Analysis (SPA) and Differential Power Analysis (DPA) can recover cryptographic keys from hardware devices (smart cards, HSMs, IoT).</p>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">DPA in brief</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Attacker captures thousands of power traces during encryption</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Statistical analysis correlates power with intermediate values</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>Key bits recovered one subkey at a time</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Use power-analysis resistant crypto implementations (masking)</div>
+            <div class="mit-item">Add random noise to power consumption (hardware-level)</div>
+            <div class="mit-item">Use hardware security modules (HSMs) with built-in countermeasures</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.cryptography.com/resources/whitepapers/IntroToDPA.html" target="_blank"><span class="r-icon">📄</span><span class="r-text">Cryptography Research — Introduction to DPA</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://chipwhisperer.readthedocs.io/" target="_blank"><span class="r-icon">🔧</span><span class="r-text">ChipWhisperer — Open Power Analysis Platform</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Flush+Reload / Cross-VM -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🖥️</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Flush+Reload / Cross-VM Attacks</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/203.html" target="_blank">CWE-203</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">On shared hardware (cloud VMs, shared caches), an attacker co-located on the same physical host can monitor cache access patterns of a victim's process. Used to extract RSA keys, keystrokes, and AES operations across VM boundaries.</p>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Dedicate physical cores to sensitive workloads (no hyperthreading co-residency)</div>
+            <div class="mit-item">Use cache-oblivious cryptographic implementations</div>
+            <div class="mit-item">Cloud providers: enable core pinning / dedicated instances</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/yarom" target="_blank"><span class="r-icon">🎓</span><span class="r-text">USENIX Security — FLUSH+RELOAD Paper</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Acoustic / EM Attacks -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">📻</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Acoustic & Electromagnetic Attacks</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/1300.html" target="_blank">CWE-1300</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">CPUs emit acoustic noise and electromagnetic radiation correlated with their computations. Researchers have demonstrated RSA key extraction by recording the sounds from a laptop's fan/coils, and full key recovery via EM emissions from smart cards at distance.</p>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Physical security: Faraday cages, shielded hardware</div>
+            <div class="mit-item">Algorithmic: constant-time and power-balanced implementations</div>
+            <div class="mit-item">TEMPEST standards for sensitive government environments</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://tau.ac.il/~tromer/acoustic/" target="_blank"><span class="r-icon">🎓</span><span class="r-text">Weizmann Institute — RSA Key Extraction via Acoustic Cryptanalysis</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+      <!-- Rowhammer -->
+      <div class="vuln-card c-side">
+        <div class="vuln-card-top">
+          <div class="vuln-card-header">
+            <div class="vuln-icon">🔨</div>
+            <div class="vuln-title-block">
+              <div class="vuln-name">Rowhammer</div>
+              <div class="vuln-cwe"><a href="https://cwe.mitre.org/data/definitions/1251.html" target="_blank">CWE-1251</a></div>
+            </div>
+          </div>
+          <p class="vuln-desc">Rapidly reading the same DRAM memory row causes electrical disturbance in adjacent rows, flipping bits. Attackers can use JavaScript to repeatedly "hammer" memory rows, flipping bits in page tables to escalate privileges — without any software vulnerability.</p>
+        </div>
+        <div class="how-it-works">
+          <div class="hiw-title">Rowhammer in brief</div>
+          <div class="hiw-steps">
+            <div class="hiw-step"><span class="hiw-num">1.</span>Attacker allocates memory adjacent to a target page (e.g., page table)</div>
+            <div class="hiw-step"><span class="hiw-num">2.</span>Hammers the adjacent rows millions of times per second</div>
+            <div class="hiw-step"><span class="hiw-num">3.</span>A bit flips in the target page (e.g., read-only → writable)</div>
+            <div class="hiw-step"><span class="hiw-num">4.</span>Attacker now has write access to arbitrary physical memory</div>
+          </div>
+        </div>
+        <div class="mitigations">
+          <div class="mit-title">Mitigations</div>
+          <div class="mit-items">
+            <div class="mit-item">Use ECC (Error-Correcting Code) RAM to detect/correct bit flips</div>
+            <div class="mit-item">Memory controllers with Target Row Refresh (TRR) support</div>
+            <div class="mit-item">OS: Guard pages and memory isolation between processes</div>
+            <div class="mit-item">Browsers: Reduce timer precision to limit hammering rates</div>
+          </div>
+        </div>
+        <div class="card-resources">
+          <div class="resources-label">Learn more</div>
+          <a class="resource-link" href="https://googleprojectzero.blogspot.com/2015/03/exploiting-dram-rowhammer-bug-to-gain.html" target="_blank"><span class="r-icon">🔵</span><span class="r-text">Google Project Zero — Rowhammer Exploit</span><span class="r-arrow">↗</span></a>
+          <a class="resource-link" href="https://rowhammer.it/" target="_blank"><span class="r-icon">🔨</span><span class="r-text">Rowhammer.it — Research Summary</span><span class="r-arrow">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Real-World Incidents</div>
+    <div class="examples-grid">
+      <div class="example-card c-side">
+        <div class="example-header"><span class="example-year">2018</span><span class="example-name">Spectre & Meltdown</span><span class="example-type">Cache Timing</span></div>
+        <p class="example-desc">CPU design flaws in virtually all modern processors. Spectre allowed cross-process memory reading; Meltdown allowed unprivileged access to kernel memory. Both exploited speculative execution and cache timing.</p>
+        <p class="example-impact">Impact: Billions of devices affected; significant performance overhead from patches.</p>
+      </div>
+      <div class="example-card c-side">
+        <div class="example-header"><span class="example-year">2020</span><span class="example-name">LadderLeak (ECDSA Timing)</span><span class="example-type">Timing Attack</span></div>
+        <p class="example-desc">Researchers demonstrated ECDSA private key recovery from OpenSSL via a tiny timing side channel in scalar multiplication — exploitable with only a few hundred signatures.</p>
+        <p class="example-impact">Impact: Required immediate OpenSSL patching; affected all ECDSA-secured communications.</p>
+      </div>
+      <div class="example-card c-side">
+        <div class="example-header"><span class="example-year">2021</span><span class="example-name">Hertzbleed (CVE-2022-24436)</span><span class="example-type">Power/Frequency</span></div>
+        <p class="example-desc">CPU frequency scaling (Intel/AMD) correlates with data values being processed. Researchers used this to recover cryptographic keys remotely over network timing — a power side channel exploitable without physical access.</p>
+        <p class="example-impact">Impact: Affected SIKE post-quantum key encapsulation — remotely exploitable.</p>
+      </div>
+    </div>
+
+    <div class="test-box c-side">
+      <h3>🔧 Detection & Testing Tools</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://chipwhisperer.readthedocs.io/" target="_blank">ChipWhisperer</a>
+        <a class="tool-pill" href="https://github.com/defund/ctf" target="_blank">dudect (timing test)</a>
+        <a class="tool-pill" href="https://github.com/golang/go/issues/20655" target="_blank">Constant-time analysis tools</a>
+        <a class="tool-pill" href="https://software.intel.com/content/www/us/en/develop/tools/inspector.html" target="_blank">Intel Inspector</a>
+        <a class="tool-pill" href="https://www.valgrind.org/docs/manual/ct-manual.html" target="_blank">Callgrind (cache sim)</a>
+        <a class="tool-pill" href="https://github.com/clijockey/rowhammer-test" target="_blank">Rowhammer Test Tool</a>
+      </div>
+    </div>
+
+  </div><!-- /panel-3 -->
+
+</div><!-- /container -->
+
+<script>
+function switchPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
+}
+</script>
+</body>
+</html>

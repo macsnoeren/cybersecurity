@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryptography Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #10141c;
+    --surface2: #141820;
+    --border: #1e2535;
+    --accent: #00d4aa;
+    --c-hash:   #f59e0b;
+    --c-sym:    #3b82f6;
+    --c-asym:   #a78bfa;
+    --c-keys:   #34d399;
+    --c-proto:  #f472b6;
+    --c-pq:     #fb923c;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { max-width: 1140px; margin: 0 auto; padding: 48px 24px 100px; position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  .header { margin-bottom: 52px; display: flex; flex-direction: column; gap: 12px; }
+  .header-tag {
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em;
+    color: var(--accent); text-transform: uppercase; display: flex; align-items: center; gap: 8px;
+  }
+  .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(30px,5vw,54px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .header-sub { font-size: 15px; color: var(--muted); max-width: 700px; line-height: 1.75; font-weight: 300; }
+
+  /* ── Use-case pills ── */
+  .use-cases { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; }
+  .uc-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 14px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 12.5px; color: var(--text); opacity: 0.75;
+    transition: all 0.2s;
+  }
+  .uc-pill:hover { opacity: 1; border-color: var(--accent); }
+  .uc-pill .uc-icon { font-size: 14px; }
+
+  /* ── Category nav ── */
+  .cat-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 40px; }
+  @media (max-width: 700px) { .cat-nav { grid-template-columns: repeat(2, 1fr); } }
+  .cat-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 14px; cursor: pointer; text-align: left; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .cat-btn::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--pc); transform: scaleX(0); transition: transform 0.2s; transform-origin: left; }
+  .cat-btn:hover::after, .cat-btn.active::after { transform: scaleX(1); }
+  .cat-btn:hover { border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+  .cat-btn.active { background: color-mix(in srgb, var(--pc) 8%, var(--surface)); border-color: color-mix(in srgb, var(--pc) 45%, transparent); }
+  .cat-btn-num { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--pc); margin-bottom: 5px; opacity: 0.8; }
+  .cat-btn-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+  .cat-btn-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .cat-btn.active .cat-btn-title { color: var(--pc); }
+
+  .c-hash  { --pc: var(--c-hash); }
+  .c-sym   { --pc: var(--c-sym); }
+  .c-asym  { --pc: var(--c-asym); }
+  .c-keys  { --pc: var(--c-keys); }
+  .c-proto { --pc: var(--c-proto); }
+  .c-pq    { --pc: var(--c-pq); }
+
+  /* ── Panels ── */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Panel header ── */
+  .panel-header {
+    padding: 32px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 28px; position: relative; overflow: hidden;
+  }
+  .panel-header::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--pc), transparent); }
+  .panel-header::after { content: attr(data-bg); position: absolute; right: 24px; top: 50%; transform: translateY(-50%); font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; color: var(--pc); opacity: 0.05; letter-spacing: -0.04em; pointer-events: none; line-height: 1; }
+  .panel-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--pc); text-transform: uppercase; margin-bottom: 10px; }
+  .panel-header h2 { font-family: 'Syne', sans-serif; font-size: clamp(20px,3vw,26px); font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+  .panel-header p { font-size: 13.5px; color: var(--muted); line-height: 1.8; max-width: 700px; }
+  .panel-header p strong { color: var(--text); font-weight: 500; }
+  .impact-row { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
+  .impact-pill {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+    padding: 3px 10px; border-radius: 20px;
+    background: color-mix(in srgb, var(--pc) 12%, transparent);
+    color: var(--pc); border: 1px solid color-mix(in srgb, var(--pc) 25%, transparent); text-transform: uppercase;
+  }
+
+  /* ── Section title ── */
+  .section-title {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  /* ── Topic cards grid ── */
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+  .topic-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; transition: all 0.22s; display: flex; flex-direction: column;
+  }
+  .topic-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--pc) 35%, transparent); box-shadow: 0 8px 28px color-mix(in srgb, var(--pc) 8%, transparent); }
+
+  .tc-top { padding: 20px 20px 0; }
+  .tc-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .tc-icon { width: 38px; height: 38px; border-radius: 8px; background: color-mix(in srgb, var(--pc) 10%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 20%, transparent); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tc-title-block { flex: 1; }
+  .tc-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--pc); margin-bottom: 2px; }
+  .tc-algo { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
+  .tc-algo a { color: inherit; text-decoration: none; transition: color 0.15s; }
+  .tc-algo a:hover { color: var(--pc); }
+  .tc-desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
+
+  /* Diagram / visual box */
+  .tc-visual {
+    margin: 0 0 14px;
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .visual-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 12px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .visual-label .vl-c { color: var(--pc); }
+  .visual-body { padding: 12px 14px; font-family: 'DM Mono', monospace; font-size: 11.5px; line-height: 1.75; color: #c9d1d9; overflow-x: auto; white-space: pre; }
+  .hl-r { color: #ff7b72; }
+  .hl-g { color: #3fb950; }
+  .hl-y { color: #e3b341; }
+  .hl-b { color: #79c0ff; }
+  .hl-p { color: #d2a8ff; }
+  .hl-m { color: #64748b; }
+  .hl-c { color: #00d4aa; }
+
+  /* Properties & notes */
+  .tc-props { padding: 0 20px 14px; }
+  .props-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; opacity: 0.55; }
+  .props-list { display: flex; flex-direction: column; gap: 4px; }
+  .prop-item { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .prop-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--pc); flex-shrink: 0; margin-top: 5px; opacity: 0.5; }
+  .prop-item strong { color: var(--text); font-weight: 500; }
+
+  /* Algorithms table */
+  .algo-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 0; }
+  .algo-table th { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .algo-table td { padding: 7px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); color: var(--muted); vertical-align: top; line-height: 1.4; }
+  .algo-table tr:last-child td { border-bottom: none; }
+  .algo-table td:first-child { color: var(--pc); font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+  .algo-table td .rec { color: #3fb950; font-size: 10px; }
+  .algo-table td .dep { color: #ef4444; font-size: 10px; }
+  .algo-table td .warn { color: #f59e0b; font-size: 10px; }
+
+  /* Mitigations / best practices */
+  .tc-mit { padding: 14px 20px; background: color-mix(in srgb, var(--pc) 4%, var(--surface2)); border-top: 1px solid var(--border); flex: 1; }
+  .mit-title { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--pc); margin-bottom: 8px; opacity: 0.7; }
+  .mit-items { display: flex; flex-direction: column; gap: 4px; }
+  .mit-item { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; line-height: 1.5; }
+  .mit-item::before { content: '✓'; color: var(--pc); font-size: 11px; flex-shrink: 0; margin-top: 1px; opacity: 0.7; }
+
+  /* Resources */
+  .tc-res { padding: 12px 20px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+  .res-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; opacity: 0.5; }
+  .res-link { display: flex; align-items: center; gap: 7px; text-decoration: none; padding: 5px 8px; border-radius: 5px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); transition: all 0.18s; }
+  .res-link:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); transform: translateX(2px); }
+  .res-link .ri { font-size: 12px; flex-shrink: 0; opacity: 0.65; }
+  .res-link .rt { font-size: 11.5px; color: var(--text); opacity: 0.6; flex: 1; line-height: 1.3; transition: opacity 0.15s, color 0.15s; }
+  .res-link:hover .rt { opacity: 1; color: var(--pc); }
+  .res-link .ra { font-size: 10px; opacity: 0.25; flex-shrink: 0; transition: opacity 0.15s, transform 0.15s; }
+  .res-link:hover .ra { opacity: 0.6; transform: translateX(2px); }
+
+  /* ── How it works flow ── */
+  .flow-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+  .flow-box h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--pc); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .flow-steps { display: flex; flex-direction: column; gap: 0; }
+  .flow-step { display: flex; gap: 16px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--pc); background: color-mix(in srgb, var(--pc) 12%, transparent); width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 500; }
+  .flow-content h4 { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .flow-content p { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .flow-content code { font-family: 'DM Mono', monospace; font-size: 11px; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px; color: var(--pc); }
+
+  /* ── Comparison table ── */
+  .compare-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
+  .compare-box table { width: 100%; border-collapse: collapse; }
+  .compare-box th { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 12px 16px; text-align: left; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
+  .compare-box td { padding: 11px 16px; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); font-size: 12.5px; color: var(--muted); vertical-align: top; line-height: 1.5; }
+  .compare-box tr:last-child td { border-bottom: none; }
+  .compare-box td:first-child { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--pc); font-weight: 500; }
+  .tag-green { color: #3fb950; font-size: 11px; }
+  .tag-red { color: #ef4444; font-size: 11px; }
+  .tag-yellow { color: #f59e0b; font-size: 11px; }
+
+  /* ── Tools row ── */
+  .tools-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 0; }
+  .tools-box h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--pc); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .tools-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tool-pill { font-family: 'DM Mono', monospace; font-size: 11px; padding: 5px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; color: var(--text); opacity: 0.7; transition: all 0.15s; text-decoration: none; display: inline-block; }
+  .tool-pill:hover { opacity: 1; border-color: var(--pc); color: var(--pc); }
+
+  /* ── Warning / info strips ── */
+  .info-strip { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; }
+  .info-strip.warn { background: color-mix(in srgb, #f59e0b 6%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 22%, transparent); }
+  .info-strip.info { background: color-mix(in srgb, #3b82f6 6%, transparent); border: 1px solid color-mix(in srgb, #3b82f6 22%, transparent); }
+  .info-strip.danger { background: color-mix(in srgb, #ef4444 6%, transparent); border: 1px solid color-mix(in srgb, #ef4444 22%, transparent); }
+  .info-strip.success { background: color-mix(in srgb, var(--accent) 6%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); }
+  .info-strip .si-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .info-strip .si-text { font-size: 12.5px; color: var(--text); opacity: 0.8; line-height: 1.65; }
+  .info-strip .si-text strong { font-weight: 500; }
+  .info-strip.warn .si-text strong { color: #f59e0b; }
+  .info-strip.info .si-text strong { color: #79c0ff; }
+  .info-strip.danger .si-text strong { color: #ef4444; }
+  .info-strip.success .si-text strong { color: var(--accent); }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <!-- ════ HEADER ════ -->
+  <div class="header">
+    <div class="header-tag">Reference</div>
+    <div class="header-meta">Author: Maurice Snoeren</div>
+    <h1><span>Cryptography</span></h1>
+    <p class="header-sub">Cryptography secures information and communication. It enables <strong style="color:var(--text)">confidentiality</strong> (encryption), <strong style="color:var(--text)">integrity</strong> (hashing), <strong style="color:var(--text)">authenticity</strong> (signatures), <strong style="color:var(--text)">non-repudiation</strong>, and <strong style="color:var(--text)">authentication & authorisation</strong>. Real implementations combine multiple primitives — no single algorithm does everything.</p>
+  </div>
+
+  <!-- Use cases -->
+  <div class="use-cases">
+    <div class="uc-pill"><span class="uc-icon">🔒</span>Confidentiality — Encrypt data at rest and in transit</div>
+    <div class="uc-pill"><span class="uc-icon">✍️</span>Non-repudiation — Prove origin of a message</div>
+    <div class="uc-pill"><span class="uc-icon">🪪</span>Authentication — Verify identity of users &amp; services</div>
+    <div class="uc-pill"><span class="uc-icon">🛡️</span>Integrity — Detect tampering with data</div>
+    <div class="uc-pill"><span class="uc-icon">🔑</span>Key exchange — Establish shared secrets securely</div>
+    <div class="uc-pill"><span class="uc-icon">🧩</span>Secret sharing — Distribute secrets across parties</div>
+  </div>
+
+  <!-- ════ NAV ════ -->
+  <div class="cat-nav">
+    <button class="cat-btn c-hash active" onclick="switchPanel(0)">
+      <div class="cat-btn-num">01</div>
+      <div class="cat-btn-title">Secure Hashing</div>
+      <div class="cat-btn-sub">SHA-2, SHA-3, BLAKE3, HMAC</div>
+    </button>
+    <button class="cat-btn c-sym" onclick="switchPanel(1)">
+      <div class="cat-btn-num">02</div>
+      <div class="cat-btn-title">Symmetric Cryptography</div>
+      <div class="cat-btn-sub">AES, ChaCha20, modes of operation</div>
+    </button>
+    <button class="cat-btn c-asym" onclick="switchPanel(2)">
+      <div class="cat-btn-num">03</div>
+      <div class="cat-btn-title">Asymmetric Cryptography</div>
+      <div class="cat-btn-sub">RSA, ECC, signatures, key exchange</div>
+    </button>
+    <button class="cat-btn c-keys" onclick="switchPanel(3)">
+      <div class="cat-btn-num">04</div>
+      <div class="cat-btn-title">Keys &amp; Passwords</div>
+      <div class="cat-btn-sub">Generation, storage, KDF, Base64</div>
+    </button>
+    <button class="cat-btn c-proto" onclick="switchPanel(4)">
+      <div class="cat-btn-num">05</div>
+      <div class="cat-btn-title">Protocols &amp; Systems</div>
+      <div class="cat-btn-sub">TLS, PKI, Blockchain, Zero-Knowledge</div>
+    </button>
+    <button class="cat-btn c-pq" onclick="switchPanel(5)">
+      <div class="cat-btn-num">06</div>
+      <div class="cat-btn-title">Post-Quantum Cryptography</div>
+      <div class="cat-btn-sub">CRYSTALS, FALCON, SPHINCS+</div>
+    </button>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 1 — SECURE HASHING                             -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-hash active" id="panel-0">
+    <div class="panel-header c-hash" data-bg="HASH">
+      <div class="panel-label">01 · Hashing</div>
+      <h2>Secure Hashing</h2>
+      <p>A cryptographic hash function maps data of <strong>any size to a fixed-size digest</strong> in a one-way, deterministic fashion. The same input always produces the same output, but it must be computationally infeasible to reverse the hash or find two inputs that produce the same hash (collision resistance). Hashing is the foundation of integrity, password storage, digital signatures, and MACs.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Integrity</span>
+        <span class="impact-pill">Password storage</span>
+        <span class="impact-pill">Digital signatures</span>
+        <span class="impact-pill">Message authentication</span>
+      </div>
+    </div>
+
+    <div class="section-title">Core Properties</div>
+    <div class="topic-grid">
+
+      <div class="topic-card c-hash">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🎯</div><div class="tc-title-block"><div class="tc-name">Hash Function Properties</div><div class="tc-algo">Required security properties</div></div></div>
+          <p class="tc-desc">A cryptographic hash function must satisfy three core security properties. Breaking any one of them makes the hash function unsuitable for security purposes.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Properties</span></div>
+            <div class="visual-body"><span class="hl-y">Pre-image resistance  </span><span class="hl-m">Given h(x), infeasible to find x</span>
+<span class="hl-y">2nd pre-image resist. </span><span class="hl-m">Given x, infeasible to find x' where h(x)=h(x')</span>
+<span class="hl-y">Collision resistance  </span><span class="hl-m">Infeasible to find any x,x' where h(x)=h(x')</span>
+<span class="hl-y">Avalanche effect      </span><span class="hl-m">1 bit change → ~50% of output bits change</span></div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://csrc.nist.gov/projects/hash-functions" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST — Hash Function Standards</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-hash">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔐</div><div class="tc-title-block"><div class="tc-name">HMAC — Keyed Hash</div><div class="tc-algo"><a href="https://tools.ietf.org/html/rfc2104" target="_blank">RFC 2104</a></div></div></div>
+          <p class="tc-desc">A Hash-based Message Authentication Code combines a secret key with the hash. It proves both <strong>integrity</strong> (data wasn't tampered) and <strong>authenticity</strong> (sender knows the key). Used in JWT, API authentication, TLS.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">HMAC Construction</span></div>
+            <div class="visual-body">HMAC(K, m) = H((K ⊕ opad) || H((K ⊕ ipad) || m))
+
+<span class="hl-m">K    = secret key (padded to block size)
+m    = message
+opad = 0x5c repeated
+ipad = 0x36 repeated</span>
+
+<span class="hl-g">// Python</span>
+<span class="hl-b">import</span> hmac, hashlib
+mac = hmac.<span class="hl-g">new</span>(key, msg, hashlib.sha256).digest()</div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Use HMAC when you need</div>
+          <div class="mit-items">
+            <div class="mit-item">Verifying message integrity AND authenticity together</div>
+            <div class="mit-item">API request signing (HMAC-SHA256)</div>
+            <div class="mit-item">JWT signature (HS256 = HMAC-SHA256)</div>
+            <div class="mit-item">Always use <strong>constant-time comparison</strong> when verifying</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://tools.ietf.org/html/rfc2104" target="_blank"><span class="ri">📄</span><span class="rt">RFC 2104 — HMAC Specification</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://owasp.org/www-project-cheat-sheets/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Authentication Cheat Sheet</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Algorithm Comparison</div>
+    <div class="compare-box c-hash">
+      <table>
+        <thead><tr><th>Algorithm</th><th>Output</th><th>Speed</th><th>Status</th><th>Use For</th></tr></thead>
+        <tbody>
+          <tr><td>MD5</td><td>128 bit</td><td>Very fast</td><td><span class="tag-red">⛔ Broken</span></td><td>Non-security checksums only</td></tr>
+          <tr><td>SHA-1</td><td>160 bit</td><td>Fast</td><td><span class="tag-red">⛔ Deprecated</span></td><td>Legacy only — SHAttered collision found</td></tr>
+          <tr><td>SHA-256</td><td>256 bit</td><td>Fast</td><td><span class="tag-green">✓ Recommended</span></td><td>General integrity, digital signatures, TLS</td></tr>
+          <tr><td>SHA-512</td><td>512 bit</td><td>Fast on 64-bit</td><td><span class="tag-green">✓ Recommended</span></td><td>High-security integrity, certificates</td></tr>
+          <tr><td>SHA-3 / Keccak</td><td>224–512 bit</td><td>Moderate</td><td><span class="tag-green">✓ NIST Standard</span></td><td>High-assurance applications, PQC</td></tr>
+          <tr><td>BLAKE3</td><td>256 bit+</td><td>Very fast</td><td><span class="tag-green">✓ Modern</span></td><td>File integrity, Merkle trees, streaming</td></tr>
+          <tr><td>bcrypt</td><td>60 char</td><td>Slow (intentional)</td><td><span class="tag-green">✓ Passwords</span></td><td>Password hashing — cost factor adjustable</td></tr>
+          <tr><td>Argon2id</td><td>Variable</td><td>Slow (intentional)</td><td><span class="tag-green">✓ Best for passwords</span></td><td>Password hashing — memory-hard, PHC winner</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-strip danger">
+      <span class="si-icon">⛔</span>
+      <div class="si-text"><strong>Never use MD5 or SHA-1 for security.</strong> MD5 has been fully broken since 2004. SHA-1 had a practical chosen-prefix collision demonstrated in 2020 (SHAttered). Both remain in many legacy systems — replace them.</div>
+    </div>
+
+    <div class="tools-box c-hash">
+      <h3>🔧 Tools &amp; Libraries</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://docs.python.org/3/library/hashlib.html" target="_blank">Python hashlib</a>
+        <a class="tool-pill" href="https://nodejs.org/api/crypto.html" target="_blank">Node.js crypto</a>
+        <a class="tool-pill" href="https://www.openssl.org/docs/man3.0/man1/openssl-dgst.html" target="_blank">OpenSSL dgst</a>
+        <a class="tool-pill" href="https://github.com/BLAKE3-team/BLAKE3" target="_blank">BLAKE3 Reference</a>
+        <a class="tool-pill" href="https://github.com/P-H-C/phc-winner-argon2" target="_blank">Argon2 (PHC winner)</a>
+        <a class="tool-pill" href="https://jwt.io/" target="_blank">JWT.io debugger</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 2 — SYMMETRIC                                  -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-sym" id="panel-1">
+    <div class="panel-header c-sym" data-bg="SYM">
+      <div class="panel-label">02 · Symmetric</div>
+      <h2>Symmetric Cryptography</h2>
+      <p>The same secret key is used for both <strong>encryption and decryption</strong>. Extremely fast — orders of magnitude faster than asymmetric crypto. Used for bulk data encryption (files, TLS record layer, disk encryption). The core challenge: how do two parties securely agree on the shared key? That's solved by key exchange (asymmetric crypto).</p>
+      <div class="impact-row">
+        <span class="impact-pill">Confidentiality</span>
+        <span class="impact-pill">Bulk data encryption</span>
+        <span class="impact-pill">Fast &amp; efficient</span>
+        <span class="impact-pill">Requires shared secret</span>
+      </div>
+    </div>
+
+    <div class="section-title">Block Ciphers &amp; Modes of Operation</div>
+    <div class="topic-grid">
+
+      <div class="topic-card c-sym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🧱</div><div class="tc-title-block"><div class="tc-name">AES — Advanced Encryption Standard</div><div class="tc-algo"><a href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf" target="_blank">FIPS 197 · NIST 2001</a></div></div></div>
+          <p class="tc-desc">The world's most widely deployed symmetric cipher. AES operates on 128-bit blocks using 128, 192, or 256-bit keys. It is a substitution-permutation network with 10–14 rounds depending on key size. Hardware acceleration (AES-NI) makes it extremely fast.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">AES Encryption Flow</span></div>
+            <div class="visual-body"><span class="hl-b">Plaintext</span> (128-bit block)
+    ↓ AddRoundKey (XOR with key)
+    ↓ [×N rounds]:
+    │  SubBytes   (S-box substitution)
+    │  ShiftRows  (row rotation)
+    │  MixColumns (linear mixing)
+    │  AddRoundKey
+    ↓ Final round (no MixColumns)
+<span class="hl-g">Ciphertext</span> (128-bit block)</div>
+          </div>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Key sizes</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div><strong>AES-128</strong> — 10 rounds, fast, sufficient for most uses</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>AES-256</strong> — 14 rounds, recommended for long-term data &amp; PQC era</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST FIPS 197 — AES Standard</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://www.crypto101.io/" target="_blank"><span class="ri">📘</span><span class="rt">Crypto101 — Free Crypto Textbook</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-sym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔀</div><div class="tc-title-block"><div class="tc-name">Modes of Operation</div><div class="tc-algo">How blocks are chained together</div></div></div>
+          <p class="tc-desc">A block cipher alone only encrypts one fixed-size block. Modes of operation define how to apply the cipher to longer messages — and critically, whether they also provide authentication.</p>
+        </div>
+        <div class="compare-box c-sym" style="margin:0 0 14px; border-radius:8px;">
+          <table class="algo-table">
+            <thead><tr><th>Mode</th><th>Auth?</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>ECB</td><td>No</td><td><span class="dep">⛔ Never use</span> — patterns visible</td></tr>
+              <tr><td>CBC</td><td>No</td><td><span class="warn">⚠️ Legacy</span> — POODLE/BEAST attacks</td></tr>
+              <tr><td>CTR</td><td>No</td><td><span class="warn">⚠️ Ok</span> — never reuse nonce+key</td></tr>
+              <tr><td>GCM</td><td>Yes</td><td><span class="rec">✓ Recommended</span> — AEAD</td></tr>
+              <tr><td>CCM</td><td>Yes</td><td><span class="rec">✓ OK</span> — constrained devices</td></tr>
+              <tr><td>ChaCha20-Poly1305</td><td>Yes</td><td><span class="rec">✓ Modern AEAD</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://csrc.nist.gov/publications/detail/sp/800-38d/final" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST SP 800-38D — GCM Mode</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://en.wikipedia.org/wiki/Authenticated_encryption" target="_blank"><span class="ri">📖</span><span class="rt">Wikipedia — Authenticated Encryption (AEAD)</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-sym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🌊</div><div class="tc-title-block"><div class="tc-name">ChaCha20-Poly1305</div><div class="tc-algo"><a href="https://tools.ietf.org/html/rfc8439" target="_blank">RFC 8439</a></div></div></div>
+          <p class="tc-desc">A modern stream cipher (ChaCha20) combined with an authenticator (Poly1305) — forming an AEAD. Designed by Daniel Bernstein. Preferred over AES-GCM on devices without AES hardware acceleration. Used in TLS 1.3 and WireGuard.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">AEAD: Encrypt-then-MAC</span></div>
+            <div class="visual-body"><span class="hl-b">ChaCha20</span>(key, nonce, counter) → keystream
+plaintext XOR keystream → <span class="hl-g">ciphertext</span>
+
+<span class="hl-p">Poly1305</span>(one-time-key, AAD || ciphertext) → <span class="hl-g">tag</span>
+
+Recipient: verify tag → then decrypt
+<span class="hl-m">(Never decrypt before verifying tag!)</span></div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Best Practices — Symmetric</div>
+          <div class="mit-items">
+            <div class="mit-item">Always use an <strong>AEAD mode</strong> (GCM or ChaCha20-Poly1305)</div>
+            <div class="mit-item">Never reuse a nonce with the same key — use random 96-bit nonces</div>
+            <div class="mit-item">Verify the authentication tag before decrypting</div>
+            <div class="mit-item">Use 256-bit keys for long-term or high-sensitivity data</div>
+            <div class="mit-item">Rotate keys regularly; support key versioning</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://tools.ietf.org/html/rfc8439" target="_blank"><span class="ri">📄</span><span class="rt">RFC 8439 — ChaCha20-Poly1305</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://libsodium.gitbook.io/doc/" target="_blank"><span class="ri">🧂</span><span class="rt">libsodium — High-level Crypto Library</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="info-strip warn">
+      <span class="si-icon">⚠️</span>
+      <div class="si-text"><strong>ECB mode reveals patterns.</strong> Encrypting the same plaintext block always yields the same ciphertext block — the famous "ECB penguin" demonstrates that bitmap images retain their structure when encrypted with ECB. Never use ECB mode for any real data.</div>
+    </div>
+
+    <div class="tools-box c-sym">
+      <h3>🔧 Tools &amp; Libraries</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://cryptography.io/en/latest/" target="_blank">Python cryptography</a>
+        <a class="tool-pill" href="https://libsodium.gitbook.io/doc/" target="_blank">libsodium</a>
+        <a class="tool-pill" href="https://bouncycastle.org/" target="_blank">BouncyCastle (Java)</a>
+        <a class="tool-pill" href="https://www.openssl.org/" target="_blank">OpenSSL</a>
+        <a class="tool-pill" href="https://github.com/pyca/cryptography" target="_blank">pyca/cryptography</a>
+        <a class="tool-pill" href="https://pkg.go.dev/crypto/aes" target="_blank">Go crypto/aes</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 3 — ASYMMETRIC                                 -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-asym" id="panel-2">
+    <div class="panel-header c-asym" data-bg="PKC">
+      <div class="panel-label">03 · Asymmetric</div>
+      <h2>Asymmetric (Public-Key) Cryptography</h2>
+      <p>Uses a <strong>mathematically linked key pair</strong>: a public key (share freely) and a private key (keep secret). Anything encrypted with the public key can only be decrypted with the private key, and vice versa. Solves the key distribution problem — but is <strong>1000–10,000× slower</strong> than symmetric crypto. In practice it is used for key exchange and digital signatures, not bulk encryption.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Key exchange</span>
+        <span class="impact-pill">Digital signatures</span>
+        <span class="impact-pill">Authentication</span>
+        <span class="impact-pill">Non-repudiation</span>
+      </div>
+    </div>
+
+    <div class="section-title">Algorithms &amp; Use Cases</div>
+    <div class="topic-grid">
+
+      <div class="topic-card c-asym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔢</div><div class="tc-title-block"><div class="tc-name">RSA</div><div class="tc-algo"><a href="https://www.rfc-editor.org/rfc/rfc8017" target="_blank">RFC 8017 (PKCS#1)</a></div></div></div>
+          <p class="tc-desc">Based on the hardness of factoring large integers. Still widely used for TLS certificates, JWT (RS256), and legacy systems. Requires large key sizes for security.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">RSA Key Generation</span></div>
+            <div class="visual-body"><span class="hl-b">1.</span> Choose large primes p, q (each 1024+ bits)
+<span class="hl-b">2.</span> n = p × q  (modulus)
+<span class="hl-b">3.</span> φ(n) = (p-1)(q-1)
+<span class="hl-b">4.</span> Choose e: gcd(e, φ(n)) = 1  (public exp.)
+<span class="hl-b">5.</span> d = e⁻¹ mod φ(n)  (private exp.)
+<span class="hl-g">Public key:  (n, e)
+Private key: (n, d)</span>
+Encrypt: c = mᵉ mod n
+Decrypt: m = cᵈ mod n</div>
+          </div>
+        </div>
+        <div class="compare-box c-asym" style="margin:0 0 14px;border-radius:8px;">
+          <table class="algo-table">
+            <thead><tr><th>Key Size</th><th>Security</th><th>Recommended?</th></tr></thead>
+            <tbody>
+              <tr><td>1024 bit</td><td>~80 bit</td><td><span class="dep">⛔ Deprecated</span></td></tr>
+              <tr><td>2048 bit</td><td>~112 bit</td><td><span class="warn">⚠️ Minimum today</span></td></tr>
+              <tr><td>4096 bit</td><td>~140 bit</td><td><span class="rec">✓ Long-term</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://www.rfc-editor.org/rfc/rfc8017" target="_blank"><span class="ri">📄</span><span class="rt">RFC 8017 — PKCS#1 RSA Standard</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-asym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">〰️</div><div class="tc-title-block"><div class="tc-name">Elliptic Curve Cryptography (ECC)</div><div class="tc-algo"><a href="https://csrc.nist.gov/publications/detail/sp/800-186/final" target="_blank">NIST SP 800-186</a></div></div></div>
+          <p class="tc-desc">Based on the algebraic structure of elliptic curves over finite fields. Provides equivalent security to RSA with <strong>much smaller key sizes</strong> — a 256-bit ECC key is as strong as a 3072-bit RSA key. Preferred for modern systems.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">ECC vs RSA Key Size</span></div>
+            <div class="visual-body"><span class="hl-y">Security</span>  <span class="hl-r">RSA key</span>      <span class="hl-g">ECC key</span>
+─────────────────────────────
+112 bit    2048 bit     224 bit
+128 bit    3072 bit     256 bit  ← P-256 / secp256r1
+192 bit    7680 bit     384 bit  ← P-384
+256 bit   15360 bit     521 bit  ← P-521</div>
+          </div>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Common curves</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div><strong>P-256 (secp256r1)</strong> — NIST, used in TLS, FIDO2</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>Curve25519 / X25519</strong> — Bernstein, fast, used in TLS 1.3, SSH</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>Ed25519</strong> — EdDSA signatures, SSH keys, JWT (EdDSA)</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>secp256k1</strong> — Bitcoin / Ethereum ECDSA</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://safecurves.cr.yp.to/" target="_blank"><span class="ri">🔐</span><span class="rt">SafeCurves — Comparing ECC curve security</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/" target="_blank"><span class="ri">🌐</span><span class="rt">Cloudflare — ECC Primer (accessible explanation)</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-asym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">✍️</div><div class="tc-title-block"><div class="tc-name">Digital Signatures</div><div class="tc-algo">RSA-PSS, ECDSA, EdDSA</div></div></div>
+          <p class="tc-desc">A digital signature proves that a message was created by the holder of a private key and has not been altered. Verifiable by anyone with the corresponding public key — enabling <strong>non-repudiation</strong>.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Signature Flow</span></div>
+            <div class="visual-body"><span class="hl-y">Signing</span>
+  hash = SHA-256(message)
+  sig  = Sign(privKey, hash)
+  → send: (message, sig, pubKey)
+
+<span class="hl-g">Verification</span>
+  hash'   = SHA-256(message)
+  valid   = Verify(pubKey, sig, hash')
+  → valid iff hash' == recovered_hash</div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Signature Algorithm Recommendations</div>
+          <div class="mit-items">
+            <div class="mit-item">Prefer <strong>Ed25519</strong> (EdDSA) for new systems — fast, safe, no random needed</div>
+            <div class="mit-item">Use <strong>ECDSA with P-256</strong> for NIST/FIPS compliance</div>
+            <div class="mit-item">Use <strong>RSA-PSS</strong> (not PKCS1v1.5) if you must use RSA</div>
+            <div class="mit-item">Never sign raw data — always sign H(data)</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://ed25519.cr.yp.to/" target="_blank"><span class="ri">🔐</span><span class="rt">Ed25519 — Reference & Performance</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-asym">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🤝</div><div class="tc-title-block"><div class="tc-name">Diffie-Hellman Key Exchange</div><div class="tc-algo"><a href="https://tools.ietf.org/html/rfc7919" target="_blank">DH / ECDH / X25519</a></div></div></div>
+          <p class="tc-desc">Allows two parties to derive a <strong>shared secret over an insecure channel</strong> without ever transmitting the secret itself. The foundation of forward-secure key exchange in TLS, SSH, and Signal.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">ECDH Key Exchange</span></div>
+            <div class="visual-body"><span class="hl-b">Alice</span>                      <span class="hl-p">Bob</span>
+Generate ephemeral key pair    Generate ephemeral key pair
+(privA, pubA)                  (privB, pubB)
+     ─── pubA ──────────────────────→
+     ←─────────────────── pubB ───
+<span class="hl-g">shared = ECDH(privA, pubB)</span>   <span class="hl-g">shared = ECDH(privB, pubA)</span>
+<span class="hl-m">(Both arrive at the same shared secret)</span></div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Forward Secrecy</div>
+          <div class="mit-items">
+            <div class="mit-item">Use <strong>ephemeral</strong> key pairs per session (ECDHE/DHE)</div>
+            <div class="mit-item">If private key is later compromised, past sessions remain safe</div>
+            <div class="mit-item">TLS 1.3 mandates ephemeral key exchange — no static RSA</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://tools.ietf.org/html/rfc7919" target="_blank"><span class="ri">📄</span><span class="rt">RFC 7919 — Finite-Field Diffie-Hellman</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://cr.yp.to/ecdh.html" target="_blank"><span class="ri">🔐</span><span class="rt">DJB — Curve25519 / X25519</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tools-box c-asym">
+      <h3>🔧 Tools &amp; Libraries</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://www.openssl.org/" target="_blank">OpenSSL</a>
+        <a class="tool-pill" href="https://libsodium.gitbook.io/doc/" target="_blank">libsodium</a>
+        <a class="tool-pill" href="https://cryptography.io/en/latest/hazmat/primitives/asymmetric/" target="_blank">Python hazmat asymmetric</a>
+        <a class="tool-pill" href="https://github.com/golang/crypto" target="_blank">Go x/crypto</a>
+        <a class="tool-pill" href="https://jwt.io/" target="_blank">JWT.io (RS256/ES256/EdDSA)</a>
+        <a class="tool-pill" href="https://smallstep.com/blog/everything-pki/" target="_blank">SmallStep PKI guide</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 4 — KEYS & PASSWORDS                           -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-keys" id="panel-3">
+    <div class="panel-header c-keys" data-bg="KEYS">
+      <div class="panel-label">04 · Key Management</div>
+      <h2>Keys, Passwords &amp; Encoding</h2>
+      <p>Cryptography is only as strong as its <strong>key management</strong>. Generating weak keys, storing them insecurely, or deriving them from passwords incorrectly undermines everything else. This section covers the full lifecycle: generation, derivation from passwords, exchange, storage, and encoding for transmission.</p>
+      <div class="impact-row">
+        <span class="impact-pill">Key generation</span>
+        <span class="impact-pill">Password hashing</span>
+        <span class="impact-pill">Secret storage</span>
+        <span class="impact-pill">Secret sharing</span>
+        <span class="impact-pill">Base64 encoding</span>
+      </div>
+    </div>
+
+    <div class="section-title">Key Generation &amp; Sources of Randomness</div>
+    <div class="topic-grid">
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🎲</div><div class="tc-title-block"><div class="tc-name">Cryptographically Secure Randomness</div><div class="tc-algo">CSPRNG — never use Math.random()</div></div></div>
+          <p class="tc-desc">Keys must be generated from a <strong>Cryptographically Secure Pseudo-Random Number Generator (CSPRNG)</strong>. Regular random functions (Math.random, rand()) are not secure — they are predictable. The OS provides secure entropy from hardware sources.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Secure Key Generation</span></div>
+            <div class="visual-body"><span class="hl-m"># Python — OS CSPRNG</span>
+<span class="hl-b">import</span> secrets
+key = secrets.<span class="hl-g">token_bytes</span>(<span class="hl-p">32</span>)  <span class="hl-m"># 256-bit AES key</span>
+
+<span class="hl-m">// Node.js</span>
+<span class="hl-b">const</span> key = <span class="hl-g">crypto.randomBytes</span>(<span class="hl-p">32</span>);
+
+<span class="hl-m">// Go</span>
+key := <span class="hl-g">make</span>([]byte, <span class="hl-p">32</span>)
+io.<span class="hl-g">ReadFull</span>(rand.Reader, key)
+
+<span class="hl-m">// CLI</span>
+openssl rand -hex <span class="hl-p">32</span></div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Rules</div>
+          <div class="mit-items">
+            <div class="mit-item">Always use OS-provided CSPRNG (urandom, CryptGenRandom)</div>
+            <div class="mit-item">Never seed with time, PID, or predictable values</div>
+            <div class="mit-item">Generate keys at full security strength (128+ bits of entropy)</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Cryptographic Storage Cheat Sheet</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔑</div><div class="tc-title-block"><div class="tc-name">Key Derivation from Passwords (KDF)</div><div class="tc-algo">PBKDF2 · bcrypt · Argon2id · scrypt</div></div></div>
+          <p class="tc-desc">Passwords have low entropy and cannot be used directly as cryptographic keys. A <strong>Key Derivation Function (KDF)</strong> is deliberately slow and memory-intensive to thwart brute-force and GPU attacks. Always use a unique per-user <strong>salt</strong>.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Password → Key (Argon2id)</span></div>
+            <div class="visual-body"><span class="hl-b">Input:</span>  password + random_salt (16+ bytes)
+<span class="hl-b">Params:</span> memory=64MB, iterations=3, parallelism=4
+<span class="hl-g">Output:</span> 32-byte derived key or stored hash
+
+<span class="hl-m"># Python</span>
+<span class="hl-b">from</span> argon2 <span class="hl-b">import</span> PasswordHasher
+ph = PasswordHasher()
+hash = ph.<span class="hl-g">hash</span>(password)   <span class="hl-m"># includes salt</span>
+ph.<span class="hl-g">verify</span>(hash, password)  <span class="hl-m"># constant-time check</span></div>
+          </div>
+        </div>
+        <div class="compare-box c-keys" style="margin:0 0 14px;border-radius:8px;">
+          <table class="algo-table">
+            <thead><tr><th>KDF</th><th>Memory-hard</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>MD5(password)</td><td>No</td><td><span class="dep">⛔ Never use</span></td></tr>
+              <tr><td>PBKDF2</td><td>No</td><td><span class="warn">⚠️ Acceptable</span> — FIPS compliant</td></tr>
+              <tr><td>bcrypt</td><td>Partial</td><td><span class="rec">✓ Good</span> — widely supported</td></tr>
+              <tr><td>scrypt</td><td>Yes</td><td><span class="rec">✓ Good</span></td></tr>
+              <tr><td>Argon2id</td><td>Yes</td><td><span class="rec">✓ Best choice</span> — PHC winner</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Password Storage Cheat Sheet</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://github.com/P-H-C/phc-winner-argon2" target="_blank"><span class="ri">🔐</span><span class="rt">Argon2 Reference Implementation</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🗄️</div><div class="tc-title-block"><div class="tc-name">Storing Encryption Keys</div><div class="tc-algo">HSM · KMS · Vault · TPM</div></div></div>
+          <p class="tc-desc">A key stored alongside the data it protects offers no security. Keys need <strong>separate, protected storage</strong> — ideally hardware-backed. The hierarchy of trust: Hardware &gt; OS keystore &gt; Secrets manager &gt; Environment variable &gt; Config file.</p>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Storage options (best → worst)</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div><strong>HSM (Hardware Security Module)</strong> — Key never leaves hardware</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>Cloud KMS</strong> (AWS KMS, Azure Key Vault, GCP KMS) — Managed HSM-backed</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>HashiCorp Vault</strong> — Open-source secrets management</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>OS Keychain</strong> (macOS Keychain, Windows DPAPI) — Process-isolated</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>TPM (Trusted Platform Module)</strong> — Hardware-bound device keys</div>
+            <div class="prop-item"><div class="prop-dot" style="opacity:0.2"></div><strong style="color:#ef4444">Config file / env var</strong> — Last resort; protect with file ACLs at minimum</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://developer.hashicorp.com/vault/docs" target="_blank"><span class="ri">🔐</span><span class="rt">HashiCorp Vault Documentation</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://aws.amazon.com/kms/" target="_blank"><span class="ri">☁️</span><span class="rt">AWS Key Management Service (KMS)</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🧩</div><div class="tc-title-block"><div class="tc-name">Secret Sharing (Shamir's Secret Sharing)</div><div class="tc-algo"><a href="https://dl.acm.org/doi/10.1145/359168.359176" target="_blank">Shamir 1979</a></div></div></div>
+          <p class="tc-desc">A secret can be split into <strong>n shares</strong> such that any <strong>k of n</strong> shares can reconstruct it, but k−1 shares reveal nothing. Used in distributed key management, cryptocurrency wallets, and cryptographic ceremonies.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Shamir (3-of-5) Example</span></div>
+            <div class="visual-body">Secret S split into 5 shares
+Any 3 shares can recover S:
+
+<span class="hl-b">Share 1 </span> + <span class="hl-b">Share 3 </span> + <span class="hl-b">Share 5</span> → S ✓
+<span class="hl-b">Share 2 </span> + <span class="hl-b">Share 4 </span>            → <span class="hl-r">? (insufficient)</span>
+
+Based on polynomial interpolation:
+f(x) = S + a₁x + a₂x² (mod prime)
+Shares: (1,f(1)), (2,f(2)) ... (5,f(5))</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://www.hashicorp.com/resources/vault-key-management" target="_blank"><span class="ri">🔐</span><span class="rt">HashiCorp Vault — Unseal with Shamir</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://github.com/dsprenkels/sss" target="_blank"><span class="ri">🐙</span><span class="rt">sss — Shamir Secret Sharing library</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">📦</div><div class="tc-title-block"><div class="tc-name">Base64 Encoding</div><div class="tc-algo"><a href="https://tools.ietf.org/html/rfc4648" target="_blank">RFC 4648</a></div></div></div>
+          <p class="tc-desc">Binary data (keys, ciphertext, signatures) must often be transmitted over text-based channels (HTTP headers, JSON, email). Base64 encodes arbitrary bytes as printable ASCII. <strong>Base64 is not encryption</strong> — it provides zero security.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Base64 Variants</span></div>
+            <div class="visual-body"><span class="hl-y">Standard Base64:</span>  A-Z a-z 0-9 + /  (padding =)
+<span class="hl-y">URL-safe Base64:</span>  A-Z a-z 0-9 - _  (no padding)
+
+<span class="hl-m"># Python</span>
+<span class="hl-b">import</span> base64
+enc = base64.<span class="hl-g">b64encode</span>(binary_data)
+dec = base64.<span class="hl-g">b64decode</span>(encoded_string)
+
+<span class="hl-m">// JWT uses base64url (no padding)</span>
+header.payload.signature</div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Remember</div>
+          <div class="mit-items">
+            <div class="mit-item">Base64 <strong>is not encryption</strong> — anyone can decode it</div>
+            <div class="mit-item">Use URL-safe Base64 in URLs and JWT</div>
+            <div class="mit-item">Use standard Base64 for PEM keys and email (MIME)</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://tools.ietf.org/html/rfc4648" target="_blank"><span class="ri">📄</span><span class="rt">RFC 4648 — Base16/32/64 Encoding</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-keys">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🕵️</div><div class="tc-title-block"><div class="tc-name">Zero-Knowledge Proofs</div><div class="tc-algo">ZKP · zk-SNARK · zk-STARK</div></div></div>
+          <p class="tc-desc">Allows a prover to convince a verifier that they know a secret <strong>without revealing the secret itself</strong>. Classic example: prove you know a password without sending the password. Used in privacy-preserving authentication, anonymous credentials, and blockchain scaling.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">ZKP Challenge-Response</span></div>
+            <div class="visual-body"><span class="hl-b">Prover</span>                <span class="hl-p">Verifier</span>
+knows secret x         knows public y = g^x
+
+commit: r = random
+        R = g^r       ─── R ──→
+                       ←── c ─── challenge c
+respond: s = r + cx   ─── s ──→
+                       verify: g^s == R · y^c
+<span class="hl-g">(Verifier convinced — without learning x)</span></div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://z.cash/technology/zksnarks/" target="_blank"><span class="ri">🔐</span><span class="rt">ZCash — zk-SNARKs Explained</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://zkproof.org/" target="_blank"><span class="ri">📘</span><span class="rt">ZKProof.org — Standards &amp; Resources</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 5 — PROTOCOLS & SYSTEMS                        -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-proto" id="panel-4">
+    <div class="panel-header c-proto" data-bg="PROTO">
+      <div class="panel-label">05 · Protocols</div>
+      <h2>Real-World Cryptographic Protocols &amp; Systems</h2>
+      <p>Individual cryptographic primitives are combined into <strong>protocols and systems</strong> that solve real-world security problems. Understanding how TLS, PKI, and Blockchain work shows how hashing, symmetric crypto, asymmetric crypto, and signatures are orchestrated together.</p>
+      <div class="impact-row">
+        <span class="impact-pill">TLS / HTTPS</span>
+        <span class="impact-pill">Public Key Infrastructure</span>
+        <span class="impact-pill">Blockchain</span>
+        <span class="impact-pill">SSH</span>
+      </div>
+    </div>
+
+    <div class="section-title">How TLS 1.3 Works</div>
+    <div class="flow-box c-proto">
+      <h3>🔒 TLS 1.3 Handshake Flow</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><h4>ClientHello</h4><p>Client sends: supported cipher suites, TLS version, <code>key_share</code> (ephemeral X25519/P-256 public key), random nonce. No round-trip needed — client speculatively includes key share.</p></div></div>
+        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><h4>ServerHello + Key Derivation</h4><p>Server responds with its own <code>key_share</code>, selected cipher suite. Both sides now compute the <strong>shared secret via ECDHE</strong> and derive the handshake traffic keys using HKDF.</p></div></div>
+        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><h4>Server Certificate + Signature</h4><p>Server sends its X.509 certificate (public key + identity) and a signature over the handshake transcript. Client verifies certificate chain up to a trusted root CA (PKI).</p></div></div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><h4>Finished Messages (Authenticated)</h4><p>Both sides exchange <code>Finished</code> messages — an HMAC over the full handshake. This confirms both parties derived the same keys and detects any tampering.</p></div></div>
+        <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><h4>Application Data (AES-256-GCM or ChaCha20-Poly1305)</h4><p>All further data is encrypted with <strong>AEAD ciphers</strong> using the derived session keys. TLS 1.3 has perfect forward secrecy — past sessions remain safe even if the server's private key is later compromised.</p></div></div>
+      </div>
+    </div>
+
+    <div class="info-strip info">
+      <span class="si-icon">ℹ️</span>
+      <div class="si-text"><strong>TLS 1.3 improvements over TLS 1.2:</strong> Removed RSA key exchange (no forward secrecy), removed weak ciphers (RC4, 3DES, MD5/SHA-1), reduced handshake from 2 round-trips to 1, added 0-RTT resumption. Always disable TLS 1.0 and 1.1.</div>
+    </div>
+
+    <div class="section-title">How PKI Works</div>
+    <div class="flow-box c-proto">
+      <h3>🏛️ Public Key Infrastructure (PKI)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><h4>Certificate Authorities (CAs)</h4><p>A CA is a trusted third party that signs X.509 certificates. Root CAs are self-signed and their public keys are pre-installed in browsers/OS. Intermediate CAs are signed by roots to limit blast radius of compromise.</p></div></div>
+        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><h4>Certificate Issuance (CSR)</h4><p>An entity generates a key pair, creates a <strong>Certificate Signing Request (CSR)</strong> containing their public key and identity (domain name, org). The CA verifies identity (DV/OV/EV) and signs the certificate with its private key.</p></div></div>
+        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><h4>Certificate Validation</h4><p>Client receives server cert → builds chain to trusted root → verifies each signature → checks validity dates → checks <strong>OCSP/CRL</strong> for revocation. All checks must pass.</p></div></div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><h4>Certificate Transparency (CT)</h4><p>All publicly trusted certificates must be logged to public CT logs (RFC 6962). Allows domain owners to detect mis-issued certificates. Browsers reject certs not in CT logs.</p></div></div>
+        <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><h4>Let's Encrypt &amp; ACME</h4><p>Free, automated certificate issuance via the ACME protocol (RFC 8555). Proves domain control by serving a challenge token. Used by millions of websites — eliminated the cost barrier to HTTPS.</p></div></div>
+      </div>
+    </div>
+
+    <div class="section-title">How Blockchain Uses Cryptography</div>
+    <div class="flow-box c-proto">
+      <h3>⛓️ Blockchain Cryptographic Primitives</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><h4>Merkle Trees (SHA-256)</h4><p>All transactions in a block are hashed in pairs, building a binary tree. The <strong>Merkle root</strong> (tree root hash) is stored in the block header. Changing any transaction changes the Merkle root — instantly detectable.</p></div></div>
+        <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><h4>Chain of Hashes (Tamper Evidence)</h4><p>Each block header contains the <strong>hash of the previous block header</strong>. Changing any historical block changes its hash, which invalidates all subsequent blocks. Makes history immutable without controlling >50% of hash power.</p></div></div>
+        <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><h4>ECDSA Signatures (Wallet Ownership)</h4><p>Bitcoin uses <strong>secp256k1 ECDSA</strong>; Ethereum uses the same. Your private key signs transactions; nodes verify with your public key. The wallet address is derived from a hash of the public key — you never expose the public key until you spend.</p></div></div>
+        <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><h4>Proof of Work (Hash Puzzle)</h4><p>Miners repeatedly hash <code>block_header + nonce</code> until the output starts with enough zero bits. Requires enormous computation to find — but trivial to verify. This is the consensus mechanism securing Bitcoin.</p></div></div>
+      </div>
+    </div>
+
+    <div class="topic-grid" style="margin-top:28px;">
+      <div class="topic-card c-proto">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔐</div><div class="tc-title-block"><div class="tc-name">SSH Protocol</div><div class="tc-algo"><a href="https://tools.ietf.org/html/rfc4253" target="_blank">RFC 4253</a></div></div></div>
+          <p class="tc-desc">Secure Shell combines key exchange (ECDH/DH), server authentication (host keys), client authentication (passwords or public keys), and symmetric encryption (AES-256-GCM/ChaCha20) — a complete protocol stack in one.</p>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">SSH Best Practices</div>
+          <div class="mit-items">
+            <div class="mit-item">Use Ed25519 keys (not RSA-1024 or DSA)</div>
+            <div class="mit-item">Protect private key with a passphrase (Argon2/bcrypt)</div>
+            <div class="mit-item">Verify host fingerprints on first connection</div>
+            <div class="mit-item">Disable password authentication in sshd_config</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://tools.ietf.org/html/rfc4253" target="_blank"><span class="ri">📄</span><span class="rt">RFC 4253 — SSH Transport Layer Protocol</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://www.ssh.com/academy/ssh/protocol" target="_blank"><span class="ri">🔑</span><span class="rt">SSH Academy — Protocol Explained</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-proto">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">💬</div><div class="tc-title-block"><div class="tc-name">Signal Protocol (End-to-End Encryption)</div><div class="tc-algo"><a href="https://signal.org/docs/" target="_blank">Signal Docs</a></div></div></div>
+          <p class="tc-desc">The gold standard for E2E encrypted messaging. Combines X3DH (Extended Triple Diffie-Hellman) for key agreement with the Double Ratchet algorithm for forward secrecy and break-in recovery. Used in Signal, WhatsApp, and many others.</p>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Security properties</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div><strong>Forward secrecy</strong> — Past messages safe if key compromised</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>Break-in recovery</strong> — Future messages recover after compromise</div>
+            <div class="prop-item"><div class="prop-dot"></div><strong>Deniability</strong> — Cannot prove who sent a message</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://signal.org/docs/specifications/doubleratchet/" target="_blank"><span class="ri">💬</span><span class="rt">Signal — Double Ratchet Specification</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tools-box c-proto">
+      <h3>🔧 Tools &amp; Resources</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://www.ssllabs.com/ssltest/" target="_blank">SSL Labs Test</a>
+        <a class="tool-pill" href="https://letsencrypt.org/" target="_blank">Let's Encrypt</a>
+        <a class="tool-pill" href="https://smallstep.com/docs/step-ca" target="_blank">step-ca (Private PKI)</a>
+        <a class="tool-pill" href="https://tls13.xargs.org/" target="_blank">TLS 1.3 Illustrated</a>
+        <a class="tool-pill" href="https://www.wireshark.org/" target="_blank">Wireshark (TLS analysis)</a>
+        <a class="tool-pill" href="https://crt.sh/" target="_blank">crt.sh (CT log search)</a>
+        <a class="tool-pill" href="https://blog.cloudflare.com/tls-session-resumption-full-speed-and-secure/" target="_blank">Cloudflare TLS blog</a>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL 6 — POST-QUANTUM CRYPTOGRAPHY                  -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="panel c-pq" id="panel-5">
+    <div class="panel-header c-pq" data-bg="PQC">
+      <div class="panel-label">06 · Post-Quantum</div>
+      <h2>Post-Quantum Cryptography (PQC)</h2>
+      <p>A sufficiently powerful <strong>quantum computer running Shor's algorithm</strong> can factor large integers and solve discrete logarithms in polynomial time — breaking RSA, DH, DSA, and all ECC. <strong>Grover's algorithm</strong> halves the effective security of symmetric ciphers (AES-128 → 64-bit security). NIST completed its PQC standardization in 2024. Migration is urgent: attackers are collecting encrypted traffic now to decrypt later (<em>"harvest now, decrypt later"</em>).</p>
+      <div class="impact-row">
+        <span class="impact-pill">Breaks RSA / ECC / DH</span>
+        <span class="impact-pill">Weakens AES-128 → use AES-256</span>
+        <span class="impact-pill">NIST standards 2024</span>
+        <span class="impact-pill">Harvest-now-decrypt-later threat</span>
+      </div>
+    </div>
+
+    <div class="info-strip danger">
+      <span class="si-icon">⚠️</span>
+      <div class="si-text"><strong>Timeline pressure:</strong> NIST finalized the first three PQC standards in August 2024 (FIPS 203, 204, 205). The US government mandated PQC migration for federal systems by 2030. Any long-lived data encrypted today should already be transitioning to hybrid or PQC schemes.</div>
+    </div>
+
+    <div class="section-title">Quantum Threats by Algorithm</div>
+    <div class="compare-box c-pq" style="margin-bottom:28px;">
+      <table>
+        <thead><tr><th>Algorithm</th><th>Quantum Threat</th><th>Required Action</th></tr></thead>
+        <tbody>
+          <tr><td>RSA-2048</td><td><span class="tag-red">⛔ Broken by Shor</span></td><td>Replace with ML-KEM or hybrid</td></tr>
+          <tr><td>ECDH / ECDSA (P-256)</td><td><span class="tag-red">⛔ Broken by Shor</span></td><td>Replace with ML-KEM / ML-DSA</td></tr>
+          <tr><td>DH (finite field)</td><td><span class="tag-red">⛔ Broken by Shor</span></td><td>Replace with ML-KEM</td></tr>
+          <tr><td>AES-128</td><td><span class="tag-yellow">⚠️ Grover: 64-bit effective</span></td><td>Upgrade to AES-256</td></tr>
+          <tr><td>AES-256</td><td><span class="tag-yellow">⚠️ Grover: 128-bit effective</span></td><td>Still secure — no change needed</td></tr>
+          <tr><td>SHA-256</td><td><span class="tag-yellow">⚠️ Grover: 128-bit effective</span></td><td>Still acceptable; SHA-3/384+ preferred</td></tr>
+          <tr><td>SHA-3</td><td><span class="tag-green">✓ Quantum-resistant</span></td><td>No change needed</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">NIST PQC Standards (2024)</div>
+    <div class="topic-grid">
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔐</div><div class="tc-title-block"><div class="tc-name">ML-KEM (CRYSTALS-Kyber)</div><div class="tc-algo"><a href="https://doi.org/10.6028/NIST.FIPS.203" target="_blank">FIPS 203 — NIST 2024</a></div></div></div>
+          <p class="tc-desc">A <strong>Key Encapsulation Mechanism (KEM)</strong> based on the Module Learning With Errors (MLWE) problem — believed to be hard even for quantum computers. Replaces ECDH/RSA for key exchange. Included in TLS 1.3, SSH, and Signal's PQXDH.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">ML-KEM Flow</span></div>
+            <div class="visual-body"><span class="hl-y">KeyGen:</span>  (pk, sk) ← KeyGen()
+<span class="hl-y">Encaps:</span>  (ciphertext, shared_secret) ← Encaps(pk)
+<span class="hl-y">Decaps:</span>  shared_secret ← Decaps(sk, ciphertext)
+
+Parameter sets:
+<span class="hl-g">ML-KEM-512 </span> → 128-bit security (1632 byte pk)
+<span class="hl-g">ML-KEM-768 </span> → 192-bit security (recommended)
+<span class="hl-g">ML-KEM-1024</span> → 256-bit security</div>
+          </div>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Key sizes vs RSA</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div>Public key: ~1.2 KB (vs 256 bytes for P-256)</div>
+            <div class="prop-item"><div class="prop-dot"></div>Ciphertext: ~1.1 KB — larger than ECDH</div>
+            <div class="prop-item"><div class="prop-dot"></div>Fast: encapsulation &amp; decapsulation in microseconds</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://doi.org/10.6028/NIST.FIPS.203" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST FIPS 203 — ML-KEM Standard</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://pq-crystals.org/kyber/" target="_blank"><span class="ri">💎</span><span class="rt">CRYSTALS-Kyber — Reference Implementation</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">✍️</div><div class="tc-title-block"><div class="tc-name">ML-DSA (CRYSTALS-Dilithium)</div><div class="tc-algo"><a href="https://doi.org/10.6028/NIST.FIPS.204" target="_blank">FIPS 204 — NIST 2024</a></div></div></div>
+          <p class="tc-desc">A <strong>digital signature scheme</strong> based on Module Learning With Errors (MLWE). Replaces ECDSA and RSA-PSS for code signing, certificates, and authentication. Designed to be simple to implement correctly without timing side channels.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">ML-DSA vs ECDSA</span></div>
+            <div class="visual-body"><span class="hl-y">Property      </span><span class="hl-r">ECDSA (P-256)</span>    <span class="hl-g">ML-DSA-44</span>
+Public key:    64 bytes         1312 bytes
+Signature:     64 bytes         2420 bytes
+Signing:       fast             fast
+Verification:  fast             fast
+Quantum-safe:  <span class="hl-r">✗ No</span>            <span class="hl-g">✓ Yes</span></div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://doi.org/10.6028/NIST.FIPS.204" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST FIPS 204 — ML-DSA Standard</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://pq-crystals.org/dilithium/" target="_blank"><span class="ri">💎</span><span class="rt">CRYSTALS-Dilithium — Reference</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🌲</div><div class="tc-title-block"><div class="tc-name">SLH-DSA (SPHINCS+)</div><div class="tc-algo"><a href="https://doi.org/10.6028/NIST.FIPS.205" target="_blank">FIPS 205 — NIST 2024</a></div></div></div>
+          <p class="tc-desc">A <strong>stateless hash-based signature scheme</strong> — security based entirely on hash function properties (no algebraic assumptions). Extremely conservative: even if lattice crypto is broken, this remains secure. Slower and larger signatures than ML-DSA, but the most conservative option.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Hash-Based Signatures</span></div>
+            <div class="visual-body">Security relies only on: <span class="hl-g">hash function security</span>
+No algebraic assumptions (unlike lattices)
+
+SLH-DSA-SHAKE-128f: fast variant
+SLH-DSA-SHAKE-128s: small signatures
+
+Signature size: 7–50 KB depending on params
+<span class="hl-m">(Much larger than ML-DSA)</span></div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://doi.org/10.6028/NIST.FIPS.205" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST FIPS 205 — SLH-DSA Standard</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://sphincs.org/" target="_blank"><span class="ri">🌲</span><span class="rt">SPHINCS+ — Reference &amp; Design</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🦅</div><div class="tc-title-block"><div class="tc-name">FALCON (FN-DSA)</div><div class="tc-algo"><a href="https://falcon-sign.info/" target="_blank">NIST Round 3 Alternate</a></div></div></div>
+          <p class="tc-desc">A lattice-based signature scheme using NTRU lattices. Produces significantly <strong>smaller signatures than ML-DSA</strong> — similar in size to ECDSA — at the cost of more complex (and implementation-sensitive) signing. Expected to be standardized as FN-DSA.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">FALCON vs ML-DSA</span></div>
+            <div class="visual-body"><span class="hl-y">Property      </span><span class="hl-p">FALCON-512</span>     <span class="hl-g">ML-DSA-44</span>
+Public key:    897 bytes       1312 bytes
+Signature:     <span class="hl-p">690 bytes</span>       2420 bytes
+Quantum-safe:  <span class="hl-g">✓ Yes</span>           <span class="hl-g">✓ Yes</span>
+Complexity:    High            Moderate
+<span class="hl-m">FALCON needs careful implementation</span>
+<span class="hl-m">(timing attacks on Gaussian sampling)</span></div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://falcon-sign.info/" target="_blank"><span class="ri">🦅</span><span class="rt">FALCON — Official Site &amp; Specification</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">🔀</div><div class="tc-title-block"><div class="tc-name">Hybrid Schemes (Transition Strategy)</div><div class="tc-algo">Classical + PQC in parallel</div></div></div>
+          <p class="tc-desc">Run classical and post-quantum algorithms simultaneously. The security is the maximum of both: an attacker must break <strong>both</strong> systems. This hedges against both quantum threats and potential weaknesses in new PQC algorithms. Recommended migration strategy.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">Hybrid Key Exchange (TLS)</span></div>
+            <div class="visual-body"><span class="hl-b">X25519</span> (classical ECDH)   +  <span class="hl-g">ML-KEM-768</span> (PQC)
+  shared₁ = ECDH(privA, pubB)
+  shared₂ = ML-KEM.Decaps(sk, ct)
+  final_key = HKDF(shared₁ || shared₂)
+
+<span class="hl-m">Used in:</span>
+  <span class="hl-g">Chrome/Firefox</span>: X25519MLKEM768
+  <span class="hl-g">Cloudflare</span>: X25519Kyber768
+  <span class="hl-g">OpenSSH 9.0+</span>: sntrup761x25519</div>
+          </div>
+        </div>
+        <div class="tc-mit">
+          <div class="mit-title">Migration Roadmap</div>
+          <div class="mit-items">
+            <div class="mit-item">Inventory all cryptographic assets and their exposure</div>
+            <div class="mit-item">Upgrade symmetric keys to AES-256 and hashes to SHA-384+</div>
+            <div class="mit-item">Deploy hybrid key exchange in TLS and SSH first</div>
+            <div class="mit-item">Migrate signing to ML-DSA or SLH-DSA for new certificates</div>
+            <div class="mit-item">Target full PQC transition by 2030 (US CNSA 2.0 mandate)</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://blog.cloudflare.com/post-quantum-for-all/" target="_blank"><span class="ri">🌐</span><span class="rt">Cloudflare — Post-Quantum for All</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://csrc.nist.gov/projects/post-quantum-cryptography" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST PQC Project — Full Documentation</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+      <div class="topic-card c-pq">
+        <div class="tc-top">
+          <div class="tc-header"><div class="tc-icon">⚛️</div><div class="tc-title-block"><div class="tc-name">Quantum Key Distribution (QKD)</div><div class="tc-algo">BB84 · E91 · Physics-based security</div></div></div>
+          <p class="tc-desc">Unlike PQC (mathematics-based), QKD uses <strong>quantum mechanical properties</strong> of photons to distribute keys. Any eavesdropping physically disturbs the quantum state, making it detectable. Provably secure by physics — but requires specialized hardware and point-to-point fiber links.</p>
+          <div class="tc-visual">
+            <div class="visual-label"><span class="vl-c">BB84 Protocol</span></div>
+            <div class="visual-body">Alice sends photons with random polarization states
+Bob measures in random bases
+They publicly compare <span class="hl-m">which bases</span> (not values)
+Keep only matching-basis measurements → key bits
+
+<span class="hl-g">Eavesdropper Eve</span> disturbs photons → detectable
+→ Abort and restart if error rate too high</div>
+          </div>
+        </div>
+        <div class="tc-props">
+          <div class="props-label">Current limitations</div>
+          <div class="props-list">
+            <div class="prop-item"><div class="prop-dot"></div>Requires dedicated quantum channel (fiber/free-space)</div>
+            <div class="prop-item"><div class="prop-dot"></div>Limited distance (~100–400 km without repeaters)</div>
+            <div class="prop-item"><div class="prop-dot"></div>Expensive hardware; not internet-scalable today</div>
+            <div class="prop-item"><div class="prop-dot"></div>Complements PQC rather than replacing it</div>
+          </div>
+        </div>
+        <div class="tc-res">
+          <div class="res-label">Learn more</div>
+          <a class="res-link" href="https://www.etsi.org/technologies/quantum-key-distribution" target="_blank"><span class="ri">🇪🇺</span><span class="rt">ETSI — Quantum Key Distribution Standards</span><span class="ra">↗</span></a>
+          <a class="res-link" href="https://en.wikipedia.org/wiki/BB84" target="_blank"><span class="ri">📖</span><span class="rt">Wikipedia — BB84 Protocol</span><span class="ra">↗</span></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="info-strip success">
+      <span class="si-icon">✅</span>
+      <div class="si-text"><strong>What to do now:</strong> Start your cryptographic inventory. Identify all uses of RSA, ECDH, and ECDSA. Plan hybrid migration for TLS and key exchange first — these are the highest-risk "harvest now, decrypt later" targets. AES-256 and SHA-256/SHA-3 require no changes for symmetric operations.</div>
+    </div>
+
+    <div class="tools-box c-pq">
+      <h3>🔧 Tools &amp; Libraries</h3>
+      <div class="tools-row">
+        <a class="tool-pill" href="https://openquantumsafe.org/" target="_blank">Open Quantum Safe (liboqs)</a>
+        <a class="tool-pill" href="https://pq-crystals.org/" target="_blank">CRYSTALS reference code</a>
+        <a class="tool-pill" href="https://github.com/PQClean/PQClean" target="_blank">PQClean — Clean implementations</a>
+        <a class="tool-pill" href="https://openssl.org/" target="_blank">OpenSSL 3.3+ (ML-KEM support)</a>
+        <a class="tool-pill" href="https://aws.amazon.com/security/post-quantum-cryptography/" target="_blank">AWS PQC Resources</a>
+        <a class="tool-pill" href="https://blog.chromium.org/2023/08/protecting-chrome-traffic-with-hybrid.html" target="_blank">Chrome Hybrid PQC blog</a>
+        <a class="tool-pill" href="https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization" target="_blank">NIST PQC Standardization</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+function switchPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cybersecurity Legislation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10; --surface: #10141c; --surface2: #141820; --border: #1e2535;
+    --accent: #00d4aa; --text: #e2e8f0; --muted: #64748b;
+    /* Theme colors */
+    --c-gdpr: #3b82f6;
+    --c-nis2: #f59e0b;
+    --c-cra: #ef4444;
+    --c-ai: #a78bfa;
+    --c-dora: #34d399;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,170,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,0.025) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 1140px; margin: 0 auto; padding: 48px 24px 100px; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { margin-bottom: 52px; display: flex; flex-direction: column; gap: 12px; }
+  .header-tag { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(30px, 5vw, 54px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .header-sub { font-size: 15px; color: var(--muted); max-width: 700px; line-height: 1.75; font-weight: 300; }
+
+  /* Nav */
+  .cat-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 40px; }
+  .cat-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; cursor: pointer; text-align: left; transition: all 0.2s; position: relative; overflow: hidden; }
+  .cat-btn::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--pc); transform: scaleX(0); transition: transform 0.2s; transform-origin: left; }
+  .cat-btn:hover::after, .cat-btn.active::after { transform: scaleX(1); }
+  .cat-btn:hover { border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+  .cat-btn.active { background: color-mix(in srgb, var(--pc) 8%, var(--surface)); border-color: color-mix(in srgb, var(--pc) 45%, transparent); }
+  .cat-btn-num { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--pc); margin-bottom: 5px; opacity: 0.8; }
+  .cat-btn-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+  .cat-btn-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .cat-btn.active .cat-btn-title { color: var(--pc); }
+
+  .c-gdpr { --pc: var(--c-gdpr); }
+  .c-nis2 { --pc: var(--c-nis2); }
+  .c-cra { --pc: var(--c-cra); }
+  .c-ai { --pc: var(--c-ai); }
+  .c-dora { --pc: var(--c-dora); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Panel Header */
+  .panel-header { padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 28px; position: relative; overflow: hidden; }
+  .panel-header::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--pc), transparent); }
+  .panel-header::after { content: attr(data-bg); position: absolute; right: 24px; top: 50%; transform: translateY(-50%); font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; color: var(--pc); opacity: 0.05; letter-spacing: -0.04em; pointer-events: none; line-height: 1; }
+  .panel-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--pc); text-transform: uppercase; margin-bottom: 10px; }
+  .panel-header h2 { font-family: 'Syne', sans-serif; font-size: clamp(20px, 3vw, 26px); font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+  .panel-header p { font-size: 13.5px; color: var(--muted); line-height: 1.8; max-width: 700px; }
+  .panel-header p strong { color: var(--text); font-weight: 500; }
+
+  /* Cards Grid */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.22s; display: flex; flex-direction: column; padding: 24px; }
+  .card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--pc) 35%, transparent); box-shadow: 0 8px 28px color-mix(in srgb, var(--pc) 8%, transparent); }
+  .card-icon { width: 40px; height: 40px; border-radius: 8px; background: color-mix(in srgb, var(--pc) 10%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 20%, transparent); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; color: var(--pc); }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; flex: 1; }
+  
+  /* List in card */
+  .card-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .list-item { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .list-item::before { content: '→'; color: var(--pc); font-size: 10px; flex-shrink: 0; margin-top: 2px; opacity: 0.6; }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── Language Switcher ── */
+  .lang-switch { position: absolute; top: 24px; right: 140px; display: flex; gap: 8px; z-index: 10; }
+  .lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; transition: all 0.2s; }
+  .lang-btn:hover { color: var(--text); border-color: var(--muted); }
+  .lang-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+  body.lang-nl [data-lang="en"] { display: none !important; }
+  body.lang-en [data-lang="nl"] { display: none !important; }
+</style>
+</head>
+<body class="lang-en">
+<div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn" onclick="setLang('nl')">NL</button>
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  </div>
+
+  <div class="header">
+    <div class="header-tag">Reference</div>
+    <div class="header-meta">Author: Maurice Snoeren</div>
+    <h1>Cybersecurity <span>Legislation</span></h1>
+    <p class="header-sub" data-lang="en">Overview of important European legislation and regulations regarding cybersecurity, privacy, and digital resilience. From GDPR to the Cyber Resilience Act.</p>
+    <p class="header-sub" data-lang="nl">Overzicht van belangrijke Europese wet- en regelgeving op het gebied van cybersecurity, privacy en digitale weerbaarheid. Van GDPR tot de Cyber Resilience Act.</p>
+  </div>
+
+  <div class="cat-nav">
+    <button class="cat-btn c-gdpr active" onclick="switchPanel(0)">
+      <div class="cat-btn-num">01</div>
+      <div class="cat-btn-title">GDPR / AVG</div>
+      <div class="cat-btn-sub"><span data-lang="en">Privacy & Data Protection</span><span data-lang="nl">Privacy & Gegevensbescherming</span></div>
+    </button>
+    <button class="cat-btn c-nis2" onclick="switchPanel(1)">
+      <div class="cat-btn-num">02</div>
+      <div class="cat-btn-title">NIS2 Directive</div>
+      <div class="cat-btn-sub"><span data-lang="en">Network & Info Security</span><span data-lang="nl">Netwerk- & Informatiebeveiliging</span></div>
+    </button>
+    <button class="cat-btn c-cra" onclick="switchPanel(2)">
+      <div class="cat-btn-num">03</div>
+      <div class="cat-btn-title">Cyber Resilience Act</div>
+      <div class="cat-btn-sub"><span data-lang="en">Product Security (CE)</span><span data-lang="nl">Productbeveiliging (CE)</span></div>
+    </button>
+    <button class="cat-btn c-ai" onclick="switchPanel(3)">
+      <div class="cat-btn-num">04</div>
+      <div class="cat-btn-title">AI Act</div>
+      <div class="cat-btn-sub"><span data-lang="en">Artificial Intelligence</span><span data-lang="nl">Kunstmatige Intelligentie</span></div>
+    </button>
+    <button class="cat-btn c-dora" onclick="switchPanel(4)">
+      <div class="cat-btn-num">05</div>
+      <div class="cat-btn-title">DORA</div>
+      <div class="cat-btn-sub"><span data-lang="en">Financial Resilience</span><span data-lang="nl">Financiële Weerbaarheid</span></div>
+    </button>
+  </div>
+
+  <!-- GDPR -->
+  <div class="panel c-gdpr active" id="panel-0">
+    <div class="panel-header c-gdpr" data-bg="GDPR">
+      <div class="panel-label">01 · Privacy</div>
+      <h2><span data-lang="en">General Data Protection Regulation (GDPR)</span><span data-lang="nl">Algemene Verordening Gegevensbescherming (AVG)</span></h2>
+      <p data-lang="en">The General Data Protection Regulation (GDPR) protects the privacy of EU citizens. It sets requirements for how organizations collect, store, and secure personal data. Security is not an option, but an obligation (Art. 32).</p>
+      <p data-lang="nl">De Algemene Verordening Gegevensbescherming (AVG) beschermt de privacy van burgers in de EU. Het stelt eisen aan hoe organisaties persoonsgegevens verzamelen, opslaan en beveiligen. Security is hierbij geen optie, maar een verplichting (Art. 32).</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-gdpr">
+        <div class="card-icon">🛡️</div>
+        <div class="card-title"><span data-lang="en">Security of Processing</span><span data-lang="nl">Beveiliging van Verwerking</span></div>
+        <p class="card-desc" data-lang="en">Article 32 requires organizations to implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk.</p>
+        <p class="card-desc" data-lang="nl">Artikel 32 verplicht organisaties om passende technische en organisatorische maatregelen te nemen om een op het risico afgestemd beveiligingsniveau te waarborgen.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Pseudonymisation and encryption of personal data</span><span data-lang="nl">Pseudonimisering en versleuteling van persoonsgegevens</span></div>
+          <div class="list-item"><span data-lang="en">Ability to ensure confidentiality, integrity, and availability</span><span data-lang="nl">Vermogen om vertrouwelijkheid, integriteit en beschikbaarheid te garanderen</span></div>
+          <div class="list-item"><span data-lang="en">Regular testing and evaluation of effectiveness (Penetration Testing)</span><span data-lang="nl">Regelmatig testen en evalueren van de effectiviteit (Penetration Testing)</span></div>
+        </div>
+      </div>
+      <div class="card c-gdpr">
+        <div class="card-icon">🚨</div>
+        <div class="card-title"><span data-lang="en">Data Breach Notification</span><span data-lang="nl">Meldplicht Datalekken</span></div>
+        <p class="card-desc" data-lang="en">Organizations must report data breaches to the supervisory authority within 72 hours unless the breach is unlikely to result in a risk to the rights and freedoms of natural persons.</p>
+        <p class="card-desc" data-lang="nl">Organisaties moeten datalekken binnen 72 uur melden aan de toezichthouder (AP) tenzij het onwaarschijnlijk is dat het lek risico's inhoudt voor de rechten en vrijheden van personen.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Report to Data Protection Authority</span><span data-lang="nl">Melden bij Autoriteit Persoonsgegevens</span></div>
+          <div class="list-item"><span data-lang="en">Report to data subjects if high risk</span><span data-lang="nl">Melden aan betrokkenen bij hoog risico</span></div>
+          <div class="list-item"><span data-lang="en">Obligation to document all breaches</span><span data-lang="nl">Documentatieplicht van alle lekken</span></div>
+        </div>
+      </div>
+      <div class="card c-gdpr">
+        <div class="card-icon">🏗️</div>
+        <div class="card-title">Privacy by Design & Default</div>
+        <p class="card-desc" data-lang="en">Data protection must be included in the system design. Default settings must be privacy-friendly (e.g., opt-in instead of opt-out).</p>
+        <p class="card-desc" data-lang="nl">Gegevensbescherming moet in het ontwerp van systemen worden meegenomen. Standaardinstellingen moeten privacyvriendelijk zijn (bijv. opt-in in plaats van opt-out).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIS2 -->
+  <div class="panel c-nis2" id="panel-1">
+    <div class="panel-header c-nis2" data-bg="NIS2">
+      <div class="panel-label">02 · Critical Infrastructure</div>
+      <h2>NIS2 Directive</h2>
+      <p data-lang="en">The Network and Information Security (NIS2) directive increases cybersecurity requirements for essential and important entities in the EU. It expands the scope to more sectors (energy, transport, banking, healthcare, digital infrastructure) and emphasizes supply chain security and management liability.</p>
+      <p data-lang="nl">De Network and Information Security (NIS2) richtlijn verhoogt de cybersecurity-eisen voor essentiële en belangrijke entiteiten in de EU. Het breidt de scope uit naar meer sectoren (energie, transport, bankwezen, gezondheidszorg, digitale infrastructuur) en legt de nadruk op supply chain security en bestuurdersaansprakelijkheid.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-nis2">
+        <div class="card-icon">🏢</div>
+        <div class="card-title"><span data-lang="en">Duty of Care</span><span data-lang="nl">Zorgplicht</span></div>
+        <p class="card-desc" data-lang="en">Organizations must conduct risk assessments and take measures to prevent incidents or minimize their impact.</p>
+        <p class="card-desc" data-lang="nl">Organisaties moeten risicoanalyses uitvoeren en maatregelen nemen om incidenten te voorkomen of de impact te beperken.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Incident handling and crisis management</span><span data-lang="nl">Incident handling en crisis management</span></div>
+          <div class="list-item"><span data-lang="en">Supply chain security (supplier security)</span><span data-lang="nl">Supply chain security (beveiliging van leveranciers)</span></div>
+          <div class="list-item"><span data-lang="en">Use of cryptography and encryption</span><span data-lang="nl">Gebruik van cryptografie en encryptie</span></div>
+          <div class="list-item"><span data-lang="en">Vulnerability disclosure policy</span><span data-lang="nl">Vulnerability disclosure beleid</span></div>
+        </div>
+      </div>
+      <div class="card c-nis2">
+        <div class="card-icon">👔</div>
+        <div class="card-title"><span data-lang="en">Management Liability</span><span data-lang="nl">Bestuurdersaansprakelijkheid</span></div>
+        <p class="card-desc" data-lang="en">The management board (C-level) is directly responsible for approving cybersecurity measures and can be held personally liable for negligence.</p>
+        <p class="card-desc" data-lang="nl">Het bestuur (C-level) is direct verantwoordelijk voor het goedkeuren van cybersecurity-maatregelen en kan persoonlijk aansprakelijk worden gesteld bij nalatigheid.</p>
+      </div>
+      <div class="card c-nis2">
+        <div class="card-icon">⏱️</div>
+        <div class="card-title"><span data-lang="en">Reporting Obligation</span><span data-lang="nl">Rapportageplicht</span></div>
+        <p class="card-desc" data-lang="en">Strict deadlines for reporting significant incidents: an early warning within 24 hours and a full report within 72 hours.</p>
+        <p class="card-desc" data-lang="nl">Strenge deadlines voor het melden van significante incidenten: een vroege waarschuwing binnen 24 uur en een volledige melding binnen 72 uur.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRA -->
+  <div class="panel c-cra" id="panel-2">
+    <div class="panel-header c-cra" data-bg="CRA">
+      <div class="panel-label">03 · Product Security</div>
+      <h2>Cyber Resilience Act (CRA)</h2>
+      <p data-lang="en">The CRA introduces mandatory cybersecurity requirements for products with digital elements (hardware and software) placed on the EU market. It effectively introduces a CE marking for cybersecurity.</p>
+      <p data-lang="nl">De CRA introduceert verplichte cybersecurity-eisen voor producten met digitale elementen (hardware en software) die in de EU op de markt worden gebracht. Het introduceert in feite een CE-markering voor cybersecurity.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-cra">
+        <div class="card-icon">🏷️</div>
+        <div class="card-title">Security by Design</div>
+        <p class="card-desc" data-lang="en">Products must be secure throughout their entire lifecycle. Manufacturers must include security in the design phase.</p>
+        <p class="card-desc" data-lang="nl">Producten moeten veilig zijn gedurende hun hele levenscyclus. Fabrikanten moeten security meenemen in de ontwerpfase.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">No known exploitable vulnerabilities at release</span><span data-lang="nl">Geen bekende exploiteerbare kwetsbaarheden bij release</span></div>
+          <div class="list-item"><span data-lang="en">Secure default configurations</span><span data-lang="nl">Secure default configuraties</span></div>
+          <div class="list-item"><span data-lang="en">Protection against unauthorized access</span><span data-lang="nl">Bescherming tegen ongeautoriseerde toegang</span></div>
+        </div>
+      </div>
+      <div class="card c-cra">
+        <div class="card-icon">🔄</div>
+        <div class="card-title">Support & Updates</div>
+        <p class="card-desc" data-lang="en">Manufacturers must provide security updates for the expected product lifetime (often 5 years). Vulnerabilities must be actively remediated.</p>
+        <p class="card-desc" data-lang="nl">Fabrikanten moeten beveiligingsupdates leveren gedurende de verwachte levensduur van het product (vaak 5 jaar). Kwetsbaarheden moeten actief worden verholpen.</p>
+      </div>
+      <div class="card c-cra">
+        <div class="card-icon">📋</div>
+        <div class="card-title">SBOM</div>
+        <p class="card-desc" data-lang="en">Maintaining a Software Bill of Materials (SBOM) becomes essential to have insight into vulnerable components in software products.</p>
+        <p class="card-desc" data-lang="nl">Het bijhouden van een Software Bill of Materials (SBOM) wordt essentieel om inzicht te hebben in kwetsbare componenten in softwareproducten.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Act -->
+  <div class="panel c-ai" id="panel-3">
+    <div class="panel-header c-ai" data-bg="AI">
+      <div class="panel-label">04 · Artificial Intelligence</div>
+      <h2>EU AI Act</h2>
+      <p data-lang="en">The AI Act is the world's first comprehensive legislation for artificial intelligence. It adopts a risk-based approach: the higher the risk of the AI application, the stricter the rules.</p>
+      <p data-lang="nl">De AI Act is 's werelds eerste uitgebreide wetgeving voor kunstmatige intelligentie. Het hanteert een risico-gebaseerde aanpak: hoe hoger het risico van de AI-toepassing, hoe strenger de regels.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-ai">
+        <div class="card-icon">⚖️</div>
+        <div class="card-title"><span data-lang="en">Risk Classification</span><span data-lang="nl">Risicoclassificatie</span></div>
+        <p class="card-desc" data-lang="en">AI systems are classified into categories: unacceptable risk (banned), high risk (strict requirements), limited risk (transparency), and minimal risk.</p>
+        <p class="card-desc" data-lang="nl">AI-systemen worden ingedeeld in categorieën: onaanvaardbaar risico (verboden), hoog risico (strenge eisen), beperkt risico (transparantie) en minimaal risico.</p>
+      </div>
+      <div class="card c-ai">
+        <div class="card-icon">🛡️</div>
+        <div class="card-title"><span data-lang="en">Requirements for High-Risk AI</span><span data-lang="nl">Eisen voor Hoog Risico AI</span></div>
+        <p class="card-desc" data-lang="en">AI systems in critical infrastructure, education, HR, or law enforcement must meet strict requirements regarding robustness, accuracy, and cybersecurity.</p>
+        <p class="card-desc" data-lang="nl">AI-systemen in kritieke infrastructuur, onderwijs, HR of rechtshandhaving moeten voldoen aan strikte eisen op het gebied van robuustheid, nauwkeurigheid en cybersecurity.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Resilience against adversarial attacks (data poisoning)</span><span data-lang="nl">Weerbaarheid tegen adversarial attacks (data poisoning)</span></div>
+          <div class="list-item"><span data-lang="en">Human oversight (human-in-the-loop)</span><span data-lang="nl">Menselijk toezicht (human-in-the-loop)</span></div>
+          <div class="list-item"><span data-lang="en">Quality of training data</span><span data-lang="nl">Kwaliteit van trainingsdata</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DORA -->
+  <div class="panel c-dora" id="panel-4">
+    <div class="panel-header c-dora" data-bg="DORA">
+      <div class="panel-label">05 · Finance</div>
+      <h2>Digital Operational Resilience Act (DORA)</h2>
+      <p data-lang="en">DORA focuses on the financial sector (banks, insurers, crypto service providers) and their ICT suppliers. The goal is to ensure the financial sector can withstand severe operational disruptions.</p>
+      <p data-lang="nl">DORA richt zich op de financiële sector (banken, verzekeraars, crypto-dienstverleners) en hun ICT-leveranciers. Het doel is om ervoor te zorgen dat de financiële sector bestand is tegen ernstige operationele verstoringen.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-dora">
+        <div class="card-icon">📉</div>
+        <div class="card-title">ICT Risk Management</div>
+        <p class="card-desc" data-lang="en">Financial entities must have a comprehensive framework for managing ICT risks, including detection, protection, and recovery.</p>
+        <p class="card-desc" data-lang="nl">Financiële entiteiten moeten een uitgebreid raamwerk hebben voor het beheer van ICT-risico's, inclusief detectie, bescherming en herstel.</p>
+      </div>
+      <div class="card c-dora">
+        <div class="card-icon">🔗</div>
+        <div class="card-title">Third Party Risk</div>
+        <p class="card-desc" data-lang="en">Strict rules for managing third-party risks (ICT service providers like cloud providers). Critical suppliers come under direct supervision.</p>
+        <p class="card-desc" data-lang="nl">Strenge regels voor het beheer van risico's van derde partijen (ICT-dienstverleners zoals cloud providers). Kritieke leveranciers komen onder direct toezicht.</p>
+      </div>
+      <div class="card c-dora">
+        <div class="card-icon">🧪</div>
+        <div class="card-title">Digital Operational Resilience Testing</div>
+        <p class="card-desc" data-lang="en">Obligation to regularly test digital resilience, including Threat-Led Penetration Testing (TLPT) for large institutions.</p>
+        <p class="card-desc" data-lang="nl">Verplichting tot het regelmatig testen van de digitale weerbaarheid, inclusief Threat-Led Penetration Testing (TLPT) voor grote instellingen.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
+}
+</script>
+</body>
+</html>

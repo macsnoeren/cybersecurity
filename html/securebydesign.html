@@ -63,6 +63,7 @@
     gap: 8px;
   }
   .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent1); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
   h1 {
     font-family: 'Syne', sans-serif;
     font-size: clamp(32px, 5vw, 56px);
@@ -73,23 +74,23 @@
   h1 span { color: var(--accent1); }
   .header-sub { font-size: 16px; color: var(--muted); max-width: 560px; line-height: 1.65; font-weight: 300; }
 
-  .phase-nav { display: flex; gap: 4px; margin-bottom: 32px; flex-wrap: wrap; }
-  .phase-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    white-space: nowrap;
+  /* ── Category nav ── */
+  .cat-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 40px; }
+  @media (max-width: 900px) { .cat-nav { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .cat-nav { grid-template-columns: 1fr; } }
+
+  .cat-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 14px; cursor: pointer; text-align: left; transition: all 0.2s; position: relative; overflow: hidden;
   }
-  .phase-btn:hover { color: var(--text); border-color: var(--muted); }
-  .phase-btn.active { color: var(--bg); border-color: transparent; font-weight: 500; }
+  .cat-btn::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--pc); transform: scaleX(0); transition: transform 0.2s; transform-origin: left; }
+  .cat-btn:hover::after, .cat-btn.active::after { transform: scaleX(1); }
+  .cat-btn:hover { border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+  .cat-btn.active { background: color-mix(in srgb, var(--pc) 8%, var(--surface)); border-color: color-mix(in srgb, var(--pc) 45%, transparent); }
+  .cat-btn-num { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--pc); margin-bottom: 5px; opacity: 0.8; }
+  .cat-btn-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+  .cat-btn-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .cat-btn.active .cat-btn-title { color: var(--pc); }
 
   .phase-panel { display: none; }
   .phase-panel.active { display: block; animation: fadeIn 0.3s ease; }
@@ -240,7 +241,6 @@
   .c6 { --pc: #34d399; }
   .c7 { --pc: #f472b6; }
 
-  .phase-btn.active { background: var(--pc, var(--accent1)); }
   .phase-header::before { background: var(--pc, var(--accent1)); }
   .phase-num { color: var(--pc, var(--accent1)); }
   .phase-badge {
@@ -257,32 +257,6 @@
   }
   .activity-title { color: var(--pc, var(--accent1)); }
   .resource-link:hover .r-text { color: var(--pc, var(--accent1)); opacity: 1; }
-
-  /* SDLC bar */
-  .sdlc-bar {
-    display: flex;
-    margin-bottom: 48px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .sdlc-step {
-    flex: 1;
-    padding: 12px 8px;
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    border-right: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .sdlc-step:last-child { border-right: none; }
-  .sdlc-step .sdlc-num { font-size: 18px; display: block; margin-bottom: 4px; opacity: 0.4; }
-  .sdlc-step:hover, .sdlc-step.active { color: var(--text); background: var(--surface); }
-  .sdlc-step.active .sdlc-num { opacity: 1; }
 
   /* Principles */
   .principles {
@@ -306,54 +280,97 @@
   .principle-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
   .principle-text { font-size: 13px; line-height: 1.5; color: var(--text); }
   .principle-text strong { font-weight: 500; display: block; font-size: 12px; }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── Language Switcher ── */
+  .lang-switch { position: absolute; top: 24px; right: 140px; display: flex; gap: 8px; z-index: 10; }
+  .lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; transition: all 0.2s; }
+  .lang-btn:hover { color: var(--text); border-color: var(--muted); }
+  .lang-btn.active { border-color: var(--accent1); color: var(--accent1); background: color-mix(in srgb, var(--accent1) 10%, transparent); }
+
+  body.lang-nl [data-lang="en"] { display: none !important; }
+  body.lang-en [data-lang="nl"] { display: none !important; }
 </style>
 </head>
-<body>
+<body class="lang-en">
 <div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn" onclick="setLang('nl')">NL</button>
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  </div>
 
   <div class="header">
     <div class="header-tag">Framework</div>
+    <div class="header-meta">Author: Maurice Snoeren</div>
     <h1>Security <span>by Design</span></h1>
-    <p class="header-sub">A structured process integrating security activities across every phase of the software development lifecycle — from requirements to operations.</p>
+    <p class="header-sub" data-lang="en">A structured process integrating security activities across every phase of the software development lifecycle — from requirements to operations.</p>
+    <p class="header-sub" data-lang="nl">Een gestructureerd proces dat beveiligingsactiviteiten integreert in elke fase van de softwareontwikkelingslevenscyclus — van requirements tot operations.</p>
   </div>
 
-  <div class="sdlc-bar">
-    <div class="sdlc-step active" onclick="switchPhase(0)"><span class="sdlc-num">①</span>Requirements</div>
-    <div class="sdlc-step" onclick="switchPhase(1)"><span class="sdlc-num">②</span>Architecture</div>
-    <div class="sdlc-step" onclick="switchPhase(2)"><span class="sdlc-num">③</span>Design</div>
-    <div class="sdlc-step" onclick="switchPhase(3)"><span class="sdlc-num">④</span>Implementation</div>
-    <div class="sdlc-step" onclick="switchPhase(4)"><span class="sdlc-num">⑤</span>Testing</div>
-    <div class="sdlc-step" onclick="switchPhase(5)"><span class="sdlc-num">⑥</span>Deployment</div>
-    <div class="sdlc-step" onclick="switchPhase(6)"><span class="sdlc-num">⑦</span>Operations</div>
-  </div>
-
-  <div class="phase-nav">
-    <button class="phase-btn c1 active" onclick="switchPhase(0)">01 · Requirements</button>
-    <button class="phase-btn c2" onclick="switchPhase(1)">02 · Architecture</button>
-    <button class="phase-btn c3" onclick="switchPhase(2)">03 · Design</button>
-    <button class="phase-btn c4" onclick="switchPhase(3)">04 · Implementation</button>
-    <button class="phase-btn c5" onclick="switchPhase(4)">05 · Testing</button>
-    <button class="phase-btn c6" onclick="switchPhase(5)">06 · Deployment</button>
-    <button class="phase-btn c7" onclick="switchPhase(6)">07 · Operations</button>
+  <div class="cat-nav">
+    <button class="cat-btn c1 active" onclick="switchPhase(0)">
+      <div class="cat-btn-num">01</div>
+      <div class="cat-btn-title"><span data-lang="en">Requirements</span><span data-lang="nl">Requirements</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Security goals & planning</span><span data-lang="nl">Beveiligingsdoelen & planning</span></div>
+    </button>
+    <button class="cat-btn c2" onclick="switchPhase(1)">
+      <div class="cat-btn-num">02</div>
+      <div class="cat-btn-title"><span data-lang="en">Architecture</span><span data-lang="nl">Architectuur</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Threat modeling & patterns</span><span data-lang="nl">Threat modeling & patronen</span></div>
+    </button>
+    <button class="cat-btn c3" onclick="switchPhase(2)">
+      <div class="cat-btn-num">03</div>
+      <div class="cat-btn-title"><span data-lang="en">Design</span><span data-lang="nl">Ontwerp</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Detailed component design</span><span data-lang="nl">Gedetailleerd componentontwerp</span></div>
+    </button>
+    <button class="cat-btn c4" onclick="switchPhase(3)">
+      <div class="cat-btn-num">04</div>
+      <div class="cat-btn-title"><span data-lang="en">Implementation</span><span data-lang="nl">Implementatie</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Secure coding & review</span><span data-lang="nl">Veilig programmeren & review</span></div>
+    </button>
+    <button class="cat-btn c5" onclick="switchPhase(4)">
+      <div class="cat-btn-num">05</div>
+      <div class="cat-btn-title"><span data-lang="en">Testing</span><span data-lang="nl">Testen</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Verification & validation</span><span data-lang="nl">Verificatie & validatie</span></div>
+    </button>
+    <button class="cat-btn c6" onclick="switchPhase(5)">
+      <div class="cat-btn-num">06</div>
+      <div class="cat-btn-title"><span data-lang="en">Deployment</span><span data-lang="nl">Deployment</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Secure release & config</span><span data-lang="nl">Veilige release & configuratie</span></div>
+    </button>
+    <button class="cat-btn c7" onclick="switchPhase(6)">
+      <div class="cat-btn-num">07</div>
+      <div class="cat-btn-title"><span data-lang="en">Operations</span><span data-lang="nl">Operations</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Monitor, respond, improve</span><span data-lang="nl">Monitor, reageer, verbeter</span></div>
+    </button>
   </div>
 
   <!-- PHASE 1 -->
   <div class="phase-panel c1 active" id="phase-0">
     <div class="phase-header">
       <div class="phase-num">01</div>
-      <div class="phase-info"><h2>Requirements & Planning</h2><p>Establish security goals before any code is written. Define what "secure" means for your product and who is responsible.</p></div>
-      <div class="phase-badge">Foundation</div>
+      <div class="phase-info">
+        <h2><span data-lang="en">Requirements & Planning</span><span data-lang="nl">Requirements & Planning</span></h2>
+        <p data-lang="en">Establish security goals before any code is written. Define what "secure" means for your product and who is responsible.</p>
+        <p data-lang="nl">Stel beveiligingsdoelen vast voordat er code wordt geschreven. Definieer wat "veilig" betekent voor uw product en wie verantwoordelijk is.</p>
+      </div>
+      <div class="phase-badge"><span data-lang="en">Foundation</span><span data-lang="nl">Fundament</span></div>
     </div>
     <div class="activities-grid">
 
       <div class="activity-card">
         <span class="activity-icon">🎯</span>
-        <div class="activity-title">Security Requirements Elicitation</div>
-        <div class="activity-desc">Define explicit security requirements alongside functional ones. Distinguish confidentiality, integrity, and availability needs.</div>
+        <div class="activity-title"><span data-lang="en">Security Requirements Elicitation</span><span data-lang="nl">Elicitatie van Beveiligingseisen</span></div>
+        <div class="activity-desc" data-lang="en">Define explicit security requirements alongside functional ones. Distinguish confidentiality, integrity, and availability needs.</div>
+        <div class="activity-desc" data-lang="nl">Definieer expliciete beveiligingseisen naast functionele eisen. Maak onderscheid tussen vertrouwelijkheid, integriteit en beschikbaarheid.</div>
         <div class="activity-items">
-          <div class="activity-item">Define CIA triad priorities per asset</div>
-          <div class="activity-item">Interview stakeholders on risk tolerance</div>
-          <div class="activity-item">Capture compliance requirements (GDPR, PCI-DSS, ISO 27001)</div>
+          <div class="activity-item"><span data-lang="en">Define CIA triad priorities per asset</span><span data-lang="nl">Definieer CIA-prioriteiten per asset</span></div>
+          <div class="activity-item"><span data-lang="en">Interview stakeholders on risk tolerance</span><span data-lang="nl">Interview stakeholders over risicotolerantie</span></div>
+          <div class="activity-item"><span data-lang="en">Capture compliance requirements (GDPR, PCI-DSS, ISO 27001)</span><span data-lang="nl">Leg compliance-eisen vast (AVG, PCI-DSS, ISO 27001)</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -365,12 +382,13 @@
 
       <div class="activity-card">
         <span class="activity-icon">👤</span>
-        <div class="activity-title">Abuse Case & Misuse Case Modeling</div>
-        <div class="activity-desc">Complement use cases with "abuse cases" that describe how attackers could exploit the system.</div>
+        <div class="activity-title"><span data-lang="en">Abuse Case & Misuse Case Modeling</span><span data-lang="nl">Abuse Case & Misuse Case Modeling</span></div>
+        <div class="activity-desc" data-lang="en">Complement use cases with "abuse cases" that describe how attackers could exploit the system.</div>
+        <div class="activity-desc" data-lang="nl">Vul use cases aan met "abuse cases" die beschrijven hoe aanvallers het systeem zouden kunnen misbruiken.</div>
         <div class="activity-items">
-          <div class="activity-item">Identify attacker personas and motivations</div>
-          <div class="activity-item">Map misuse cases to each use case</div>
-          <div class="activity-item">Prioritize by impact and likelihood</div>
+          <div class="activity-item"><span data-lang="en">Identify attacker personas and motivations</span><span data-lang="nl">Identificeer aanvaller-persona's en motivaties</span></div>
+          <div class="activity-item"><span data-lang="en">Map misuse cases to each use case</span><span data-lang="nl">Koppel misuse cases aan elke use case</span></div>
+          <div class="activity-item"><span data-lang="en">Prioritize by impact and likelihood</span><span data-lang="nl">Prioriteer op impact en waarschijnlijkheid</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -381,12 +399,13 @@
 
       <div class="activity-card">
         <span class="activity-icon">📋</span>
-        <div class="activity-title">Compliance & Regulatory Mapping</div>
-        <div class="activity-desc">Identify applicable laws, standards, and frameworks early to bake controls in, not bolt them on.</div>
+        <div class="activity-title"><span data-lang="en">Compliance & Regulatory Mapping</span><span data-lang="nl">Compliance & Regelgeving Mapping</span></div>
+        <div class="activity-desc" data-lang="en">Identify applicable laws, standards, and frameworks early to bake controls in, not bolt them on.</div>
+        <div class="activity-desc" data-lang="nl">Identificeer toepasselijke wetten, standaarden en kaders vroegtijdig om controles in te bouwen, niet achteraf toe te voegen.</div>
         <div class="activity-items">
-          <div class="activity-item">OWASP ASVS level selection</div>
-          <div class="activity-item">Map regulatory obligations to controls</div>
-          <div class="activity-item">Define audit trail requirements</div>
+          <div class="activity-item"><span data-lang="en">OWASP ASVS level selection</span><span data-lang="nl">Selectie OWASP ASVS-niveau</span></div>
+          <div class="activity-item"><span data-lang="en">Map regulatory obligations to controls</span><span data-lang="nl">Koppel wettelijke verplichtingen aan controles</span></div>
+          <div class="activity-item"><span data-lang="en">Define audit trail requirements</span><span data-lang="nl">Definieer audit trail eisen</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -398,12 +417,13 @@
 
       <div class="activity-card">
         <span class="activity-icon">👥</span>
-        <div class="activity-title">Roles & Responsibilities</div>
-        <div class="activity-desc">Assign security ownership across the team. Security is everyone's job — but someone must lead.</div>
+        <div class="activity-title"><span data-lang="en">Roles & Responsibilities</span><span data-lang="nl">Rollen & Verantwoordelijkheden</span></div>
+        <div class="activity-desc" data-lang="en">Assign security ownership across the team. Security is everyone's job — but someone must lead.</div>
+        <div class="activity-desc" data-lang="nl">Wijs eigenaarschap voor beveiliging toe binnen het team. Beveiliging is ieders taak — maar iemand moet leiden.</div>
         <div class="activity-items">
-          <div class="activity-item">Designate a Security Champion per team</div>
-          <div class="activity-item">Define RACI for security activities</div>
-          <div class="activity-item">Set security acceptance criteria in Definition of Done</div>
+          <div class="activity-item"><span data-lang="en">Designate a Security Champion per team</span><span data-lang="nl">Wijs een Security Champion aan per team</span></div>
+          <div class="activity-item"><span data-lang="en">Define RACI for security activities</span><span data-lang="nl">Definieer RACI voor beveiligingsactiviteiten</span></div>
+          <div class="activity-item"><span data-lang="en">Set security acceptance criteria in Definition of Done</span><span data-lang="nl">Stel beveiligingscriteria in Definition of Done</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -414,12 +434,13 @@
 
       <div class="activity-card">
         <span class="activity-icon">📊</span>
-        <div class="activity-title">Risk Assessment</div>
-        <div class="activity-desc">Perform an initial risk assessment to identify high-value assets and likely attack surfaces.</div>
+        <div class="activity-title"><span data-lang="en">Risk Assessment</span><span data-lang="nl">Risicoanalyse</span></div>
+        <div class="activity-desc" data-lang="en">Perform an initial risk assessment to identify high-value assets and likely attack surfaces.</div>
+        <div class="activity-desc" data-lang="nl">Voer een initiële risicoanalyse uit om waardevolle assets en waarschijnlijke aanvalsoppervlakken te identificeren.</div>
         <div class="activity-items">
-          <div class="activity-item">Asset inventory and classification</div>
-          <div class="activity-item">Threat landscape survey for your domain</div>
-          <div class="activity-item">Risk register creation</div>
+          <div class="activity-item"><span data-lang="en">Asset inventory and classification</span><span data-lang="nl">Asset-inventarisatie en classificatie</span></div>
+          <div class="activity-item"><span data-lang="en">Threat landscape survey for your domain</span><span data-lang="nl">Onderzoek dreigingslandschap voor uw domein</span></div>
+          <div class="activity-item"><span data-lang="en">Risk register creation</span><span data-lang="nl">Aanmaken risicoregister</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -430,12 +451,13 @@
 
       <div class="activity-card">
         <span class="activity-icon">🏋️</span>
-        <div class="activity-title">Security Training</div>
-        <div class="activity-desc">Ensure developers, architects, and QA understand secure development fundamentals before building.</div>
+        <div class="activity-title"><span data-lang="en">Security Training</span><span data-lang="nl">Beveiligingstraining</span></div>
+        <div class="activity-desc" data-lang="en">Ensure developers, architects, and QA understand secure development fundamentals before building.</div>
+        <div class="activity-desc" data-lang="nl">Zorg dat ontwikkelaars, architecten en QA de basisprincipes van veilig ontwikkelen begrijpen voordat ze bouwen.</div>
         <div class="activity-items">
-          <div class="activity-item">OWASP Top 10 awareness</div>
-          <div class="activity-item">Secure coding guidelines rollout</div>
-          <div class="activity-item">Social engineering awareness</div>
+          <div class="activity-item"><span data-lang="en">OWASP Top 10 awareness</span><span data-lang="nl">OWASP Top 10 bewustzijn</span></div>
+          <div class="activity-item"><span data-lang="en">Secure coding guidelines rollout</span><span data-lang="nl">Uitrol richtlijnen veilig programmeren</span></div>
+          <div class="activity-item"><span data-lang="en">Social engineering awareness</span><span data-lang="nl">Social engineering bewustzijn</span></div>
         </div>
         <div class="activity-resources">
           <div class="resources-label">Learn more</div>
@@ -1112,16 +1134,16 @@
 
   <!-- Core Principles -->
   <div class="principles">
-    <h3>Core Principles — Always Active</h3>
+    <h3><span data-lang="en">Core Principles — Always Active</span><span data-lang="nl">Kernprincipes — Altijd Actief</span></h3>
     <div class="principles-grid">
-      <div class="principle-item"><div class="principle-dot" style="background:#3b82f6"></div><div class="principle-text"><strong>Least Privilege</strong>Every component gets only the access it needs.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#00d4aa"></div><div class="principle-text"><strong>Defense in Depth</strong>Multiple independent controls protect each asset.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#f59e0b"></div><div class="principle-text"><strong>Fail Secure</strong>Failures default to deny, not allow.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#ef4444"></div><div class="principle-text"><strong>Minimize Attack Surface</strong>Disable everything not actively needed.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#a78bfa"></div><div class="principle-text"><strong>Separation of Concerns</strong>Isolate components to limit blast radius.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#34d399"></div><div class="principle-text"><strong>Shift Left</strong>Find issues earlier — they cost exponentially less to fix.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#f472b6"></div><div class="principle-text"><strong>Zero Trust</strong>Never assume trust; always verify, regardless of network location.</div></div>
-      <div class="principle-item"><div class="principle-dot" style="background:#60a5fa"></div><div class="principle-text"><strong>Privacy by Design</strong>Data protection embedded, not added after.</div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#3b82f6"></div><div class="principle-text"><strong>Least Privilege</strong><span data-lang="en">Every component gets only the access it needs.</span><span data-lang="nl">Elk component krijgt alleen de toegang die het nodig heeft.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#00d4aa"></div><div class="principle-text"><strong>Defense in Depth</strong><span data-lang="en">Multiple independent controls protect each asset.</span><span data-lang="nl">Meerdere onafhankelijke controles beschermen elk asset.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#f59e0b"></div><div class="principle-text"><strong>Fail Secure</strong><span data-lang="en">Failures default to deny, not allow.</span><span data-lang="nl">Fouten leiden standaard tot weigeren, niet toestaan.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#ef4444"></div><div class="principle-text"><strong>Minimize Attack Surface</strong><span data-lang="en">Disable everything not actively needed.</span><span data-lang="nl">Schakel alles uit wat niet actief nodig is.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#a78bfa"></div><div class="principle-text"><strong>Separation of Concerns</strong><span data-lang="en">Isolate components to limit blast radius.</span><span data-lang="nl">Isoleer componenten om de impact te beperken.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#34d399"></div><div class="principle-text"><strong>Shift Left</strong><span data-lang="en">Find issues earlier — they cost exponentially less to fix.</span><span data-lang="nl">Vind problemen eerder — ze kosten exponentieel minder om te repareren.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#f472b6"></div><div class="principle-text"><strong>Zero Trust</strong><span data-lang="en">Never assume trust; always verify, regardless of network location.</span><span data-lang="nl">Neem nooit vertrouwen aan; verifieer altijd, ongeacht netwerklocatie.</span></div></div>
+      <div class="principle-item"><div class="principle-dot" style="background:#60a5fa"></div><div class="principle-text"><strong>Privacy by Design</strong><span data-lang="en">Data protection embedded, not added after.</span><span data-lang="nl">Gegevensbescherming ingebouwd, niet achteraf toegevoegd.</span></div></div>
     </div>
   </div>
 
@@ -1130,8 +1152,12 @@
 <script>
 function switchPhase(idx) {
   document.querySelectorAll('.phase-panel').forEach((p,i) => p.classList.toggle('active', i === idx));
-  document.querySelectorAll('.phase-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
-  document.querySelectorAll('.sdlc-step').forEach((s,i) => s.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
 }
 </script>
 </body>

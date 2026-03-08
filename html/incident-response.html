@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Response & Forensics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10; --surface: #10141c; --surface2: #141820; --border: #1e2535;
+    --accent: #00d4aa; --text: #e2e8f0; --muted: #64748b;
+    /* Theme colors */
+    --c-cycle: #ef4444;
+    --c-forensics: #f59e0b;
+    --c-malware: #8b5cf6;
+    --c-tools: #3b82f6;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,170,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,170,0.025) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 1140px; margin: 0 auto; padding: 48px 24px 100px; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { margin-bottom: 52px; display: flex; flex-direction: column; gap: 12px; }
+  .header-tag { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .header-tag::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(30px, 5vw, 54px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .header-sub { font-size: 15px; color: var(--muted); max-width: 700px; line-height: 1.75; font-weight: 300; }
+
+  /* Nav */
+  .cat-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 40px; }
+  .cat-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; cursor: pointer; text-align: left; transition: all 0.2s; position: relative; overflow: hidden; }
+  .cat-btn::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--pc); transform: scaleX(0); transition: transform 0.2s; transform-origin: left; }
+  .cat-btn:hover::after, .cat-btn.active::after { transform: scaleX(1); }
+  .cat-btn:hover { border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+  .cat-btn.active { background: color-mix(in srgb, var(--pc) 8%, var(--surface)); border-color: color-mix(in srgb, var(--pc) 45%, transparent); }
+  .cat-btn-num { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--pc); margin-bottom: 5px; opacity: 0.8; }
+  .cat-btn-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 3px; }
+  .cat-btn-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .cat-btn.active .cat-btn-title { color: var(--pc); }
+
+  .c-cycle { --pc: var(--c-cycle); }
+  .c-forensics { --pc: var(--c-forensics); }
+  .c-malware { --pc: var(--c-malware); }
+  .c-tools { --pc: var(--c-tools); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Panel Header */
+  .panel-header { padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 28px; position: relative; overflow: hidden; }
+  .panel-header::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--pc), transparent); }
+  .panel-header::after { content: attr(data-bg); position: absolute; right: 24px; top: 50%; transform: translateY(-50%); font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800; color: var(--pc); opacity: 0.05; letter-spacing: -0.04em; pointer-events: none; line-height: 1; }
+  .panel-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--pc); text-transform: uppercase; margin-bottom: 10px; }
+  .panel-header h2 { font-family: 'Syne', sans-serif; font-size: clamp(20px, 3vw, 26px); font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+  .panel-header p { font-size: 13.5px; color: var(--muted); line-height: 1.8; max-width: 700px; }
+
+  /* Cards Grid */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.22s; display: flex; flex-direction: column; padding: 24px; }
+  .card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--pc) 35%, transparent); box-shadow: 0 8px 28px color-mix(in srgb, var(--pc) 8%, transparent); }
+  .card-icon { width: 40px; height: 40px; border-radius: 8px; background: color-mix(in srgb, var(--pc) 10%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 20%, transparent); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; color: var(--pc); }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; flex: 1; }
+  
+  .card-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .list-item { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .list-item::before { content: '→'; color: var(--pc); font-size: 10px; flex-shrink: 0; margin-top: 2px; opacity: 0.6; }
+
+  /* ── Section title ── */
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; margin-top: 32px; }
+
+  /* ── Real-world examples ── */
+  .examples-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 32px; }
+  .example-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; transition: border-color 0.2s; }
+  .example-card:hover { border-color: color-mix(in srgb, var(--pc) 30%, transparent); }
+  .example-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .example-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--pc) 12%, transparent);
+    color: var(--pc);
+    flex-shrink: 0;
+  }
+  .example-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .example-type {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .example-desc { font-size: 12.5px; color: var(--muted); line-height: 1.65; }
+  .example-impact {
+    margin-top: 8px; font-size: 11.5px; color: var(--text); opacity: 0.5; font-style: italic;
+  }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+
+  /* ── Language Switcher ── */
+  .lang-switch { position: absolute; top: 24px; right: 140px; display: flex; gap: 8px; z-index: 10; }
+  .lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; transition: all 0.2s; }
+  .lang-btn:hover { color: var(--text); border-color: var(--muted); }
+  .lang-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+  body.lang-nl [data-lang="en"] { display: none !important; }
+  body.lang-en [data-lang="nl"] { display: none !important; }
+</style>
+</head>
+<body class="lang-en">
+<div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn" onclick="setLang('nl')">NL</button>
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  </div>
+
+  <div class="header">
+    <div class="header-tag">Operations</div>
+    <div class="header-meta">Author: Maurice Snoeren</div>
+    <h1>Incident Response <span>& Forensics</span></h1>
+    <p class="header-sub" data-lang="en">When prevention fails, response is critical. A deep dive into the NIST Incident Response Lifecycle, digital forensics, and malware analysis.</p>
+    <p class="header-sub" data-lang="nl">Wanneer preventie faalt, is reactie cruciaal. Een diepe duik in de NIST Incident Response Lifecycle, digitaal forensisch onderzoek en malware-analyse.</p>
+  </div>
+
+  <div class="cat-nav">
+    <button class="cat-btn c-cycle active" onclick="switchPanel(0)">
+      <div class="cat-btn-num">01</div>
+      <div class="cat-btn-title"><span data-lang="en">IR Lifecycle</span><span data-lang="nl">IR Levenscyclus</span></div>
+      <div class="cat-btn-sub">NIST SP 800-61</div>
+    </button>
+    <button class="cat-btn c-forensics" onclick="switchPanel(1)">
+      <div class="cat-btn-num">02</div>
+      <div class="cat-btn-title"><span data-lang="en">Digital Forensics</span><span data-lang="nl">Digitaal Forensisch</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Evidence & Analysis</span><span data-lang="nl">Bewijs & Analyse</span></div>
+    </button>
+    <button class="cat-btn c-malware" onclick="switchPanel(2)">
+      <div class="cat-btn-num">03</div>
+      <div class="cat-btn-title"><span data-lang="en">Malware Analysis</span><span data-lang="nl">Malware Analyse</span></div>
+      <div class="cat-btn-sub"><span data-lang="en">Static & Dynamic</span><span data-lang="nl">Statisch & Dynamisch</span></div>
+    </button>
+  </div>
+
+  <!-- IR Lifecycle -->
+  <div class="panel c-cycle active" id="panel-0">
+    <div class="panel-header c-cycle" data-bg="NIST">
+      <div class="panel-label">01 · Process</div>
+      <h2><span data-lang="en">Incident Response Lifecycle</span><span data-lang="nl">Incident Response Levenscyclus</span></h2>
+      <p data-lang="en">Based on NIST SP 800-61r2. A structured approach to handle incidents and limit damage.</p>
+      <p data-lang="nl">Gebaseerd op NIST SP 800-61r2. Een gestructureerde aanpak om incidenten te beheren en de schade te beperken.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-cycle">
+        <div class="card-icon">🛡️</div>
+        <div class="card-title"><span data-lang="en">1. Preparation</span><span data-lang="nl">1. Voorbereiding</span></div>
+        <p class="card-desc" data-lang="en">The most important phase. Be ready before the incident occurs.</p>
+        <p class="card-desc" data-lang="nl">De belangrijkste fase. Zorg dat je klaar bent vóór het incident.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Setup CSIRT team</span><span data-lang="nl">Opzetten van een CSIRT team</span></div>
+          <div class="list-item"><span data-lang="en">Configure logging and monitoring</span><span data-lang="nl">Configuratie van logging en monitoring</span></div>
+          <div class="list-item"><span data-lang="en">Create playbooks and communication plans</span><span data-lang="nl">Maken van playbooks en communicatieplannen</span></div>
+        </div>
+      </div>
+      <div class="card c-cycle">
+        <div class="card-icon">🚨</div>
+        <div class="card-title"><span data-lang="en">2. Detection & Analysis</span><span data-lang="nl">2. Detectie & Analyse</span></div>
+        <p class="card-desc" data-lang="en">Identify something is wrong and understand what it is.</p>
+        <p class="card-desc" data-lang="nl">Identificeren dat er iets mis is en begrijpen wat het is.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Analyze SIEM alerts and logs</span><span data-lang="nl">Analyseren van SIEM alerts en logs</span></div>
+          <div class="list-item"><span data-lang="en">Triage: False positive or real incident?</span><span data-lang="nl">Triage: False positive of echt incident?</span></div>
+          <div class="list-item"><span data-lang="en">Determine scope and impact</span><span data-lang="nl">Bepalen van de scope en impact</span></div>
+        </div>
+      </div>
+      <div class="card c-cycle">
+        <div class="card-icon">🚧</div>
+        <div class="card-title"><span data-lang="en">3. Containment, Eradication & Recovery</span><span data-lang="nl">3. Indammen, Uitroeien & Herstel</span></div>
+        <p class="card-desc" data-lang="en">Stop the bleeding, remove the threat, and restore service.</p>
+        <p class="card-desc" data-lang="nl">Stop het bloeden, verwijder de dreiging en herstel de dienst.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Isolate infected systems</span><span data-lang="nl">Isoleren van geïnfecteerde systemen</span></div>
+          <div class="list-item"><span data-lang="en">Remove malware and backdoors</span><span data-lang="nl">Verwijderen van malware en achterdeurtjes</span></div>
+          <div class="list-item"><span data-lang="en">Restore from clean backups and patch</span><span data-lang="nl">Herstellen van schone backups en patchen</span></div>
+        </div>
+      </div>
+      <div class="card c-cycle">
+        <div class="card-icon">📚</div>
+        <div class="card-title"><span data-lang="en">4. Post-Incident Activity</span><span data-lang="nl">4. Post-Incident Activiteit</span></div>
+        <p class="card-desc" data-lang="en">Learn from the incident to prevent recurrence.</p>
+        <p class="card-desc" data-lang="nl">Leren van het incident om herhaling te voorkomen.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Lessons Learned meeting</span><span data-lang="nl">Lessons Learned meeting</span></div>
+          <div class="list-item"><span data-lang="en">Update playbooks and detection rules</span><span data-lang="nl">Update playbooks en detectieregels</span></div>
+          <div class="list-item"><span data-lang="en">Report to management and authorities</span><span data-lang="nl">Rapportage aan management en autoriteiten</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title"><span data-lang="en">Real-World Incidents</span><span data-lang="nl">Praktijkvoorbeelden</span></div>
+    <div class="examples-grid">
+      <div class="example-card c-cycle">
+        <div class="example-header"><span class="example-year">2017</span><span class="example-name">Maersk (NotPetya)</span><span class="example-type">Recovery</span></div>
+        <p class="example-desc" data-lang="en">Ransomware destroyed the entire IT infrastructure (45,000 PCs). Recovery was only possible thanks to one offline domain controller in Ghana that happened to have a power outage.</p>
+        <p class="example-desc" data-lang="nl">Ransomware vernietigde de volledige IT-infrastructuur (45.000 PC's). Herstel was alleen mogelijk dankzij één offline domeincontroller in Ghana die toevallig stroomuitval had.</p>
+        <p class="example-impact">Impact: $300M schade; 10 dagen handmatige operaties.</p>
+      </div>
+      <div class="example-card c-cycle">
+        <div class="example-header"><span class="example-year">2020</span><span class="example-name">SolarWinds</span><span class="example-type">Detection</span></div>
+        <p class="example-desc" data-lang="en">A supply chain attack that went unnoticed for months. Attackers (APT29) used legitimate update channels, making detection extremely difficult.</p>
+        <p class="example-desc" data-lang="nl">Een supply chain attack die maandenlang onopgemerkt bleef. De aanvallers (APT29) gebruikten legitieme update-kanalen, wat detectie extreem moeilijk maakte.</p>
+        <p class="example-impact">Impact: 18.000 organisaties geïnfecteerd, incl. US overheid.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forensics -->
+  <div class="panel c-forensics" id="panel-1">
+    <div class="panel-header c-forensics" data-bg="DATA">
+      <div class="panel-label">02 · Investigation</div>
+      <h2><span data-lang="en">Digital Forensics</span><span data-lang="nl">Digitaal Forensisch Onderzoek</span></h2>
+      <p data-lang="en">Collecting, preserving, and analyzing digital evidence in a legally defensible way.</p>
+      <p data-lang="nl">Het verzamelen, bewaren en analyseren van digitaal bewijsmateriaal op een manier die juridisch verdedigbaar is.</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-forensics">
+        <div class="card-icon">⚡</div>
+        <div class="card-title"><span data-lang="en">Order of Volatility</span><span data-lang="nl">Volgorde van Vluchtigheid</span></div>
+        <p class="card-desc" data-lang="en">Collect evidence from most volatile to least volatile.</p>
+        <p class="card-desc" data-lang="nl">Verzamel bewijs van meest vluchtig naar minst vluchtig.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">1. CPU Cache & Registers (most volatile)</span><span data-lang="nl">1. CPU Cache & Registers (meest vluchtig)</span></div>
+          <div class="list-item"><span data-lang="en">2. RAM (Memory Forensics)</span><span data-lang="nl">2. RAM (Geheugenanalyse)</span></div>
+          <div class="list-item"><span data-lang="en">3. Network connections & processes</span><span data-lang="nl">3. Netwerkverbindingen & processen</span></div>
+          <div class="list-item"><span data-lang="en">4. Hard drive (Disk Forensics)</span><span data-lang="nl">4. Harde schijf (Schijfanalyse)</span></div>
+        </div>
+      </div>
+      <div class="card c-forensics">
+        <div class="card-icon">🧠</div>
+        <div class="card-title"><span data-lang="en">Memory Forensics</span><span data-lang="nl">Geheugenanalyse</span></div>
+        <p class="card-desc" data-lang="en">Analyzing RAM dump to find active malware, encryption keys, and network connections not present on disk.</p>
+        <p class="card-desc" data-lang="nl">Het analyseren van het RAM-geheugen (dump) om actieve malware, encryptiesleutels en netwerkverbindingen te vinden die niet op schijf staan.</p>
+        <div class="card-list">
+          <div class="list-item">Tools: Volatility, Rekall</div>
+          <div class="list-item"><span data-lang="en">Search for 'process injection' and 'rootkits'</span><span data-lang="nl">Zoeken naar 'process injection' en 'rootkits'</span></div>
+        </div>
+      </div>
+      <div class="card c-forensics">
+        <div class="card-icon">🔗</div>
+        <div class="card-title">Chain of Custody</div>
+        <p class="card-desc" data-lang="en">Documenting who handled evidence, when, and why. Essential for legal validity.</p>
+        <p class="card-desc" data-lang="nl">Het documenteren van wie het bewijs heeft beheerd, wanneer en waarom. Essentieel voor de rechtsgeldigheid.</p>
+      </div>
+    </div>
+
+    <div class="section-title"><span data-lang="en">Forensic Cases</span><span data-lang="nl">Forensische Zaken</span></div>
+    <div class="examples-grid">
+      <div class="example-card c-forensics">
+        <div class="example-header"><span class="example-year">2005</span><span class="example-name">BTK Killer</span><span class="example-type">Metadata</span></div>
+        <p class="example-desc" data-lang="en">The serial killer sent a floppy disk to police. Forensics recovered a deleted Word doc with metadata pointing to "Dennis" and "Christ Lutheran Church".</p>
+        <p class="example-desc" data-lang="nl">De seriemoordenaar stuurde een floppy disk naar de politie. Forensisch onderzoek herstelde een verwijderd Word-document met metadata die wees naar "Dennis" en de "Christ Lutheran Church".</p>
+        <p class="example-impact">Resultaat: Arrestatie na 30 jaar onopgeloste zaken.</p>
+      </div>
+      <div class="example-card c-forensics">
+        <div class="example-header"><span class="example-year">2013</span><span class="example-name">Silk Road</span><span class="example-type">Live Forensics</span></div>
+        <p class="example-desc" data-lang="en">FBI agents arrested Ross Ulbricht in a library while logged in as admin, seizing his laptop before he could lock it (live memory capture).</p>
+        <p class="example-desc" data-lang="nl">FBI-agenten arresteerden Ross Ulbricht in een bibliotheek terwijl hij ingelogd was als admin, en grepen zijn laptop voordat hij deze kon vergrendelen (live memory capture).</p>
+        <p class="example-impact">Resultaat: Bewijs van admin-toegang veiliggesteld.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Malware Analysis -->
+  <div class="panel c-malware" id="panel-2">
+    <div class="panel-header c-malware" data-bg="CODE">
+      <div class="panel-label">03 · Analysis</div>
+      <h2><span data-lang="en">Malware Analysis</span><span data-lang="nl">Malware Analyse</span></h2>
+      <p data-lang="en">Dissecting malicious software to understand how it works, what it does, and how to detect it (IOCs).</p>
+      <p data-lang="nl">Het ontleden van kwaadaardige software om te begrijpen hoe het werkt, wat het doet en hoe je het kunt detecteren (IOCs).</p>
+    </div>
+    <div class="card-grid">
+      <div class="card c-malware">
+        <div class="card-icon">🧊</div>
+        <div class="card-title"><span data-lang="en">Static Analysis</span><span data-lang="nl">Statische Analyse</span></div>
+        <p class="card-desc" data-lang="en">Analyzing code without executing it.</p>
+        <p class="card-desc" data-lang="nl">Het analyseren van de code zonder deze uit te voeren.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Hashing (MD5, SHA256) for identification</span><span data-lang="nl">Hashing (MD5, SHA256) voor identificatie</span></div>
+          <div class="list-item"><span data-lang="en">Strings extraction (IPs, URLs, messages)</span><span data-lang="nl">Strings extractie (IPs, URLs, berichten)</span></div>
+          <div class="list-item"><span data-lang="en">PE Header analysis (imports/exports)</span><span data-lang="nl">PE Header analyse (imports/exports)</span></div>
+          <div class="list-item">Disassembly (IDA Pro, Ghidra)</div>
+        </div>
+      </div>
+      <div class="card c-malware">
+        <div class="card-icon">🔥</div>
+        <div class="card-title"><span data-lang="en">Dynamic Analysis</span><span data-lang="nl">Dynamische Analyse</span></div>
+        <p class="card-desc" data-lang="en">Executing malware in a controlled environment (sandbox) to observe behavior.</p>
+        <p class="card-desc" data-lang="nl">Het uitvoeren van de malware in een gecontroleerde omgeving (sandbox) om gedrag te observeren.</p>
+        <div class="card-list">
+          <div class="list-item"><span data-lang="en">Monitor network traffic (C2 callbacks)</span><span data-lang="nl">Monitoren van netwerkverkeer (C2 callbacks)</span></div>
+          <div class="list-item"><span data-lang="en">Monitor file system changes</span><span data-lang="nl">Monitoren van file system wijzigingen</span></div>
+          <div class="list-item">Tools: Cuckoo Sandbox, Wireshark, Procmon</div>
+        </div>
+      </div>
+      <div class="card c-malware">
+        <div class="card-icon">🦠</div>
+        <div class="card-title"><span data-lang="en">Indicators of Compromise (IOCs)</span><span data-lang="nl">Indicators of Compromise (IOCs)</span></div>
+        <p class="card-desc" data-lang="en">The goal of analysis: finding signatures to detect malware on the network (e.g., filenames, hashes, IPs).</p>
+        <p class="card-desc" data-lang="nl">Het einddoel van analyse: kenmerken vinden om de malware in het netwerk te detecteren (bijv. specifieke bestandsnamen, hashes, IP-adressen).</p>
+      </div>
+    </div>
+
+    <div class="section-title"><span data-lang="en">Malware Discoveries</span><span data-lang="nl">Malware Ontdekkingen</span></div>
+    <div class="examples-grid">
+      <div class="example-card c-malware">
+        <div class="example-header"><span class="example-year">2010</span><span class="example-name">Stuxnet</span><span class="example-type">Reverse Eng.</span></div>
+        <p class="example-desc" data-lang="en">Analysis revealed this worm specifically targeted Siemens PLCs controlling centrifuges. It was the first digital weapon to cause physical damage.</p>
+        <p class="example-desc" data-lang="nl">Analyse onthulde dat deze worm specifiek zocht naar Siemens PLC's die centrifuges aanstuurden. Het was het eerste digitale wapen dat fysieke schade aanrichtte.</p>
+        <p class="example-impact">Impact: Vertraging Iraans nucleair programma.</p>
+      </div>
+      <div class="example-card c-malware">
+        <div class="example-header"><span class="example-year">2017</span><span class="example-name">WannaCry Killswitch</span><span class="example-type">Dynamic Analysis</span></div>
+        <p class="example-desc" data-lang="en">Researcher Marcus Hutchins analyzed the code and found a check for a non-existent domain. Registering this domain stopped the malware globally.</p>
+        <p class="example-desc" data-lang="nl">Onderzoeker Marcus Hutchins analyseerde de code en vond een check naar een niet-bestaand domein. Door dit domein te registreren, stopte de malware wereldwijd.</p>
+        <p class="example-impact">Resultaat: Verdere verspreiding direct gestopt.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function switchPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
+}
+</script>
+</body>
+</html>

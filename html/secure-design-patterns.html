@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Design Patterns</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10; --surface: #10141c; --surface2: #141820; --border: #1e2535;
+    --accent: #00d4aa; --text: #e2e8f0; --muted: #64748b;
+    --c-arch:  #3b82f6;
+    --c-access:#a78bfa;
+    --c-input: #f59e0b;
+    --c-enc:   #00d4aa;
+    --c-error: #ef4444;
+    --c-impl:  #f472b6;
+  }
+
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image: linear-gradient(rgba(0,212,170,.025) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,170,.025) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .container { max-width:1140px; margin:0 auto; padding:48px 24px 100px; position:relative; z-index:1; }
+
+  /* ── Header ── */
+  .header { margin-bottom:48px; display:flex; flex-direction:column; gap:12px; }
+  .header-tag { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.2em; color:var(--accent); text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+  .header-tag::before { content:''; display:block; width:24px; height:1px; background:var(--accent); }
+  .header-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: -4px; }
+  h1 { font-family:'Syne',sans-serif; font-size:clamp(30px,5vw,54px); font-weight:800; line-height:1.05; letter-spacing:-.02em; }
+  h1 span { color:var(--accent); }
+  .header-sub { font-size:15px; color:var(--muted); max-width:700px; line-height:1.75; font-weight:300; }
+
+  /* ── Principle pills row ── */
+  .principles-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:44px; }
+  .p-pill { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.08em; padding:5px 12px; border-radius:20px; background:var(--surface); border:1px solid var(--border); color:var(--muted); text-transform:uppercase; transition:all .18s; cursor:default; }
+  .p-pill:hover { color:var(--accent); border-color:var(--accent); }
+
+  /* ── Category nav ── */
+  .cat-nav { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:40px; }
+  @media(max-width:700px){ .cat-nav { grid-template-columns:repeat(2,1fr); } }
+  .cat-btn { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 14px; cursor:pointer; text-align:left; transition:all .2s; position:relative; overflow:hidden; }
+  .cat-btn::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--pc); transform:scaleX(0); transition:transform .2s; transform-origin:left; }
+  .cat-btn:hover::after,.cat-btn.active::after { transform:scaleX(1); }
+  .cat-btn:hover { border-color:color-mix(in srgb,var(--pc) 40%,transparent); }
+  .cat-btn.active { background:color-mix(in srgb,var(--pc) 8%,var(--surface)); border-color:color-mix(in srgb,var(--pc) 45%,transparent); }
+  .cat-num { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.12em; color:var(--pc); margin-bottom:5px; opacity:.8; }
+  .cat-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:3px; }
+  .cat-sub { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); }
+  .cat-btn.active .cat-title { color:var(--pc); }
+  .c-arch  { --pc:var(--c-arch); }
+  .c-access{ --pc:var(--c-access); }
+  .c-input { --pc:var(--c-input); }
+  .c-enc   { --pc:var(--c-enc); }
+  .c-error { --pc:var(--c-error); }
+  .c-impl  { --pc:var(--c-impl); }
+
+  /* ── Panels ── */
+  .panel { display:none; }
+  .panel.active { display:block; animation:fadeIn .3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── Panel header ── */
+  .ph { padding:32px; background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:28px; position:relative; overflow:hidden; }
+  .ph::before { content:''; position:absolute; top:0;left:0;width:100%;height:3px; background:linear-gradient(90deg,var(--pc),transparent); }
+  .ph::after { content:attr(data-bg); position:absolute; right:24px;top:50%;transform:translateY(-50%); font-family:'Syne',sans-serif; font-size:72px; font-weight:800; color:var(--pc); opacity:.05; letter-spacing:-.04em; pointer-events:none; line-height:1; }
+  .ph-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.18em; color:var(--pc); text-transform:uppercase; margin-bottom:10px; }
+  .ph h2 { font-family:'Syne',sans-serif; font-size:clamp(20px,3vw,26px); font-weight:800; line-height:1.15; margin-bottom:12px; }
+  .ph p { font-size:13.5px; color:var(--muted); line-height:1.8; max-width:720px; }
+  .ph p strong { color:var(--text); font-weight:500; }
+  .ph-pills { display:flex; gap:8px; margin-top:18px; flex-wrap:wrap; align-items:center; }
+  .ph-pill { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.08em; padding:3px 10px; border-radius:20px; background:color-mix(in srgb,var(--pc) 12%,transparent); color:var(--pc); border:1px solid color-mix(in srgb,var(--pc) 25%,transparent); text-transform:uppercase; }
+
+  /* ── Section title ── */
+  .sec-title { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+
+  /* ── Pattern cards ── */
+  .pattern-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:18px; margin-bottom:32px; }
+  .pc { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; transition:all .22s; }
+  .pc:hover { transform:translateY(-3px); border-color:color-mix(in srgb,var(--pc) 35%,transparent); box-shadow:0 8px 28px color-mix(in srgb,var(--pc) 8%,transparent); }
+  .pc-top { padding:20px 20px 0; }
+  .pc-hdr { display:flex; align-items:flex-start; gap:12px; margin-bottom:12px; }
+  .pc-icon { width:40px; height:40px; border-radius:9px; background:color-mix(in srgb,var(--pc) 10%,transparent); border:1px solid color-mix(in srgb,var(--pc) 20%,transparent); display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+  .pc-tb { flex:1; }
+  .pc-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:var(--pc); margin-bottom:2px; line-height:1.2; }
+  .pc-aka { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:.04em; }
+  .pc-desc { font-size:13px; color:var(--muted); line-height:1.72; margin-bottom:14px; }
+  .pc-desc strong { color:var(--text); font-weight:500; }
+
+  /* Context box */
+  .pc-ctx { margin:0 0 14px; }
+  .ctx-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; opacity:.55; }
+  .ctx-rows { display:flex; flex-direction:column; gap:5px; }
+  .ctx-row { display:flex; gap:8px; align-items:flex-start; }
+  .ctx-key { font-family:'DM Mono',monospace; font-size:10px; color:var(--pc); opacity:.7; flex-shrink:0; min-width:74px; margin-top:1px; }
+  .ctx-val { font-size:12px; color:var(--muted); line-height:1.5; }
+  .ctx-val strong { color:var(--text); font-weight:500; }
+
+  /* Code block */
+  .pc-code { margin:0 0 14px; background:#0d1117; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .code-bar { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; padding:6px 12px; background:rgba(255,255,255,.03); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; color:var(--muted); }
+  .code-bar .cb-lang { margin-left:auto; }
+  .code-bar .cb-title { color:var(--pc); }
+  pre { padding:12px 14px; font-family:'DM Mono',monospace; font-size:11.5px; line-height:1.72; color:#c9d1d9; overflow-x:auto; white-space:pre; }
+  .r{color:#ff7b72} .g{color:#3fb950} .y{color:#e3b341} .b{color:#79c0ff} .p{color:#d2a8ff} .m{color:#8b949e} .c{color:#00d4aa}
+
+  /* When-to-use */
+  .pc-when { padding:0 20px 14px; }
+  .when-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; opacity:.55; }
+  .when-list { display:flex; flex-direction:column; gap:4px; }
+  .when-item { display:flex; gap:7px; align-items:flex-start; font-size:12px; color:var(--muted); line-height:1.5; }
+  .when-item::before { content:'→'; color:var(--pc); font-size:11px; flex-shrink:0; margin-top:1px; opacity:.6; }
+  .when-item strong { color:var(--text); font-weight:500; }
+
+  /* Anti-pattern box */
+  .pc-anti { padding:12px 20px; background:color-mix(in srgb,#ef4444 4%,var(--surface2)); border-top:1px solid var(--border); }
+  .anti-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:#ef4444; margin-bottom:7px; opacity:.7; }
+  .anti-items { display:flex; flex-direction:column; gap:4px; }
+  .anti-item { display:flex; gap:7px; align-items:flex-start; font-size:12px; color:var(--muted); line-height:1.5; }
+  .anti-item::before { content:'✗'; color:#ef4444; font-size:11px; flex-shrink:0; margin-top:1px; opacity:.6; }
+
+  /* Benefits / drawbacks table */
+  .pc-bd { padding:12px 20px; border-top:1px solid var(--border); }
+  .bd-row { display:flex; gap:12px; }
+  .bd-col { flex:1; }
+  .bd-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:6px; opacity:.6; }
+  .bd-label.ben { color:#3fb950; }
+  .bd-label.draw { color:#f59e0b; }
+  .bd-item { display:flex; gap:6px; align-items:flex-start; font-size:11.5px; color:var(--muted); line-height:1.45; margin-bottom:3px; }
+  .bd-item.b::before { content:'↑'; color:#3fb950; font-size:10px; flex-shrink:0; }
+  .bd-item.d::before { content:'↓'; color:#f59e0b; font-size:10px; flex-shrink:0; }
+
+  /* Real-world examples */
+  .examples-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:28px; }
+  .ex-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px; transition:border-color .2s; }
+  .ex-card:hover { border-color:color-mix(in srgb,var(--pc) 30%,transparent); }
+  .ex-hdr { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .ex-tag { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:3px; background:color-mix(in srgb,var(--pc) 12%,transparent); color:var(--pc); flex-shrink:0; }
+  .ex-name { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); }
+  .ex-desc { font-size:12.5px; color:var(--muted); line-height:1.65; }
+
+  /* Resources */
+  .pc-res { padding:12px 20px 16px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:5px; }
+  .res-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; opacity:.5; }
+  .rl { display:flex; align-items:center; gap:7px; text-decoration:none; padding:5px 8px; border-radius:5px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.04); transition:all .18s; }
+  .rl:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.1); transform:translateX(2px); }
+  .rl .ri { font-size:12px; flex-shrink:0; opacity:.65; }
+  .rl .rt { font-size:11.5px; color:var(--text); opacity:.6; flex:1; line-height:1.3; transition:opacity .15s,color .15s; }
+  .rl:hover .rt { opacity:1; color:var(--pc); }
+  .rl .ra { font-size:10px; opacity:.25; flex-shrink:0; transition:opacity .15s,transform .15s; }
+  .rl:hover .ra { opacity:.6; transform:translateX(2px); }
+
+  /* info strips */
+  .strip { display:flex; align-items:flex-start; gap:14px; padding:14px 18px; border-radius:10px; margin-bottom:22px; }
+  .strip.warn { background:color-mix(in srgb,#f59e0b 6%,transparent); border:1px solid color-mix(in srgb,#f59e0b 22%,transparent); }
+  .strip.info { background:color-mix(in srgb,#3b82f6 6%,transparent); border:1px solid color-mix(in srgb,#3b82f6 22%,transparent); }
+  .strip.ok   { background:color-mix(in srgb,var(--accent) 6%,transparent); border:1px solid color-mix(in srgb,var(--accent) 22%,transparent); }
+  .strip .si { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .strip .st { font-size:12.5px; color:var(--text); opacity:.8; line-height:1.65; }
+  .strip .st strong { font-weight:500; }
+  .strip.warn .st strong { color:#f59e0b; }
+  .strip.info .st strong { color:#79c0ff; }
+  .strip.ok   .st strong { color:var(--accent); }
+
+  /* Tools row */
+  .tools-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-top:28px; }
+  .tools-box h3 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--pc); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .tools-row { display:flex; flex-wrap:wrap; gap:8px; }
+  .tp { font-family:'DM Mono',monospace; font-size:11px; padding:5px 12px; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:20px; color:var(--text); opacity:.7; transition:all .15s; text-decoration:none; display:inline-block; }
+  .tp:hover { opacity:1; border-color:var(--pc); color:var(--pc); }
+
+  /* Quick reference table */
+  .ref-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:28px; background:var(--surface); border-radius:12px; overflow:hidden; border:1px solid var(--border); }
+  .ref-table th { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:11px 14px; text-align:left; background:rgba(255,255,255,.02); border-bottom:1px solid var(--border); }
+  .ref-table td { padding:10px 14px; border-bottom:1px solid color-mix(in srgb,var(--border) 50%,transparent); color:var(--muted); vertical-align:top; line-height:1.4; }
+  .ref-table tr:last-child td { border-bottom:none; }
+  .ref-table td:first-child { color:var(--pc); font-family:'DM Mono',monospace; font-size:11px; font-weight:500; }
+  .ref-table td:nth-child(2) { color:var(--text); opacity:.75; }
+  .tag-ok { color:#3fb950; font-size:10px; }
+  .tag-wa { color:#f59e0b; font-size:10px; }
+
+  /* Flow diagram */
+  .flow-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:24px; }
+  .flow-box h3 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--pc); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .flow { display:flex; flex-direction:column; gap:0; }
+  .f-step { display:flex; gap:16px; align-items:flex-start; padding:11px 0; border-bottom:1px solid color-mix(in srgb,var(--border) 40%,transparent); }
+  .f-step:last-child { border-bottom:none; }
+  .f-num { font-family:'DM Mono',monospace; font-size:11px; color:var(--pc); background:color-mix(in srgb,var(--pc) 12%,transparent); width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:500; }
+  .f-body h4 { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); margin-bottom:3px; }
+  .f-body p { font-size:12.5px; color:var(--muted); line-height:1.6; }
+  .f-body code { font-family:'DM Mono',monospace; font-size:11px; background:rgba(255,255,255,.05); padding:1px 5px; border-radius:3px; color:var(--pc); }
+
+  .back-link { position: absolute; top: 24px; right: 24px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .back-link:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="index.html" class="back-link">← Back to Hub</a>
+
+<!-- ════ HEADER ════ -->
+<div class="header">
+  <div class="header-tag">Reference</div>
+  <div class="header-meta">Author: Maurice Snoeren</div>
+  <h1>Secure Design <span>Patterns</span></h1>
+  <p class="header-sub">Reusable, proven solutions to recurring security problems in software design. Based on Saltzer &amp; Schroeder (1975), SEI CMU (2009), OWASP, and modern practice. Patterns are organized by concern — from architecture to implementation level.</p>
+</div>
+
+<div class="principles-row">
+  <div class="p-pill">Least Privilege</div>
+  <div class="p-pill">Defense in Depth</div>
+  <div class="p-pill">Fail Secure</div>
+  <div class="p-pill">Complete Mediation</div>
+  <div class="p-pill">Open Design</div>
+  <div class="p-pill">Separation of Privilege</div>
+  <div class="p-pill">Least Common Mechanism</div>
+  <div class="p-pill">Psychological Acceptability</div>
+  <div class="p-pill">Zero Trust</div>
+  <div class="p-pill">Economy of Mechanism</div>
+</div>
+
+<!-- ════ NAV ════ -->
+<div class="cat-nav">
+  <button class="cat-btn c-arch active" onclick="switchPanel(0)">
+    <div class="cat-num">01</div>
+    <div class="cat-title">Architecture Patterns</div>
+    <div class="cat-sub">Layering, distrustful decomposition, privilege separation</div>
+  </button>
+  <button class="cat-btn c-access" onclick="switchPanel(1)">
+    <div class="cat-num">02</div>
+    <div class="cat-title">Access Control Patterns</div>
+    <div class="cat-sub">RBAC, reference monitor, zero trust, checkpoint</div>
+  </button>
+  <button class="cat-btn c-input" onclick="switchPanel(2)">
+    <div class="cat-num">03</div>
+    <div class="cat-title">Input &amp; Validation Patterns</div>
+    <div class="cat-sub">Input validation, intercepting filter, allowlist</div>
+  </button>
+  <button class="cat-btn c-enc" onclick="switchPanel(3)">
+    <div class="cat-num">04</div>
+    <div class="cat-title">Data Protection Patterns</div>
+    <div class="cat-sub">Secure channel, data hiding, exception shielding</div>
+  </button>
+  <button class="cat-btn c-error" onclick="switchPanel(4)">
+    <div class="cat-num">05</div>
+    <div class="cat-title">Error &amp; State Patterns</div>
+    <div class="cat-sub">Fail secure, secure state machine, secure logger</div>
+  </button>
+  <button class="cat-btn c-impl" onclick="switchPanel(5)">
+    <div class="cat-num">06</div>
+    <div class="cat-title">Implementation Patterns</div>
+    <div class="cat-sub">Secure factory, strategy factory, secure visitor</div>
+  </button>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 1 — ARCHITECTURE PATTERNS                        -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-arch active" id="panel-0">
+  <div class="ph c-arch" data-bg="ARCH">
+    <div class="ph-label">01 · Architecture</div>
+    <h2>Architecture-Level Security Patterns</h2>
+    <p>These patterns shape the overall <strong>structure of a system</strong> — how components are divided, how trust boundaries are placed, and how security is layered in from the start. Getting these right early prevents whole classes of vulnerabilities. Changing them later is expensive or impossible.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">Structural</span><span class="ph-pill">High impact</span><span class="ph-pill">Design phase</span><span class="ph-pill">Hard to retrofit</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Distrustful Decomposition -->
+    <div class="pc c-arch">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔪</div><div class="pc-tb"><div class="pc-name">Distrustful Decomposition</div><div class="pc-aka">Privilege Separation · PrivSep</div></div></div>
+        <p class="pc-desc">Split a system into <strong>separate processes or components</strong> with minimal trust between them. Each part operates with only the privileges it needs. If one component is compromised, the attacker cannot easily reach the others. Derived from OpenSSH's PrivSep model.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">PrivSep Pattern</span><span class="cb-lang">Diagram</span></div>
+          <pre><span class="b">Network</span>
+   ↓
+<span class="y">[Unprivileged Child]</span>  ← handles network I/O
+   ↓ (validates, passes sanitized data)
+<span class="g">[Privileged Parent] </span>  ← minimal footprint
+   ↓ (only acts on validated requests)
+<span class="c">[Protected Resource]</span>  ← DB, filesystem, keys
+
+<span class="m">Attacker exploiting network child:</span>
+<span class="m">  → gains ZERO privileges on parent</span></pre>
+        </div>
+        <div class="pc-ctx">
+          <div class="ctx-label">Pattern Context</div>
+          <div class="ctx-rows">
+            <div class="ctx-row"><span class="ctx-key">Problem:</span><span class="ctx-val">Monolithic processes expose all resources if any part is exploited</span></div>
+            <div class="ctx-row"><span class="ctx-key">Solution:</span><span class="ctx-val">Split into unprivileged (untrusted input) + privileged (resource access) processes</span></div>
+            <div class="ctx-row"><span class="ctx-key">Source:</span><span class="ctx-val">OpenSSH, BIND, Chrome (renderer/browser process split), Firefox</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">System handles untrusted network input AND needs privileged resource access</div>
+          <div class="when-item">Network-facing daemons (web servers, SSH, DNS, mail)</div>
+          <div class="when-item">Browsers: renderer processes handle untrusted HTML; browser process holds OS resources</div>
+          <div class="when-item">Any service where a network exploit should not grant system access</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Running the entire web server as root or as a user with DB access</div>
+          <div class="anti-item">Single process that handles both untrusted user input and crypto key operations</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.cve.org/CVERecord?id=CVE-2002-0639" target="_blank"><span class="ri">🔑</span><span class="rt">OpenSSH PrivSep — Original Implementation Context</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=9115" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Secure Design Patterns Report</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Defense in Depth / Layered Security -->
+    <div class="pc c-arch">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🧅</div><div class="pc-tb"><div class="pc-name">Defense in Depth</div><div class="pc-aka">Layered Security · Concentric Rings</div></div></div>
+        <p class="pc-desc">Deploy <strong>multiple independent security layers</strong> so that a failure in any single control does not result in a system compromise. Each layer assumes the previous one may have already been breached. Like plywood sheets with random holes — two sheets prevent all light from getting through even if individual sheets have holes.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Layers</span><span class="cb-lang">Web App Example</span></div>
+          <pre><span class="b">[ WAF / CDN         ]</span>  ← blocks known attack patterns
+<span class="b">[ Load Balancer     ]</span>  ← rate limiting, DDoS
+<span class="y">[ Authentication    ]</span>  ← MFA, identity verification
+<span class="y">[ Authorization     ]</span>  ← RBAC, ABAC, policy checks
+<span class="g">[ Input Validation  ]</span>  ← all inputs validated server-side
+<span class="g">[ Parameterized SQL ]</span>  ← prevents injection
+<span class="c">[ Encrypted Storage ]</span>  ← AES-256 at rest
+<span class="c">[ Audit Logging     ]</span>  ← detect if all else fails</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Always — no single control is sufficient for any system handling sensitive data</div>
+          <div class="when-item">Compliance environments requiring layered controls (PCI-DSS, ISO 27001)</div>
+          <div class="when-item">High-value targets: financial systems, health data, identity providers</div>
+        </div>
+      </div>
+      <div class="pc-bd">
+        <div class="bd-row">
+          <div class="bd-col"><div class="bd-label ben">Benefits</div>
+            <div class="bd-item b">Limits blast radius of any single failure</div>
+            <div class="bd-item b">Attacker must defeat multiple independent controls</div>
+          </div>
+          <div class="bd-col"><div class="bd-label draw">Tradeoffs</div>
+            <div class="bd-item d">Adds complexity and operational overhead</div>
+            <div class="bd-item d">Layers must be truly independent</div>
+          </div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Secure Product Design Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Minimize Attack Surface -->
+    <div class="pc c-arch">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🎯</div><div class="pc-tb"><div class="pc-name">Minimise Attack Surface</div><div class="pc-aka">Economy of Mechanism · Keep it Simple</div></div></div>
+        <p class="pc-desc">Every feature, API endpoint, open port, and code path is potential attack surface. <strong>Reduce what exists</strong> rather than trying to secure everything. Disable unused features, close unnecessary ports, remove unused code, and expose minimal interfaces. Simpler systems have fewer bugs.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Attack Surface Reduction</span><span class="cb-lang">Checklist</span></div>
+          <pre><span class="m"># Reduce exposed surface</span>
+<span class="r">✗ Admin panel exposed to internet</span>
+<span class="g">✓ Admin panel on internal network only</span>
+
+<span class="r">✗ DEBUG=True in production</span>
+<span class="g">✓ Debug endpoints disabled in prod</span>
+
+<span class="r">✗ All HTTP verbs accepted on all routes</span>
+<span class="g">✓ Only GET/POST allowed where needed</span>
+
+<span class="r">✗ 30 npm packages, 20 unused</span>
+<span class="g">✓ Minimal dependencies, audited</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">During design: question every feature — "is this necessary?"</div>
+          <div class="when-item">API design: expose only required endpoints with minimum HTTP methods</div>
+          <div class="when-item">Server hardening: disable all services, open only what is needed</div>
+          <div class="when-item">Dependency management: audit and remove unused packages regularly</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://owasp.org/www-project-top-ten/" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Top 10 — Security Misconfiguration</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Secure by Default -->
+    <div class="pc c-arch">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔒</div><div class="pc-tb"><div class="pc-name">Secure by Default</div><div class="pc-aka">Fail-Safe Defaults · Deny by Default</div></div></div>
+        <p class="pc-desc">Systems should ship with <strong>secure configuration out of the box</strong>. Every optional feature is disabled. Every permission is denied unless explicitly granted. Users should not need to manually enable security — insecure behavior should require explicit opt-in. Based on Saltzer &amp; Schroeder's "fail-safe defaults."</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Access Control Default</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># BAD: allowlist with fallthrough to grant</span>
+<span class="r">def check_access(user, resource):
+    if user.role == "admin":
+        return True
+    if user.owns(resource):
+        return True
+    return True  # ← Bug: grants everyone!</span>
+
+<span class="m"># GOOD: deny by default, grant explicitly</span>
+<span class="g">def check_access(user, resource):
+    if user.role == "admin":
+        return True
+    if user.owns(resource):
+        return True
+    return False  # ← Deny all others</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">All access control logic — deny by default, allow by exception</div>
+          <div class="when-item">Product configuration — ship with strongest settings, let users relax them</div>
+          <div class="when-item">API design — no endpoint should be public unless explicitly marked</div>
+          <div class="when-item"><strong>CISA Secure by Design</strong> guidance mandates this for software vendors</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Shipping with default passwords (admin/admin) — e.g., Mirai botnet exploited millions of IoT devices this way</div>
+          <div class="anti-item">Opt-in security features (MFA optional, encryption optional)</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.cisa.gov/securebydesign" target="_blank"><span class="ri">🏛️</span><span class="rt">CISA — Secure by Design Guidance</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Zero Trust Architecture -->
+    <div class="pc c-arch">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🚫</div><div class="pc-tb"><div class="pc-name">Zero Trust Architecture</div><div class="pc-aka">Never Trust, Always Verify · BeyondCorp</div></div></div>
+        <p class="pc-desc">Eliminate implicit trust based on network location. <strong>Every request must be authenticated, authorized, and encrypted</strong> regardless of origin — even requests from inside the corporate network. Assumes breach has already occurred. Pioneered by Google's BeyondCorp project.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Zero Trust vs Perimeter</span><span class="cb-lang">Comparison</span></div>
+          <pre><span class="r">Perimeter model (OLD):</span>
+  inside network → trusted
+  outside network → untrusted
+  ↓ Breach = attacker moves freely inside
+
+<span class="g">Zero Trust (NEW):</span>
+  every request → verify identity
+  every request → verify device posture
+  every request → check authorization
+  every connection → encrypted (mTLS)
+  every action → logged and audited
+  access → just-in-time, minimum scope</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Cloud-native and hybrid architectures (no well-defined perimeter)</div>
+          <div class="when-item">Remote workforce — employees accessing resources from untrusted networks</div>
+          <div class="when-item">Microservices: each service authenticates to every other (mTLS)</div>
+          <div class="when-item">Post-breach environments — assume attackers may already be inside</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cloud.google.com/beyondcorp" target="_blank"><span class="ri">🌐</span><span class="rt">Google BeyondCorp — Zero Trust Model</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST SP 800-207 — Zero Trust Architecture</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sec-title">Real-World Examples</div>
+  <div class="examples-grid">
+    <div class="ex-card c-arch">
+      <div class="ex-hdr"><span class="ex-tag">OpenSSH</span><span class="ex-name">PrivSep — Distrustful Decomposition</span></div>
+      <p class="ex-desc">OpenSSH split into an unprivileged child (handles network) and a privileged monitor (manages keys/auth). Exploiting the network-facing code yields no privilege escalation. This pattern was specifically designed after early SSH vulnerabilities.</p>
+    </div>
+    <div class="ex-card c-arch">
+      <div class="ex-hdr"><span class="ex-tag">Chrome</span><span class="ex-name">Renderer / Browser Process Split</span></div>
+      <p class="ex-desc">Chrome runs each tab in an unprivileged renderer process. The browser process holds OS resources. A sandbox escape from malicious JavaScript requires two separate exploits: renderer escape + browser sandbox bypass. Classic distrustful decomposition.</p>
+    </div>
+    <div class="ex-card c-arch">
+      <div class="ex-hdr"><span class="ex-tag">Mirai 2016</span><span class="ex-name">Failure of Secure-by-Default</span></div>
+      <p class="ex-desc">The Mirai botnet infected 600,000+ IoT devices using a list of 61 default username/password combinations. Every single one shipped with default credentials. This DDoS'd Dyn DNS and took down Twitter, Reddit, and GitHub for hours.</p>
+    </div>
+    <div class="ex-card c-arch">
+      <div class="ex-hdr"><span class="ex-tag">Target 2013</span><span class="ex-name">No Network Segmentation</span></div>
+      <p class="ex-desc">Attackers entered through an HVAC vendor's credentials. Because the network wasn't segmented, they moved laterally to POS systems and stole 40M credit card numbers. A zero trust architecture would have prevented lateral movement.</p>
+    </div>
+  </div>
+
+  <div class="tools-box c-arch">
+    <h3>🔧 Frameworks &amp; Tools</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://www.cisa.gov/securebydesign" target="_blank">CISA Secure by Design</a>
+      <a class="tp" href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf" target="_blank">NIST SP 800-207 (ZTA)</a>
+      <a class="tp" href="https://cloud.google.com/beyondcorp" target="_blank">Google BeyondCorp</a>
+      <a class="tp" href="https://www.hashicorp.com/products/consul" target="_blank">HashiCorp Consul (mTLS)</a>
+      <a class="tp" href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank">OWASP ASVS</a>
+      <a class="tp" href="https://istio.io/" target="_blank">Istio (Service Mesh / Zero Trust)</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 2 — ACCESS CONTROL PATTERNS                      -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-access" id="panel-1">
+  <div class="ph c-access" data-bg="ACC">
+    <div class="ph-label">02 · Access Control</div>
+    <h2>Access Control Patterns</h2>
+    <p>Ensure that <strong>only authorized subjects can perform authorized operations on authorized objects</strong>. These patterns implement the core security properties: authentication (who are you?), authorization (what can you do?), and complete mediation (check every access, every time). Poor access control is the #1 vulnerability class according to OWASP.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">Authentication</span><span class="ph-pill">Authorization</span><span class="ph-pill">OWASP A01:2021</span><span class="ph-pill">Complete Mediation</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Reference Monitor -->
+    <div class="pc c-access">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🛡️</div><div class="pc-tb"><div class="pc-name">Reference Monitor</div><div class="pc-aka">Protection Proxy · Policy Enforcement Point</div></div></div>
+        <p class="pc-desc">A <strong>single, tamper-proof access control component</strong> that mediates ALL access to protected resources. Every request goes through it — there are no shortcuts. It must be: always invoked (complete mediation), tamper-proof, and verifiable (small and simple enough to audit). The theoretical foundation of all access control.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Reference Monitor</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># All resource access through one path</span>
+<span class="b">class</span> ReferenceMonitor:
+    <span class="b">def</span> <span class="g">access</span>(self, subject, action, resource):
+        <span class="m"># 1. Authenticate subject (who are they?)</span>
+        <span class="b">if not</span> self.<span class="y">authenticate</span>(subject):
+            <span class="b">raise</span> AuthError()
+        <span class="m"># 2. Authorize (are they allowed?)</span>
+        <span class="b">if not</span> self.<span class="y">authorize</span>(subject, action, resource):
+            <span class="b">raise</span> PermissionError()
+        <span class="m"># 3. Log the access</span>
+        self.<span class="c">audit_log</span>(subject, action, resource)
+        <span class="m"># 4. Perform the operation</span>
+        <span class="b">return</span> resource.<span class="g">execute</span>(action)</pre>
+        </div>
+        <div class="pc-ctx">
+          <div class="ctx-label">Key properties</div>
+          <div class="ctx-rows">
+            <div class="ctx-row"><span class="ctx-key">Always invoked:</span><span class="ctx-val">No bypass paths — every access goes through the monitor</span></div>
+            <div class="ctx-row"><span class="ctx-key">Tamper-proof:</span><span class="ctx-val">The monitor itself cannot be modified by untrusted code</span></div>
+            <div class="ctx-row"><span class="ctx-key">Verifiable:</span><span class="ctx-val">Small and simple enough to formally verify correctness</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Any system with protected resources and multiple access paths</div>
+          <div class="when-item">API gateways centralizing auth/authz for downstream services</div>
+          <div class="when-item">OS kernels: all syscalls go through kernel-level access checks</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Scattering access checks throughout the codebase — easy to miss one</div>
+          <div class="anti-item">Checking auth at the UI layer only (API endpoints remain exposed)</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://csrc.nist.gov/glossary/term/reference_monitor" target="_blank"><span class="ri">🏛️</span><span class="rt">NIST — Reference Monitor Definition</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- RBAC -->
+    <div class="pc c-access">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">👥</div><div class="pc-tb"><div class="pc-name">Role-Based Access Control (RBAC)</div><div class="pc-aka">Also: ABAC · PBAC · ReBAC</div></div></div>
+        <p class="pc-desc">Assign permissions to <strong>roles</strong>, not directly to users. Users are assigned roles. This decouples permission management from user management — changing a job function means changing a role assignment, not updating every permission. Scales well for large organizations.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">RBAC Model</span><span class="cb-lang">Diagram + Python</span></div>
+          <pre>Users → Roles → Permissions → Resources
+──────────────────────────────────────
+alice → [editor, viewer] → read, write → /docs
+bob   → [viewer]         → read        → /docs
+carol → [admin]          → *           → /*
+
+<span class="m"># Enforce: check role, not user identity</span>
+<span class="g">def can(user, action, resource):
+    roles = get_roles(user)
+    return any(policy.allows(r, action, resource)
+               for r in roles)</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Multi-user systems with defined job functions (SaaS, enterprise apps)</div>
+          <div class="when-item">Regulatory compliance (SOD — Separation of Duties) requirements</div>
+          <div class="when-item">Use <strong>ABAC</strong> (attribute-based) when roles alone can't express fine-grained policies</div>
+          <div class="when-item">Use <strong>ReBAC</strong> (relationship-based) for social/collaborative apps (e.g., Google Drive)</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Access_Control_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Access Control Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://www.openpolicyagent.org/" target="_blank"><span class="ri">⚖️</span><span class="rt">Open Policy Agent (OPA) — Policy Engine</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Complete Mediation -->
+    <div class="pc c-access">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔍</div><div class="pc-tb"><div class="pc-name">Complete Mediation</div><div class="pc-aka">Always Re-check · No Cached Permissions</div></div></div>
+        <p class="pc-desc">Every access to every resource must be checked <strong>at the time of use</strong>, not just at login time. Permissions can change. Sessions can be revoked. Never rely on a permission check performed earlier. TOCTOU vulnerabilities arise from violating this principle.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">ATM Example</span><span class="cb-lang">Pseudocode</span></div>
+          <pre><span class="m"># WRONG: check once, then trust indefinitely</span>
+<span class="r">balance = db.get(user)  # check at T1
+# ... attacker withdraws on another ATM ...
+if balance >= amount:   # stale data!
+    dispense(amount)    # overdraft!</span>
+
+<span class="m"># CORRECT: atomic check-and-act</span>
+<span class="g">rows = db.execute(
+    "UPDATE accounts SET balance = balance - ?"
+    " WHERE id = ? AND balance >= ?",
+    amount, user_id, amount)
+if rows == 0:
+    deny("Insufficient funds")</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Financial transactions — always recheck balance atomically</div>
+          <div class="when-item">Session management — recheck permissions on sensitive operations, not just login</div>
+          <div class="when-item">File access — use fstat() on open file descriptor, not stat() on path</div>
+          <div class="when-item">Token revocation — support token introspection, don't rely on JWT expiry alone</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Session Management Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Least Privilege -->
+    <div class="pc c-access">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔑</div><div class="pc-tb"><div class="pc-name">Least Privilege</div><div class="pc-aka">Minimal Authority · Need-to-Know</div></div></div>
+        <p class="pc-desc">Every user, process, and service operates with the <strong>minimum permissions needed to do its job</strong> — and nothing more. Limits blast radius: a compromised low-privilege account can only damage what it had access to. Applies to users, service accounts, OS processes, and database connections equally.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Service Account Scoping</span><span class="cb-lang">SQL + Python</span></div>
+          <pre><span class="m">-- WRONG: app uses DB superuser</span>
+<span class="r">GRANT ALL PRIVILEGES ON *.* TO 'app'@'%';</span>
+
+<span class="m">-- RIGHT: only what the app needs</span>
+<span class="g">GRANT SELECT, INSERT, UPDATE ON myapp.*
+  TO 'app_user'@'app_host';
+-- Separate read-only user for reports
+GRANT SELECT ON myapp.reports
+  TO 'report_user'@'report_host';</span>
+
+<span class="m"># Just-in-time elevation (AWS)</span>
+<span class="g">sts.assume_role(RoleArn=admin_role,
+    DurationSeconds=900)  # 15 min only</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">All service accounts and database credentials</div>
+          <div class="when-item">IAM roles in cloud — scope to minimum required actions and resources</div>
+          <div class="when-item">Linux processes — drop root after init, run as dedicated low-priv user</div>
+          <div class="when-item"><strong>Just-in-Time (JIT)</strong> access — elevate privileges only for the duration of the task</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Web app DB user with DROP TABLE or DBA privileges</div>
+          <div class="anti-item">CI/CD pipeline with production admin credentials permanently stored</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://textbook.cs161.org/principles/principles.html" target="_blank"><span class="ri">🎓</span><span class="rt">UC Berkeley CS 161 — Least Privilege Explained</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Checkpoint -->
+    <div class="pc c-access">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🚧</div><div class="pc-tb"><div class="pc-name">Checkpoint / Chokepoint</div><div class="pc-aka">Single Entry Point · Security Gateway</div></div></div>
+        <p class="pc-desc">Force all traffic through a <strong>single controlled gateway</strong> where security controls are applied. Eliminates hidden access paths. Applies to network traffic (firewall, API gateway) and application logic (single auth middleware on all routes). One place to enforce, audit, and update policy.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">API Gateway Pattern</span><span class="cb-lang">Node.js / Express</span></div>
+          <pre><span class="m">// Apply auth middleware globally — no bypass</span>
+<span class="b">const</span> app = express();
+
+<span class="m">// Checkpoint: runs BEFORE all route handlers</span>
+app.<span class="g">use</span>(authenticateRequest);  <span class="m">// verify JWT</span>
+app.<span class="g">use</span>(authorizeRequest);   <span class="m">// check RBAC</span>
+app.<span class="g">use</span>(rateLimiter);        <span class="m">// throttle</span>
+app.<span class="g">use</span>(auditLogger);        <span class="m">// log all access</span>
+
+<span class="m">// Routes only run after all checks pass</span>
+app.<span class="g">get</span>(<span class="p">'/api/data'</span>, handler);</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">API design — apply auth/authz middleware globally, not per route</div>
+          <div class="when-item">Network architecture — all external traffic through WAF/firewall</div>
+          <div class="when-item">Microservices — API gateway or service mesh handles all inter-service auth</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-authentication" target="_blank"><span class="ri">🌐</span><span class="rt">Azure — Gateway Authentication Pattern</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="strip info">
+    <span class="si">ℹ️</span>
+    <div class="st"><strong>OWASP A01:2021 — Broken Access Control</strong> is the #1 vulnerability category for the third year running. Most violations are not exotic exploits — they are simple failures to check authorization on all endpoints. The Reference Monitor and Complete Mediation patterns directly address this.</div>
+  </div>
+
+  <div class="tools-box c-access">
+    <h3>🔧 Tools &amp; Frameworks</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://www.openpolicyagent.org/" target="_blank">Open Policy Agent (OPA)</a>
+      <a class="tp" href="https://casbin.org/" target="_blank">Casbin (RBAC/ABAC)</a>
+      <a class="tp" href="https://www.osohq.com/" target="_blank">Oso (Authorization Library)</a>
+      <a class="tp" href="https://zanzibar.academy/" target="_blank">Zanzibar / ReBAC (Google)</a>
+      <a class="tp" href="https://spring.io/projects/spring-security" target="_blank">Spring Security</a>
+      <a class="tp" href="https://oauth.net/2/" target="_blank">OAuth 2.0 / OIDC</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 3 — INPUT & VALIDATION PATTERNS                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-input" id="panel-2">
+  <div class="ph c-input" data-bg="INP">
+    <div class="ph-label">03 · Input</div>
+    <h2>Input &amp; Validation Patterns</h2>
+    <p>The root cause of injection attacks (SQLi, XSS, command injection, path traversal) is <strong>conflating untrusted data with trusted instructions</strong>. These patterns establish where, how, and in what form untrusted input is accepted, validated, and transformed before it reaches any structured output or sensitive system. Input validation is not a single check — it is a design concern.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">Injection Prevention</span><span class="ph-pill">OWASP A03:2021</span><span class="ph-pill">Allowlisting</span><span class="ph-pill">Canonicalization</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Input Validation -->
+    <div class="pc c-input">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🧪</div><div class="pc-tb"><div class="pc-name">Input Validation Pattern</div><div class="pc-aka">Allowlist Validation · Canonicalize First</div></div></div>
+        <p class="pc-desc">Validate all inputs from <strong>all sources</strong> before processing. Use allowlists (define what is valid) rather than blocklists (define what is invalid). Canonicalize before validating — normalize encoding so that "&#x3c;script&#x3e;" and "%3Cscript%3E" are both caught.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">5-Stage Validation</span><span class="cb-lang">Process</span></div>
+          <pre><span class="b">Stage 1: Identify</span>  all input sources
+           URL, form, headers, cookies,
+           files, env vars, DB, APIs
+
+<span class="b">Stage 2: Canonicalize</span>  normalize encoding
+           URL-decode → strip BOM → to Unicode NFC
+
+<span class="b">Stage 3: Allowlist</span>  validate expected format
+           regex, type check, range, length
+
+<span class="b">Stage 4: Sanitize</span>  remove/escape remaining risk
+           HTML-encode output, parameterize SQL
+
+<span class="b">Stage 5: Reject</span>    on validation failure
+           return error, never silently fix</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Every API endpoint, form field, and file upload</div>
+          <div class="when-item">Validate on the <strong>server</strong>, not just in the browser (client-side can be bypassed)</div>
+          <div class="when-item">Validate at <strong>every trust boundary</strong>, not just the outermost edge</div>
+          <div class="when-item">Allowlist: only accept known-good patterns (not blocklist known-bad)</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Validating before URL-decode (bypass: <code>%27</code> for SQL quote)</div>
+          <div class="anti-item">Blocklisting specific dangerous characters — attackers find alternate encodings</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Input Validation Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Intercepting Filter / Middleware Chain -->
+    <div class="pc c-input">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔗</div><div class="pc-tb"><div class="pc-name">Intercepting Filter</div><div class="pc-aka">Middleware Chain · Filter Chain · Decorator</div></div></div>
+        <p class="pc-desc">Apply <strong>a chain of independent security filters</strong> to every request before it reaches the application logic. Each filter handles one concern: authentication, input validation, rate limiting, logging. Filters are composable and can be added/removed without changing business logic.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Filter Chain</span><span class="cb-lang">Python / FastAPI</span></div>
+          <pre><span class="m"># Each middleware = one security filter</span>
+<span class="b">from</span> fastapi <span class="b">import</span> FastAPI
+app = FastAPI()
+
+<span class="m"># Filter 1: Rate limiting</span>
+app.<span class="g">add_middleware</span>(SlowAPIMiddleware)
+<span class="m"># Filter 2: Authentication</span>
+app.<span class="g">add_middleware</span>(JWTAuthMiddleware)
+<span class="m"># Filter 3: Input sanitization</span>
+app.<span class="g">add_middleware</span>(InputSanitizeMiddleware)
+<span class="m"># Filter 4: Security headers</span>
+app.<span class="g">add_middleware</span>(SecurityHeadersMiddleware)
+
+<span class="m"># Business logic never sees raw, unchecked input</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Web frameworks — apply security middleware globally to all routes</div>
+          <div class="when-item">Separating cross-cutting security concerns from business logic</div>
+          <div class="when-item">Adding security incrementally to existing systems without modifying every handler</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://jakarta.ee/specifications/servlet/5.0/apidocs/jakarta/servlet/filter" target="_blank"><span class="ri">☕</span><span class="rt">Jakarta Servlet Filter (Java EE)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Parameterize Everything -->
+    <div class="pc c-input">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🗄️</div><div class="pc-tb"><div class="pc-name">Parameterize Everything</div><div class="pc-aka">Prepared Statements · Structural Separation</div></div></div>
+        <p class="pc-desc">Never construct structured output (SQL, HTML, shell commands, XML) by string concatenation with user input. Always use <strong>structural separation</strong>: the structure is defined in code, the data is passed separately. Parameterized queries are the canonical example — they completely prevent SQL injection.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">SQL / Shell / HTML</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># SQL — parameterized query</span>
+<span class="r">query = "SELECT * FROM u WHERE name='"+n+"'"</span>
+<span class="g">cursor.execute("SELECT * FROM u WHERE name=?", [n])</span>
+
+<span class="m"># Shell — use list, not string</span>
+<span class="r">os.system("ping " + host)</span>
+<span class="g">subprocess.run(["ping", host], shell=False)</span>
+
+<span class="m"># HTML — encode output</span>
+<span class="r">f"&lt;div&gt;{user_name}&lt;/div&gt;"</span>
+<span class="g">f"&lt;div&gt;{html.escape(user_name)}&lt;/div&gt;"</span>
+
+<span class="m"># Template — pass as variable, not template code</span>
+<span class="r">Template(user_input).render()</span>
+<span class="g">Template("Hello {{name}}").render(name=user_input)</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Every database query — parameterized queries, not string concatenation</div>
+          <div class="when-item">Every HTML output — context-sensitive encoding (HTML, JS, CSS, URL)</div>
+          <div class="when-item">Every shell command — subprocess list args, shell=False</div>
+          <div class="when-item">Every template — pass user data as variables, never as template code</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP SQL Injection Prevention</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP XSS Prevention Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Allowlist over Blocklist -->
+    <div class="pc c-input">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">✅</div><div class="pc-tb"><div class="pc-name">Allowlist over Blocklist</div><div class="pc-aka">Positive Security Model · Whitelist</div></div></div>
+        <p class="pc-desc">Define <strong>what is permitted</strong> rather than what is forbidden. Blocklists are inherently incomplete — attackers find new encodings, bypass characters, or edge cases you didn't think of. Allowlists fail closed (reject anything not explicitly permitted) rather than open (allow anything not explicitly blocked).</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">File Upload Validation</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># BLOCKLIST (WRONG) — easy to bypass</span>
+<span class="r">BLOCKED = ['.php', '.exe', '.js', '.sh']
+if not any(name.endswith(b) for b in BLOCKED):
+    save(file)  # .phtml? .php5? Missed!</span>
+
+<span class="m"># ALLOWLIST (RIGHT) — fails closed</span>
+<span class="g">ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/gif'}
+ALLOWED_EXTS  = {'.jpg', '.jpeg', '.png', '.gif'}
+
+ext = Path(filename).suffix.lower()
+mime = magic.from_buffer(file.read(2048), mime=True)
+
+if ext not in ALLOWED_EXTS or mime not in ALLOWED_TYPES:
+    raise ValidationError("File type not permitted")</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">File uploads — allowlist MIME types and extensions, verify magic bytes</div>
+          <div class="when-item">Input fields — allowlist character sets per field (e.g., digits only for phone)</div>
+          <div class="when-item">URL redirects — allowlist allowed destination domains</div>
+          <div class="when-item">HTML sanitization — allowlist tags/attributes (DOMPurify, bleach)</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP File Upload Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://github.com/cure53/DOMPurify" target="_blank"><span class="ri">🧹</span><span class="rt">DOMPurify — HTML Allowlist Sanitizer</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tools-box c-input">
+    <h3>🔧 Libraries &amp; Tools</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://github.com/sqlmapproject/sqlmap" target="_blank">SQLMap (SQLi testing)</a>
+      <a class="tp" href="https://github.com/cure53/DOMPurify" target="_blank">DOMPurify</a>
+      <a class="tp" href="https://github.com/nicowillis/bleach" target="_blank">bleach (Python HTML)</a>
+      <a class="tp" href="https://joi.dev/" target="_blank">Joi (Node.js validation)</a>
+      <a class="tp" href="https://github.com/pydantic/pydantic" target="_blank">Pydantic (Python)</a>
+      <a class="tp" href="https://portswigger.net/burp" target="_blank">Burp Suite (injection testing)</a>
+      <a class="tp" href="https://www.zaproxy.org/" target="_blank">OWASP ZAP</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 4 — DATA PROTECTION PATTERNS                     -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-enc" id="panel-3">
+  <div class="ph c-enc" data-bg="DATA">
+    <div class="ph-label">04 · Data Protection</div>
+    <h2>Data Protection Patterns</h2>
+    <p>Ensure that sensitive data is protected <strong>at rest, in transit, and during processing</strong>. These patterns govern how data is hidden, encrypted, and communicated — and crucially, what information should never be exposed to attackers through error messages, API responses, or side channels.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">Confidentiality</span><span class="ph-pill">Integrity</span><span class="ph-pill">Data Minimization</span><span class="ph-pill">Information Hiding</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Secure Channel -->
+    <div class="pc c-enc">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔐</div><div class="pc-tb"><div class="pc-name">Secure Channel</div><div class="pc-aka">Encrypted Transport · TLS Everywhere</div></div></div>
+        <p class="pc-desc">All communication between components must use <strong>authenticated, encrypted channels</strong>. Not just external-facing HTTPS — also service-to-service, service-to-database, and internal API calls. Encryption without authentication is insufficient (MITM attacks).</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">mTLS Service-to-Service</span><span class="cb-lang">Golang</span></div>
+          <pre><span class="m">// Both sides verify each other's identity</span>
+tlsConfig := &amp;tls.Config{
+    <span class="m">// Server verifies client cert</span>
+    ClientAuth: tls.<span class="g">RequireAndVerifyClientCert</span>,
+    ClientCAs:  clientCACertPool,
+    <span class="m">// Client verifies server cert</span>
+    RootCAs:    serverCACertPool,
+    <span class="m">// Minimum TLS 1.3</span>
+    MinVersion: tls.<span class="g">VersionTLS13</span>,
+    <span class="m">// Explicitly restrict cipher suites</span>
+    CipherSuites: []uint16{
+        tls.<span class="g">TLS_AES_256_GCM_SHA384</span>,
+    },
+}</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">All external-facing services — HTTPS (TLS 1.3 minimum)</div>
+          <div class="when-item">Microservices — mutual TLS (mTLS) for service-to-service auth</div>
+          <div class="when-item">Database connections — TLS even on internal network</div>
+          <div class="when-item">Queue/message brokers — TLS + auth on Kafka, RabbitMQ, etc.</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Security_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP TLS Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://istio.io/latest/docs/concepts/security/#mutual-tls-authentication" target="_blank"><span class="ri">🕸️</span><span class="rt">Istio — mTLS in Service Mesh</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Exception Shielding -->
+    <div class="pc c-enc">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🛡️</div><div class="pc-tb"><div class="pc-name">Exception Shielding</div><div class="pc-aka">Error Abstraction · Safe Error Messages</div></div></div>
+        <p class="pc-desc">Never expose <strong>internal implementation details</strong> through error messages. Stack traces, SQL errors, file paths, and class names give attackers a map of your system. Return generic, safe error messages to clients; log full details internally only.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Error Handling</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># WRONG: leaks DB structure to client</span>
+<span class="r">except Exception as e:
+    return {"error": str(e)}
+# → "column 'password' of relation 'users'..."</span>
+
+<span class="m"># RIGHT: shield internals, log privately</span>
+<span class="g">except Exception as e:
+    error_id = generate_uuid()
+    logger.error(f"[{error_id}] {traceback.format_exc()}")
+    return {"error": "An internal error occurred",
+            "id": error_id}  # user can report this ID</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">All API endpoints — catch all exceptions at the outermost layer</div>
+          <div class="when-item">Authentication failures — return generic "Invalid credentials" (not "user not found")</div>
+          <div class="when-item">Production environments — disable framework debug modes</div>
+          <div class="when-item">Error correlation — include a reference ID so internal logs can be matched to user reports</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Django DEBUG=True in production — exposes stack trace, settings, SQL queries</div>
+          <div class="anti-item">Different error messages for "user not found" vs "wrong password" — enables user enumeration</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Error Handling Cheat Sheet</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Data Minimization -->
+    <div class="pc c-enc">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">📦</div><div class="pc-tb"><div class="pc-name">Data Minimization</div><div class="pc-aka">Limited View · Need-to-Know Data · Privacy by Design</div></div></div>
+        <p class="pc-desc">Collect, retain, and expose only the <strong>minimum data necessary</strong>. Data you don't have can't be stolen. Reduce both what you store and what you return in API responses. Return only fields the requester is authorized to see.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Limited View / Field Filtering</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># WRONG: return entire user object</span>
+<span class="r">return db.get_user(user_id)  
+# → {id, name, email, password_hash, 
+#    ssn, credit_card, internal_notes}</span>
+
+<span class="m"># RIGHT: return only what is needed for context</span>
+<span class="g">def get_public_profile(user_id):
+    user = db.get_user(user_id)
+    return {
+        "id":    user.id,
+        "name":  user.display_name,
+        "avatar": user.avatar_url
+        # password_hash, SSN: never exposed
+    }</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">API design — define response schemas that exclude sensitive fields</div>
+          <div class="when-item">GDPR/CCPA compliance — collect only what you have a legal basis for</div>
+          <div class="when-item">Logging — never log passwords, tokens, credit cards, or SSNs</div>
+          <div class="when-item">Database design — use separate tables for sensitive vs non-sensitive data</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Logging Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://gdpr-info.eu/art-5-gdpr/" target="_blank"><span class="ri">🇪🇺</span><span class="rt">GDPR Art. 5 — Data Minimization Principle</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Secure Logger / Audit Trail -->
+    <div class="pc c-enc">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">📋</div><div class="pc-tb"><div class="pc-name">Secure Logger / Audit Trail</div><div class="pc-aka">Tamper-Evident Log · Audit Interceptor</div></div></div>
+        <p class="pc-desc">Security-relevant events must be logged in a <strong>tamper-evident, append-only store</strong>. Logs are the primary mechanism for detecting breaches and for forensic analysis. They must be protected from modification by the same attacker you are trying to detect.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">What to log</span><span class="cb-lang">Checklist</span></div>
+          <pre><span class="g">✓ Authentication: login success/failure + IP</span>
+<span class="g">✓ Authorization: access denied events</span>
+<span class="g">✓ Privilege changes: role granted/revoked</span>
+<span class="g">✓ Data access: who read/modified sensitive data</span>
+<span class="g">✓ Config changes: security settings modified</span>
+<span class="g">✓ Errors: validation failures, exceptions</span>
+
+<span class="r">✗ Passwords, tokens, credit card numbers</span>
+<span class="r">✗ PII beyond minimum identification</span>
+
+<span class="m">Each log entry: timestamp, user, IP,</span>
+<span class="m">action, resource, outcome, correlation_id</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">All security events — auth, authz, data access, config changes</div>
+          <div class="when-item">Ship logs to a <strong>separate, write-only store</strong> attackers cannot reach</div>
+          <div class="when-item">Compliance requirements (PCI-DSS, SOC2, ISO 27001 all mandate audit trails)</div>
+          <div class="when-item">Incident response — logs are the only reliable evidence after a breach</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Logging Cheat Sheet</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://www.cisa.gov/resources-tools/resources/logging-made-easy" target="_blank"><span class="ri">🏛️</span><span class="rt">CISA — Logging Made Easy</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tools-box c-enc">
+    <h3>🔧 Tools &amp; Libraries</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://www.ssllabs.com/ssltest/" target="_blank">SSL Labs Test</a>
+      <a class="tp" href="https://securityheaders.com/" target="_blank">SecurityHeaders.com</a>
+      <a class="tp" href="https://github.com/elastic/elasticsearch" target="_blank">Elasticsearch SIEM</a>
+      <a class="tp" href="https://grafana.com/oss/loki/" target="_blank">Grafana Loki (log aggregation)</a>
+      <a class="tp" href="https://opentelemetry.io/" target="_blank">OpenTelemetry (tracing)</a>
+      <a class="tp" href="https://github.com/jtesta/ssh-audit" target="_blank">ssh-audit</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 5 — ERROR & STATE PATTERNS                       -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-error" id="panel-4">
+  <div class="ph c-error" data-bg="ERR">
+    <div class="ph-label">05 · Error &amp; State</div>
+    <h2>Error &amp; State Patterns</h2>
+    <p>Systems <strong>always fail eventually</strong> — the question is how they fail. These patterns ensure that failures move the system to a <strong>known, safe state</strong> rather than an inconsistent or open state. They also address how security logic gates user-accessible functionality through explicit state machines.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">Fail Secure</span><span class="ph-pill">Resilience</span><span class="ph-pill">State Consistency</span><span class="ph-pill">Availability</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Fail Secure / Fail Closed -->
+    <div class="pc c-error">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔒</div><div class="pc-tb"><div class="pc-name">Fail Secure (Fail Closed)</div><div class="pc-aka">Safe Failure · Secure Default on Error</div></div></div>
+        <p class="pc-desc">When a security component fails, it should <strong>deny access</strong> rather than grant it. A firewall that crashes should drop all traffic. An auth service that errors should reject the request. The opposite — "fail open" — is a common and catastrophic mistake.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Authorization Handler</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># FAIL OPEN (WRONG)</span>
+<span class="r">def authorize(token, resource):
+    try:
+        return check_permission(token, resource)
+    except Exception:
+        return True  # ← grants access on error!</span>
+
+<span class="m"># FAIL CLOSED (RIGHT)</span>
+<span class="g">def authorize(token, resource):
+    try:
+        return check_permission(token, resource)
+    except AuthServiceDown:
+        log.error("Auth service unavailable")
+        return False  # ← deny on error
+    except InvalidToken:
+        return False
+    except Exception:
+        log.exception("Unexpected auth error")
+        return False  # ← always deny on uncertainty</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Authorization services — any exception → deny access</div>
+          <div class="when-item">Network controls — firewall default policy: DROP (not ACCEPT)</div>
+          <div class="when-item">Circuit breakers — fail closed when downstream auth service is unavailable</div>
+          <div class="when-item">HMAC/signature verification — exception = reject, never accept</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Catch-all exception handler that returns True or grants access</div>
+          <div class="anti-item">Firewall default policy: ACCEPT (should be DROP with explicit ALLOW rules)</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://cydrill.com/cyber-security/secure-design-principles/" target="_blank"><span class="ri">📘</span><span class="rt">Cydrill — Secure Design Principles Deep Dive</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Secure State Machine -->
+    <div class="pc c-error">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">⚙️</div><div class="pc-tb"><div class="pc-name">Secure State Machine</div><div class="pc-aka">Security State Control · Gated Transitions</div></div></div>
+        <p class="pc-desc">Separate security state (authentication, authorization level) from functional state (what the user can do). <strong>Functional operations are only available after the security state machine has transitioned to the correct state</strong>. Users cannot skip the authentication step to reach protected functionality.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Login Flow</span><span class="cb-lang">State Diagram</span></div>
+          <pre><span class="b">[UNAUTHENTICATED]</span>
+      ↓ submit credentials
+  (validate password)
+      ↓ success
+<span class="y">[PASSWORD_VERIFIED]</span>
+      ↓ OTP sent
+  (validate OTP code)
+      ↓ success
+<span class="g">[AUTHENTICATED]</span>
+      ↓ access granted to protected resources
+      
+<span class="m">Security state machine controls which</span>
+<span class="m">functional states are accessible.</span>
+<span class="m">Cannot jump directly to [AUTHENTICATED].</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Multi-step authentication flows (password + MFA)</div>
+          <div class="when-item">Checkout flows — ensure payment is verified before confirming order</div>
+          <div class="when-item">Any workflow where steps must occur in order for security</div>
+          <div class="when-item">Preventing state skip attacks — jumping to step 3 without completing steps 1 and 2</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=9115" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Secure State Machine Pattern</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Checkpointed System -->
+    <div class="pc c-error">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">💾</div><div class="pc-tb"><div class="pc-name">Checkpointed System</div><div class="pc-aka">Rollback · Known-Good State Recovery</div></div></div>
+        <p class="pc-desc">Periodically save system state to a <strong>known-good checkpoint</strong>. If a failure or compromise is detected, the system can roll back to the last verified-safe state. Critical for high-availability systems that must recover from partial failures without human intervention.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Recovery Pattern</span><span class="cb-lang">Pseudocode</span></div>
+          <pre><span class="b">Recovery Proxy</span>  ←→  <span class="g">Recoverable Component</span>
+                           ↓
+                    takes periodic snapshots
+                           ↓
+          on failure detected by proxy:
+          1. stop operations
+          2. restore from last checkpoint
+          3. replay verified transactions
+          4. resume normal operations
+
+<span class="m">Examples:</span>
+<span class="m">  Database WAL + point-in-time recovery</span>
+<span class="m">  VM snapshots</span>
+<span class="m">  Immutable infrastructure (redeploy)</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Databases — WAL (Write-Ahead Log) for transactional consistency</div>
+          <div class="when-item">Ransomware resilience — immutable backups to a separate, isolated location</div>
+          <div class="when-item">Infrastructure — immutable server images (redeploy rather than patch in place)</div>
+          <div class="when-item">Incident response — ability to roll back to a known-clean state</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://people.cs.kuleuven.be/~koen.yskout/icse15/catalog.pdf" target="_blank"><span class="ri">🎓</span><span class="rt">Security Pattern Catalog — KU Leuven</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Rate Limiting / Circuit Breaker -->
+    <div class="pc c-error">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">⚡</div><div class="pc-tb"><div class="pc-name">Rate Limiting &amp; Circuit Breaker</div><div class="pc-aka">Throttling · Bulkhead Pattern</div></div></div>
+        <p class="pc-desc">Limit the rate of requests and <strong>automatically cut off failing components</strong>. Prevents brute force, credential stuffing, and DoS. Circuit breakers prevent cascading failures — when a dependency fails, requests fail fast instead of queuing up and exhausting resources.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Rate Limit + Circuit Breaker</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># Rate limiting — login endpoint</span>
+<span class="g">@rate_limit(max=5, window="15min", by="ip+user")
+def login(username, password):
+    ...</span>
+
+<span class="m"># Circuit breaker state machine</span>
+<span class="b">CLOSED</span>  → calls pass through normally
+    ↓ failures exceed threshold
+<span class="y">OPEN</span>    → all calls fail immediately (fast fail)
+    ↓ after timeout (e.g., 60s)
+<span class="b">HALF-OPEN</span> → allow one probe call
+    ↓ probe success → back to CLOSED
+    ↓ probe failure → back to OPEN</pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Authentication endpoints — prevent brute force and credential stuffing</div>
+          <div class="when-item">Password reset / OTP — rate limit to prevent enumeration</div>
+          <div class="when-item">Service-to-service calls — circuit breaker prevents cascading failures</div>
+          <div class="when-item">APIs — per-user and per-IP rate limiting to prevent abuse</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker" target="_blank"><span class="ri">🌐</span><span class="rt">Microsoft — Circuit Breaker Pattern</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank"><span class="ri">📘</span><span class="rt">OWASP Authentication Cheat Sheet (rate limiting)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="examples-grid">
+    <div class="ex-card c-error">
+      <div class="ex-hdr"><span class="ex-tag">2003 Northeast Blackout</span><span class="ex-name">Fail Open — Cascading Failure</span></div>
+      <p class="ex-desc">A software bug caused a monitoring system to fail silently (fail open). Operators didn't know lines were overloaded. No circuit breaker. A local failure cascaded across 8 states and 55M people lost power. Secure state management could have isolated the failure.</p>
+    </div>
+    <div class="ex-card c-error">
+      <div class="ex-hdr"><span class="ex-tag">Rockstar Games 2022</span><span class="ex-name">State Skip Attack</span></div>
+      <p class="ex-desc">GTA Online's anticheat could be bypassed by sending a specifically crafted message that skipped authentication state checks. The secure state machine pattern — requiring explicit state transitions — would have prevented this attack vector.</p>
+    </div>
+    <div class="ex-card c-error">
+      <div class="ex-hdr"><span class="ex-tag">Colonial Pipeline 2021</span><span class="ex-name">No MFA = State Machine Failure</span></div>
+      <p class="ex-desc">A single compromised VPN password was sufficient to gain access because MFA was not required. A secure state machine would have required a second factor transition before granting network access — the attack would have stopped at step 1.</p>
+    </div>
+  </div>
+
+  <div class="tools-box c-error">
+    <h3>🔧 Tools &amp; Libraries</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://github.com/Netflix/Hystrix" target="_blank">Netflix Hystrix (Circuit Breaker)</a>
+      <a class="tp" href="https://resilience4j.readme.io/" target="_blank">Resilience4j (Java)</a>
+      <a class="tp" href="https://github.com/slimphp/Slim" target="_blank">Fail2Ban</a>
+      <a class="tp" href="https://redis.io/" target="_blank">Redis (rate limiting counters)</a>
+      <a class="tp" href="https://github.com/tonikelope/megabasterd" target="_blank">XState (JS state machines)</a>
+      <a class="tp" href="https://www.envoyproxy.io/" target="_blank">Envoy Proxy (circuit breaker)</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PANEL 6 — IMPLEMENTATION PATTERNS (SEI CMU)            -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="panel c-impl" id="panel-5">
+  <div class="ph c-impl" data-bg="IMPL">
+    <div class="ph-label">06 · Implementation</div>
+    <h2>Implementation-Level Secure Design Patterns</h2>
+    <p>These patterns from the <strong>SEI CMU Secure Design Patterns catalog (2009)</strong> describe how to implement concrete security-aware code structures. They extend classical GoF patterns (Factory, Strategy, Visitor, State) with security constraints — selecting behavior based on trust level, preventing unauthorized access to data structures, and encoding trust level into object creation.</p>
+    <div class="ph-pills">
+      <span class="ph-pill">SEI CMU Catalog</span><span class="ph-pill">Trust Levels</span><span class="ph-pill">Code Level</span><span class="ph-pill">GoF Extensions</span>
+    </div>
+  </div>
+
+  <div class="sec-title">Patterns</div>
+  <div class="pattern-grid">
+
+    <!-- Secure Factory -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🏭</div><div class="pc-tb"><div class="pc-name">Secure Factory</div><div class="pc-aka">Trust-Aware Object Creation · Controlled Object Factory</div></div></div>
+        <p class="pc-desc">Create objects that are <strong>appropriately scoped for the trust level of the requester</strong>. The factory inspects security credentials and returns a trust-level-appropriate object. Untrusted callers get a restricted object; trusted callers get a full-capability object. Prevents accidentally giving high-privilege objects to untrusted code.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Secure Factory</span><span class="cb-lang">Python</span></div>
+          <pre><span class="b">class</span> UserContextFactory:
+    <span class="b">def</span> <span class="g">create</span>(self, credentials) -> UserContext:
+        trust = self.<span class="y">evaluate_trust</span>(credentials)
+
+        <span class="b">if</b> trust == <span class="p">TrustLevel.ADMIN</span>:
+            <span class="b">return</span> <span class="g">AdminUserContext</span>(credentials)
+        <span class="b">elif</span> trust == <span class="p">TrustLevel.USER</span>:
+            <span class="b">return</span> <span class="g">StandardUserContext</span>(credentials)
+        <span class="b">elif</span> trust == <span class="p">TrustLevel.GUEST</span>:
+            <span class="b">return</span> <span class="g">ReadOnlyContext</span>(credentials)
+        <span class="b">else</span>:
+            <span class="b">return</span> <span class="g">UntrustedContext</span>()
+            <span class="m"># Untrusted: minimal info, no ops</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Multi-tier APIs where different callers get different capabilities</div>
+          <div class="when-item">Error message generation — untrusted clients get generic errors; trusted clients get details</div>
+          <div class="when-item">Configuration objects — admin gets write access, regular user gets read-only view</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.sei.cmu.edu/documents/813/2009_005_001_15110.pdf" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Secure Factory Pattern (Section 3.2)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Strategy Factory (Trust-based Behavior) -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔄</div><div class="pc-tb"><div class="pc-name">Strategy Factory</div><div class="pc-aka">Trust-Aware Strategy Selection</div></div></div>
+        <p class="pc-desc">Select a <strong>different strategy (algorithm/behavior) based on the trust level</strong> of the caller. The same operation performs differently depending on who is calling. Separates trust-level selection logic from business logic — tested independently.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">XML-RPC Error Response</span><span class="cb-lang">Python</span></div>
+          <pre><span class="m"># Different error detail per trust level</span>
+<span class="b">class</span> ErrorResponseFactory:
+    strategies = {
+        <span class="p">TrustLevel.INTERNAL</span>: <span class="g">DetailedErrorStrategy</span>,
+        <span class="p">TrustLevel.PARTNER</span>:  <span class="y">PartnerErrorStrategy</span>,
+        <span class="p">TrustLevel.PUBLIC</span>:   <span class="r">GenericErrorStrategy</span>,
+    }
+    <span class="b">def</span> <span class="g">get_strategy</span>(self, credentials):
+        trust = evaluate_trust(credentials)
+        cls = self.strategies.get(trust,
+              <span class="r">GenericErrorStrategy</span>)
+        <span class="b">return</span> cls()
+
+<span class="m"># Internal caller: full stack trace + context</span>
+<span class="m"># Partner:         error code + category</span>
+<span class="m"># Public:          "An error occurred"</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Error handling — internal tools get full details, external clients get generic messages</div>
+          <div class="when-item">Data serialization — admin gets all fields, public API gets redacted view</div>
+          <div class="when-item">Logging verbosity — internal trusted callers get verbose logs; external don't</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.sei.cmu.edu/documents/813/2009_005_001_15110.pdf" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Strategy Factory Pattern (Section 3.1)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Secure Visitor -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🔍</div><div class="pc-tb"><div class="pc-name">Secure Visitor</div><div class="pc-aka">Credential-Gated Traversal</div></div></div>
+        <p class="pc-desc">When traversing a hierarchical data structure, nodes <strong>unlock themselves only to visitors that present valid credentials</strong>. The node checks whether the visitor is authorized to see its data and returns only an unlocked (data-accessible) version if authorized — or nothing if not. Prevents accessing parent/sibling data through an unlocked child.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Locked Node Traversal</span><span class="cb-lang">Python</span></div>
+          <pre><span class="b">class</span> DataNode:  <span class="m"># locked by default</span>
+    <span class="b">def</span> <span class="g">accept</span>(self, visitor):
+        <span class="m"># Check before unlocking</span>
+        <span class="b">if</span> visitor.credentials.<span class="y">can_access</span>(self.id):
+            unlocked = <span class="g">UnlockedDataNode</span>(self.data)
+            <span class="m"># Unlocked has NO reference to parent!</span>
+            visitor.<span class="g">visit</span>(unlocked)
+        <span class="m"># else: silently skip (no info leak)</span>
+
+<span class="b">class</span> UnlockedDataNode:
+    <span class="b">def</span> __init__(self, data):
+        self.data = data
+        <span class="m"># No parent, no siblings, no children refs</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">File system traversal — user can only see files they are authorized for</div>
+          <div class="when-item">Document hierarchies — a user authorized for a child node should not see the parent</div>
+          <div class="when-item">Graph-based authorization — social network data, org charts with sensitivity levels</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.sei.cmu.edu/documents/813/2009_005_001_15110.pdf" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Secure Visitor Pattern (Section 3.3)</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Defer to Kernel / Trusted Computing Base -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🖥️</div><div class="pc-tb"><div class="pc-name">Defer to Kernel / Trusted Computing Base</div><div class="pc-aka">TCB · OS Security Delegation</div></div></div>
+        <p class="pc-desc">Use OS-provided security mechanisms rather than reimplementing them. The kernel's security subsystem is well-tested, formally verified in some cases, and much harder to subvert than application-level implementations. Reinventing authentication, crypto, or access control at the application layer is almost always worse.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Use OS Primitives</span><span class="cb-lang">Examples</span></div>
+          <pre><span class="m"># File permissions — use OS ACLs</span>
+<span class="r">app.check_user_owns_file(path)</span>  <span class="m"># own impl</span>
+<span class="g">os.access(path, os.R_OK)</span>        <span class="m"># kernel ACL</span>
+
+<span class="m"># Crypto — use OS entropy</span>
+<span class="r">random.seed(time.time())</span>        <span class="m"># predictable!</span>
+<span class="g">secrets.token_bytes(32)</span>          <span class="m"># OS CSPRNG</span>
+
+<span class="m"># Secret storage — use OS keychain</span>
+<span class="r">config = {"api_key": "hardcoded"}</span>
+<span class="g">keyring.get_password("app","api_key")</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Key generation — always use OS CSPRNG (secrets, urandom)</div>
+          <div class="when-item">File access control — defer to OS filesystem permissions</div>
+          <div class="when-item">Secret storage — use OS keychain/credential store, not config files</div>
+          <div class="when-item">Cryptography — use vetted libraries (OpenSSL, libsodium), never roll your own</div>
+        </div>
+      </div>
+      <div class="pc-anti">
+        <div class="anti-title">Anti-Pattern (avoid)</div>
+        <div class="anti-items">
+          <div class="anti-item">Implementing your own hash function, RNG, or cipher</div>
+          <div class="anti-item">Reimplementing access control when the OS already provides it</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=9115" target="_blank"><span class="ri">🎓</span><span class="rt">SEI CMU — Defer to Kernel Pattern</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://libsodium.gitbook.io/doc/" target="_blank"><span class="ri">🧂</span><span class="rt">libsodium — High-level Vetted Crypto Library</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Open Design / Kerckhoffs' Principle -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">📖</div><div class="pc-tb"><div class="pc-name">Open Design</div><div class="pc-aka">Kerckhoffs' Principle · No Security by Obscurity</div></div></div>
+        <p class="pc-desc">Security must not depend on the <strong>secrecy of the design or algorithm</strong>. Assume attackers know every detail of your implementation. The only secret should be the key (or password). Systems that rely on "attackers won't know about this endpoint" are easily broken once discovered.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Kerckhoffs' Principle</span><span class="cb-lang">Concept</span></div>
+          <pre><span class="r">Security through obscurity (WRONG):</span>
+<span class="r">  "attackers won't know our API path"</span>
+<span class="r">  "our encryption algorithm is secret"</span>
+<span class="r">  "we renamed /admin to /mgmt-9x3k"</span>
+
+<span class="g">Open design (RIGHT):</span>
+<span class="g">  Publish the algorithm — keep only the key secret</span>
+<span class="g">  Use AES-256 (public) + secret key (private)</span>
+<span class="g">  Assume attacker finds the "hidden" URL</span>
+<span class="g">  → require authentication regardless</span>
+
+<span class="m">Kerckhoffs (1883): "A cryptosystem should</span>
+<span class="m">be secure even if everything about it,</span>
+<span class="m">except the key, is public knowledge."</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Cryptography — always use published, audited algorithms, not proprietary ones</div>
+          <div class="when-item">API security — secure endpoints regardless of whether their path is "known"</div>
+          <div class="when-item">Configuration — assume attackers can read your config files; secrets must be separate</div>
+          <div class="when-item">Source code — assume breach; don't embed secrets in code ("it's private repo")</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://textbook.cs161.org/principles/principles.html" target="_blank"><span class="ri">🎓</span><span class="rt">UC Berkeley CS 161 — Open Design &amp; Kerckhoffs</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+    <!-- Psychological Acceptability -->
+    <div class="pc c-impl">
+      <div class="pc-top">
+        <div class="pc-hdr"><div class="pc-icon">🧑‍💻</div><div class="pc-tb"><div class="pc-name">Psychological Acceptability</div><div class="pc-aka">Usable Security · Human Factors</div></div></div>
+        <p class="pc-desc">Security mechanisms that are too burdensome will be <strong>circumvented by users</strong>. If MFA is too hard, users will share accounts. If passwords requirements are too complex, users write them on sticky notes. Security and usability must be designed together — friction should be proportional to risk.</p>
+        <div class="pc-code">
+          <div class="code-bar"><span class="cb-title">Usable Security Design</span><span class="cb-lang">Guidelines</span></div>
+          <pre><span class="r">BAD: Security friction that causes workarounds</span>
+<span class="r">  Password must be 24+ chars, changed monthly</span>
+<span class="r">  MFA required for every page load</span>
+<span class="r">  CAPTCHA on every form interaction</span>
+
+<span class="g">GOOD: Risk-proportionate security UX</span>
+<span class="g">  Password manager support (long passphrases)</span>
+<span class="g">  MFA required only for login + sensitive ops</span>
+<span class="g">  Passwordless (passkeys) — more secure AND easier</span>
+<span class="g">  SSO — one strong login, not many weak ones</span>
+<span class="g">  Step-up authentication on sensitive actions</span></pre>
+        </div>
+      </div>
+      <div class="pc-when">
+        <div class="when-title">When to apply</div>
+        <div class="when-list">
+          <div class="when-item">Authentication UX — adopt passkeys and password managers; reduce forced rotation</div>
+          <div class="when-item">Security dialogs — clear, specific, actionable messages (not "Are you sure?")</div>
+          <div class="when-item">Onboarding — guide users toward secure defaults without overwhelming them</div>
+          <div class="when-item">Developer tools — security controls that are easy to use correctly are used correctly</div>
+        </div>
+      </div>
+      <div class="pc-res">
+        <div class="res-label">References</div>
+        <a class="rl" href="https://www.nngroup.com/articles/security-and-human-error/" target="_blank"><span class="ri">🎨</span><span class="rt">Nielsen Norman Group — Security &amp; Human Error</span><span class="ra">↗</span></a>
+        <a class="rl" href="https://passkeys.dev/" target="_blank"><span class="ri">🔑</span><span class="rt">Passkeys.dev — Passwordless Authentication</span><span class="ra">↗</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="strip ok">
+    <span class="si">✅</span>
+    <div class="st"><strong>Quick reference — SEI CMU Secure Design Patterns (2009):</strong> Architecture-level: Distrustful Decomposition, Privilege Separation. Design-level: Secure State Machine, Secure Strategy Factory, Secure Visitor, Secure Chain of Responsibility. Implementation-level: Defer to Kernel, Secure Factory, Secure Logger. All available in the full SEI technical report CMU/SEI-2009-TR-010.</div>
+  </div>
+
+  <!-- Quick reference table -->
+  <div class="sec-title">Pattern Quick Reference</div>
+  <table class="ref-table">
+    <thead><tr><th>Pattern</th><th>Problem it solves</th><th>Level</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td>Distrustful Decomposition</td><td>Limit blast radius of component compromise</td><td>Architecture</td><td>SEI CMU / OpenSSH</td></tr>
+      <tr><td>Defense in Depth</td><td>Single control failure = full compromise</td><td>Architecture</td><td>Saltzer &amp; Schroeder</td></tr>
+      <tr><td>Minimise Attack Surface</td><td>Too many entry points to secure</td><td>Architecture</td><td>OWASP</td></tr>
+      <tr><td>Secure by Default</td><td>Insecure configuration by default</td><td>Architecture</td><td>CISA / Saltzer</td></tr>
+      <tr><td>Zero Trust</td><td>Implicit trust based on network location</td><td>Architecture</td><td>BeyondCorp / NIST</td></tr>
+      <tr><td>Reference Monitor</td><td>Multiple, inconsistent access paths</td><td>Access Control</td><td>Anderson 1972</td></tr>
+      <tr><td>RBAC</td><td>Permission management doesn't scale</td><td>Access Control</td><td>NIST / ANSI</td></tr>
+      <tr><td>Complete Mediation</td><td>Stale permission checks (TOCTOU)</td><td>Access Control</td><td>Saltzer &amp; Schroeder</td></tr>
+      <tr><td>Least Privilege</td><td>Over-privileged accounts/processes</td><td>Access Control</td><td>Saltzer &amp; Schroeder</td></tr>
+      <tr><td>Input Validation</td><td>Injection attacks (SQL, XSS, CMDi)</td><td>Input</td><td>OWASP / SEI CMU</td></tr>
+      <tr><td>Intercepting Filter</td><td>Scattered, inconsistent security checks</td><td>Input</td><td>GoF / Java EE</td></tr>
+      <tr><td>Parameterize Everything</td><td>Data/instruction conflation = injection</td><td>Input</td><td>OWASP</td></tr>
+      <tr><td>Secure Channel</td><td>Data exposed in transit (eavesdropping)</td><td>Data</td><td>TLS / IETF</td></tr>
+      <tr><td>Exception Shielding</td><td>Internal details leaked via errors</td><td>Data</td><td>OWASP</td></tr>
+      <tr><td>Data Minimization</td><td>Excessive data collection = breach risk</td><td>Data</td><td>GDPR / Privacy</td></tr>
+      <tr><td>Fail Secure</td><td>Exceptions grant unintended access</td><td>Error/State</td><td>Saltzer &amp; Schroeder</td></tr>
+      <tr><td>Secure State Machine</td><td>Skipping required security steps</td><td>Error/State</td><td>SEI CMU</td></tr>
+      <tr><td>Secure Factory</td><td>Wrong-capability objects given to untrusted callers</td><td>Implementation</td><td>SEI CMU</td></tr>
+      <tr><td>Strategy Factory</td><td>Trust-level-appropriate behavior selection</td><td>Implementation</td><td>SEI CMU</td></tr>
+      <tr><td>Open Design</td><td>Security by obscurity</td><td>Implementation</td><td>Kerckhoffs 1883</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tools-box c-impl">
+    <h3>📚 Primary Sources</h3>
+    <div class="tools-row">
+      <a class="tp" href="https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=9115" target="_blank">SEI CMU — Secure Design Patterns (2009)</a>
+      <a class="tp" href="https://dl.acm.org/doi/10.1145/361011.361067" target="_blank">Saltzer &amp; Schroeder (1975)</a>
+      <a class="tp" href="https://owasp.org/www-project-top-ten/" target="_blank">OWASP Top 10</a>
+      <a class="tp" href="https://cheatsheetseries.owasp.org/" target="_blank">OWASP Cheat Sheet Series</a>
+      <a class="tp" href="https://textbook.cs161.org/" target="_blank">UC Berkeley CS 161 Textbook</a>
+      <a class="tp" href="https://designingsecuresoftware.com/" target="_blank">Designing Secure Software (book)</a>
+      <a class="tp" href="https://dc.etsu.edu/cgi/viewcontent.cgi?article=2303&context=etd" target="_blank">ETSU — Categorization of Security Patterns</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+<script>
+function switchPanel(idx) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i === idx));
+  document.querySelectorAll('.cat-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+}
+</script>
+</body>
+</html>
