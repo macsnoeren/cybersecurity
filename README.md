@@ -1,6 +1,8 @@
 # Cyber security
 The main repo for cyber security education given by myself.
 
+HTML: [https://macsnoeren.github.io/cybersecurity/](https://macsnoeren.github.io/cybersecurity/)
+
 # Wishlist
 
 ## Course material
