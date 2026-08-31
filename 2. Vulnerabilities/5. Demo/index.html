@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cybersecurity — Visuele Demo's</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+    background: #080d18;
+    color: #e5e7eb;
+    font-family: Arial, Helvetica, sans-serif;
+    padding-bottom: 40px;
+}
+
+header {
+    padding: 30px 40px 24px;
+    background: #111827;
+    border-bottom: 1px solid #334155;
+}
+header h1 { margin: 0; font-size: clamp(22px, 3vw, 34px); }
+header p { margin: 8px 0 0; color: #94a3b8; font-size: 14px; max-width: 720px; line-height: 1.5; }
+
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+.section { margin-top: 34px; }
+.section-head {
+    display: flex; align-items: baseline; gap: 12px;
+    padding-bottom: 10px; margin-bottom: 16px;
+    border-bottom: 1px solid #1e293b;
+}
+.section-num {
+    font-family: monospace; font-size: 13px; font-weight: bold;
+    padding: 3px 9px; border-radius: 6px; color: #fff;
+}
+.section-head h2 { margin: 0; font-size: 18px; }
+.section-head .desc { margin-left: auto; color: #64748b; font-size: 12px; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    display: flex; flex-direction: column;
+    padding: 18px 18px 16px;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    background: #0f172a;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent, #2563eb);
+    box-shadow: 0 8px 26px rgba(0,0,0,.45);
+}
+.card .icon { font-size: 26px; margin-bottom: 10px; }
+.card h3 { margin: 0 0 6px; font-size: 16px; }
+.card .tag {
+    display: inline-block; margin-bottom: 10px;
+    font-family: monospace; font-size: 11px; color: var(--accent, #93c5fd);
+}
+.card p { margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5; flex: 1 1 auto; }
+.card .go {
+    margin-top: 14px; align-self: flex-start;
+    font-family: monospace; font-size: 12px; color: var(--accent, #93c5fd);
+}
+
+/* per-category accent colors */
+.cat-mm { --accent: #ef4444; }
+.cat-mm .section-num { background: #991b1b; }
+.cat-so { --accent: #3b82f6; }
+.cat-so .section-num { background: #1d4ed8; }
+.cat-rc { --accent: #f59e0b; }
+.cat-rc .section-num { background: #b45309; }
+.cat-sc { --accent: #22c55e; }
+.cat-sc .section-num { background: #166534; }
+
+footer {
+    max-width: 1200px; margin: 40px auto 0; padding: 20px 40px 0;
+    border-top: 1px solid #1e293b;
+    color: #475569; font-size: 12px; line-height: 1.6;
+}
+footer strong { color: #64748b; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Cybersecurity — Visuele Demo's</h1>
+    <p>
+        Interactieve, stap-voor-stap visualisaties van veelvoorkomende
+        kwetsbaarheden. Elke demo laat de aanval opbouwen (▶ / autoplay) en
+        toont naast de kwetsbare ook de veilige variant. Klik een demo aan om te openen.
+    </p>
+</header>
+
+<div class="wrap">
+
+    <!-- 1. MEMORY MANAGEMENT -->
+    <section class="section cat-mm">
+        <div class="section-head">
+            <span class="section-num">1</span>
+            <h2>Memory Management</h2>
+            <span class="desc">geheugen, stack &amp; control flow</span>
+        </div>
+        <div class="grid">
+            <a class="card" href="MM_BufferOverflow.html">
+                <div class="icon">💥</div>
+                <div class="tag">buffer overflow · return address</div>
+                <h3>Buffer Overflow</h3>
+                <p>Input stroomt over de buffer heen, overschrijft het return address en kaapt de control flow naar malicious().</p>
+                <span class="go">Open demo →</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- 2. STRUCTURED OUTPUT -->
+    <section class="section cat-so">
+        <div class="section-head">
+            <span class="section-num">2</span>
+            <h2>Structured Output</h2>
+            <span class="desc">input die code/queries wordt</span>
+        </div>
+        <div class="grid">
+            <a class="card" href="SO_FormatString.html">
+                <div class="icon">📃</div>
+                <div class="tag">format string</div>
+                <h3>Format String Attack</h3>
+                <p>printf(user_input): elke %x leest een woord van de stack, %s lekt geheugen. De gebruiker bepaalt de format string.</p>
+                <span class="go">Open demo →</span>
+            </a>
+            <a class="card" href="SO_SQLInjection.html">
+                <div class="icon">🗄️</div>
+                <div class="tag">SQL injection</div>
+                <h3>SQL Injection</h3>
+                <p>' OR '1'='1 breekt uit de query-string. Auth-bypass en UNION-extractie tegenover een parameterized query.</p>
+                <span class="go">Open demo →</span>
+            </a>
+            <a class="card" href="SO_PathTraversal.html">
+                <div class="icon">📂</div>
+                <div class="tag">path traversal</div>
+                <h3>Path Traversal</h3>
+                <p>Met ../ klimt de aanvrager uit de web-root naar config.ini, wachtwoorden en /etc/shadow. Boundary-check als tegengif.</p>
+                <span class="go">Open demo →</span>
+            </a>
+            <a class="card" href="SO_NoSQLInjection.html">
+                <div class="icon">🍃</div>
+                <div class="tag">NoSQL injection</div>
+                <h3>NoSQL Injection</h3>
+                <p>Een JSON-object {"$ne":""} in plaats van een string verandert de betekenis van de query en matcht elk document.</p>
+                <span class="go">Open demo →</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- 3. RACE CONDITION -->
+    <section class="section cat-rc">
+        <div class="section-head">
+            <span class="section-num">3</span>
+            <h2>Race Condition</h2>
+            <span class="desc">timing tussen threads</span>
+        </div>
+        <div class="grid">
+            <a class="card" href="RC_RaceCondition.html">
+                <div class="icon">🏁</div>
+                <div class="tag">TOCTOU · time-of-check/use</div>
+                <h3>Race Condition (Bank)</h3>
+                <p>Drie threads nemen €800 op van €1000. Zonder lock checken ze allemaal vóór iemand afschrijft → saldo −1400.</p>
+                <span class="go">Open demo →</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- 4. SIDE-CHANNEL -->
+    <section class="section cat-sc">
+        <div class="section-head">
+            <span class="section-num">4</span>
+            <h2>Side-channel</h2>
+            <span class="desc">lekken via meetbaar gedrag</span>
+        </div>
+        <div class="grid">
+            <a class="card" href="SC_TimingAttack.html">
+                <div class="icon">⏱️</div>
+                <div class="tag">timing attack</div>
+                <h3>Timing Attack</h3>
+                <p>De responstijd verraadt hoeveel tekens al kloppen. Zo herstel je een geheim teken-voor-teken. Constant-time dicht het lek.</p>
+                <span class="go">Open demo →</span>
+            </a>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <strong>Alleen voor educatieve doeleinden.</strong> Deze visualisaties simuleren
+    het gedrag van bekende kwetsbaarheden om ze in de klas uit te leggen — ze bevatten
+    geen werkende exploits en draaien volledig lokaal in de browser.
+</footer>
+
+</body>
+</html>

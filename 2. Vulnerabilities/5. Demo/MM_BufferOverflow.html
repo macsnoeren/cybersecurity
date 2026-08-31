@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Buffer Overflow Simulator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: #080d18;
+    color: #e5e7eb;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+header {
+    height: 11vh;
+    min-height: 75px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 22px;
+    background: #111827;
+    border-bottom: 1px solid #334155;
+}
+
+.title h1 {
+    margin: 0;
+    font-size: clamp(20px, 2vw, 30px);
+}
+
+.title p {
+    margin: 5px 0 0;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+
+.controls {
+    height: 10vh;
+    min-height: 65px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+}
+
+input {
+    width: 280px;
+    max-width: 30vw;
+    padding: 9px 11px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    background: #020617;
+    color: white;
+    font-family: monospace;
+    font-size: 15px;
+}
+
+button {
+    border: 0;
+    border-radius: 6px;
+    padding: 9px 12px;
+    background: #334155;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #475569;
+}
+
+button.primary {
+    background: #2563eb;
+}
+
+button.danger {
+    background: #991b1b;
+}
+
+.step-info {
+    margin-left: auto;
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+main {
+    height: 64vh;
+    display: grid;
+    grid-template-columns: 25% 45% 30%;
+    gap: 0;
+}
+
+/* =========================================================
+   PANELS
+========================================================= */
+
+.panel {
+    min-width: 0;
+    overflow: hidden;
+    border-right: 1px solid #334155;
+    background: #0f172a;
+}
+
+.panel:last-child {
+    border-right: 0;
+}
+
+.panel-title {
+    height: 38px;
+    padding: 10px 13px;
+    background: #1e293b;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.panel-body {
+    height: calc(100% - 38px);
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* ---------------------------------------------------------
+   SCROLLBARS
+--------------------------------------------------------- */
+
+.panel-body,
+.code-scroll,
+.source-extra {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #0f172a;
+}
+
+.panel-body::-webkit-scrollbar,
+.code-scroll::-webkit-scrollbar,
+.source-extra::-webkit-scrollbar {
+    width: 9px;
+}
+
+.panel-body::-webkit-scrollbar-track,
+.code-scroll::-webkit-scrollbar-track,
+.source-extra::-webkit-scrollbar-track {
+    background: #0b1220;
+    border-radius: 5px;
+}
+
+.panel-body::-webkit-scrollbar-thumb,
+.code-scroll::-webkit-scrollbar-thumb,
+.source-extra::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 5px;
+}
+
+.panel-body::-webkit-scrollbar-thumb:hover,
+.code-scroll::-webkit-scrollbar-thumb:hover,
+.source-extra::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* ---------------------------------------------------------
+   SOURCE PANEL LAYOUT
+   Code krijgt een eigen scrollgebied zodat het blok met
+   Program Memory er altijd onder zichtbaar blijft.
+--------------------------------------------------------- */
+
+.source-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+}
+
+.code-scroll {
+    flex: 1 1 auto;
+    min-height: 90px;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding-right: 4px;
+}
+
+.source-extra {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    border-top: 1px solid #1e293b;
+}
+
+/* =========================================================
+   SOURCE
+========================================================= */
+
+.code {
+    font-family: Consolas, Monaco, monospace;
+    font-size: clamp(11px, 1vw, 14px);
+}
+
+.code-line {
+    padding: 4px 6px;
+    border-radius: 4px;
+    white-space: pre;
+}
+
+.code-line.active {
+    background: #1e3a5f;
+    box-shadow: inset 3px 0 #3b82f6;
+}
+
+.code-comment {
+    color: #64748b;
+}
+
+/* ---------------------------------------------------------
+   FUNCTIEBLOKKEN IN DE SOURCE
+   .target     = het return address wijst nu hierheen
+   .executing  = de CPU voert dit blok nu uit
+--------------------------------------------------------- */
+
+.code-func {
+    margin: 4px 0;
+    padding: 3px 0 3px 4px;
+    border-left: 3px solid transparent;
+    border-radius: 5px;
+    transition: all .3s;
+}
+
+.code-func.target {
+    border-left-color: #facc15;
+    background: rgba(250,204,21,.07);
+}
+
+.code-func.normal.executing {
+    border-left-color: #22c55e;
+    background: #052e16;
+    box-shadow: 0 0 14px rgba(34,197,94,.25);
+}
+
+.code-func.malicious.executing {
+    border-left-color: #ef4444;
+    background: #450a0a;
+    box-shadow: 0 0 18px rgba(239,68,68,.4);
+}
+
+.jump-badge {
+    display: none;
+    font-weight: bold;
+}
+
+.code-func.target .jump-badge,
+.code-func.executing .jump-badge {
+    display: inline;
+    color: #facc15;
+}
+
+.code-func.malicious.executing .jump-badge {
+    color: #fca5a5;
+}
+
+.code-func.normal.executing .jump-badge {
+    color: #86efac;
+}
+
+/* =========================================================
+   PROGRAM MEMORY
+========================================================= */
+
+.function {
+    margin-bottom: 9px;
+    padding: 9px 11px;
+    border: 1px solid #475569;
+    border-radius: 7px;
+    background: #111827;
+    transition: all .3s;
+}
+
+.function .name {
+    font-family: monospace;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.function .address {
+    margin-top: 3px;
+    color: #64748b;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.function.normal.active {
+    border-color: #22c55e;
+    background: #052e16;
+    box-shadow: 0 0 15px rgba(34,197,94,.3);
+}
+
+.function.malicious {
+    border-color: #7f1d1d;
+}
+
+.function.malicious.active {
+    border-color: #ef4444;
+    background: #450a0a;
+    box-shadow: 0 0 25px rgba(239,68,68,.5);
+}
+
+.memory-caption {
+    margin: 10px 0 6px;
+    color: #64748b;
+    font-size: 11px;
+}
+
+/* =========================================================
+   STACK SVG
+========================================================= */
+
+.stack-container {
+    width: 100%;
+    height: 100%;
+}
+
+svg {
+    width: 100%;
+    height: 100%;
+}
+
+.addr {
+    fill: #64748b;
+    font-family: monospace;
+    font-size: 10px;
+}
+
+.mem-label {
+    fill: white;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.mem-value {
+    fill: white;
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.arrow-label {
+    fill: #facc15;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* =========================================================
+   CPU
+========================================================= */
+
+.cpu {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 7px;
+    background: #020617;
+    border: 1px solid #334155;
+}
+
+.cpu-label {
+    color: #64748b;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.cpu-value {
+    margin-top: 3px;
+    color: #f8fafc;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status {
+    height: 15vh;
+    min-height: 90px;
+    padding: 12px 20px;
+    background: #111827;
+    border-top: 1px solid #334155;
+}
+
+.status-top {
+    display: flex;
+    justify-content: space-between;
+    color: #64748b;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+#status {
+    margin-top: 5px;
+    font-size: clamp(15px, 1.5vw, 20px);
+    font-weight: bold;
+}
+
+#details {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.progress {
+    height: 5px;
+    margin-top: 9px;
+    border-radius: 5px;
+    background: #1e293b;
+    overflow: hidden;
+}
+
+#progress {
+    width: 0%;
+    height: 100%;
+    background: #2563eb;
+    transition: width .2s;
+}
+
+/* =========================================================
+   BYTE ANIMATION
+========================================================= */
+
+#movingByte {
+    transition:
+        cx .45s ease,
+        cy .45s ease;
+}
+
+#controlArrow {
+    transition:
+        opacity .3s;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    main {
+        grid-template-columns: 30% 45% 25%;
+    }
+
+    .controls input {
+        width: 200px;
+    }
+
+    button {
+        padding: 7px 8px;
+        font-size: 12px;
+    }
+}
+</style>
+</head>
+
+
+<body>
+
+<!-- =======================================================
+     HEADER
+======================================================= -->
+
+<header>
+
+    <div class="title">
+
+        <h1>Buffer Overflow Simulator</h1>
+
+        <p>
+            Van input → geheugen → overflow → control-flow
+        </p>
+
+    </div>
+
+</header>
+
+
+<!-- =======================================================
+     CONTROLS
+======================================================= -->
+
+<div class="controls">
+
+    <input
+        id="input"
+        value="AAAAAAAAAAAAAAAA"
+        maxlength="24"
+    >
+
+    <button
+        class="primary"
+        onclick="load()"
+    >
+        ▶ Start
+    </button>
+
+    <button onclick="previous()">
+        ◀
+    </button>
+
+    <button
+        class="primary"
+        onclick="next()"
+    >
+        ▶
+    </button>
+
+    <button
+        onclick="togglePlay()"
+        id="playButton"
+    >
+        Autoplay
+    </button>
+
+    <button
+        class="danger"
+        onclick="reset()"
+    >
+        Reset
+    </button>
+
+    <div class="step-info">
+
+        STEP
+        <span id="stepNumber">0</span>
+        /
+        <span id="stepTotal">0</span>
+
+    </div>
+
+</div>
+
+
+<!-- =======================================================
+     MAIN
+======================================================= -->
+
+<main>
+
+
+<!-- =====================================================
+     SOURCE CODE
+===================================================== -->
+
+<section class="panel">
+
+    <div class="panel-title">
+        Source Code
+    </div>
+
+    <div class="panel-body source-body">
+
+      <div class="code-scroll">
+
+        <!--
+            LET OP: .code-line gebruikt white-space:pre.
+            De tekst staat daarom bewust direct tussen de
+            tags, anders ontstaan er lege regels.
+        -->
+
+        <div class="code">
+
+            <div class="code-line" id="c1">void main()</div>
+            <div class="code-line" id="c2">{</div>
+            <div class="code-line" id="c3">    vulnerable(input);</div>
+            <div class="code-line" id="c4">    normal_function();</div>
+            <div class="code-line" id="c5">}</div>
+
+            <div class="code-line">&nbsp;</div>
+
+            <div class="code-line" id="c6">void vulnerable(char *input)</div>
+            <div class="code-line" id="c7">{</div>
+            <div class="code-line" id="c8">    char buffer[8];</div>
+            <div class="code-line" id="c9">    copy_input(buffer, input);</div>
+            <div class="code-line" id="c10">}</div>
+
+            <div class="code-line">&nbsp;</div>
+
+
+            <!-- DOELFUNCTIE: NORMAAL -->
+
+            <div class="code-func normal" id="fnNormal">
+
+                <div class="code-line code-comment" id="c11">// 0x00401234</div>
+                <div class="code-line" id="c12">void normal_function()<span class="jump-badge">   ◀ RETURN</span></div>
+                <div class="code-line" id="c13">{</div>
+                <div class="code-line" id="c14">    puts("normal flow");</div>
+                <div class="code-line" id="c15">}</div>
+
+            </div>
+
+
+            <!-- DOELFUNCTIE: MALICIOUS -->
+
+            <div class="code-func malicious" id="fnMalicious">
+
+                <div class="code-line code-comment" id="c16">// 0x00409999</div>
+                <div class="code-line" id="c17">void malicious()<span class="jump-badge">   ◀ RETURN</span></div>
+                <div class="code-line" id="c18">{</div>
+                <div class="code-line" id="c19">    system("/bin/sh");</div>
+                <div class="code-line" id="c20">}</div>
+
+            </div>
+
+        </div>
+
+      </div>
+
+
+      <!--
+           Program Memory staat alleen nog in het
+           rechterpaneel; hier bleef het dubbelop.
+      -->
+
+      <div class="source-extra">
+
+        <div
+            style="
+                margin-top:10px;
+                color:#64748b;
+                font-size:11px;
+                line-height:1.4;
+            "
+        >
+
+            <strong>Belangrijk:</strong><br>
+
+            malicious() wordt niet door de input
+            als code toegevoegd. De functie bestaat
+            al in het programma.
+
+        </div>
+
+      </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     STACK MEMORY
+===================================================== -->
+
+<section class="panel">
+
+    <div class="panel-title">
+        Stack Memory
+    </div>
+
+    <div class="panel-body">
+
+        <div class="stack-container">
+
+            <svg
+                viewBox="0 0 600 500"
+                preserveAspectRatio="xMidYMid meet"
+            >
+
+                <defs>
+
+                    <filter id="glow">
+
+                        <feGaussianBlur
+                            stdDeviation="4"
+                            result="blur"
+                        />
+
+                        <feMerge>
+
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+
+                        </feMerge>
+
+                    </filter>
+
+                    <marker
+                        id="arrow"
+                        markerWidth="8"
+                        markerHeight="8"
+                        refX="7"
+                        refY="3"
+                        orient="auto"
+                    >
+
+                        <polygon
+                            points="0 0, 8 3, 0 6"
+                            fill="#facc15"
+                        />
+
+                    </marker>
+
+                </defs>
+
+
+                <!-- HIGH MEMORY -->
+
+                <text
+                    x="15"
+                    y="18"
+                    class="addr"
+                >
+                    HIGH MEMORY
+                </text>
+
+
+                <!-- RETURN ADDRESS -->
+
+                <text
+                    x="15"
+                    y="58"
+                    class="addr"
+                >
+                    0x7FFFFFFFE8
+                </text>
+
+                <rect
+                    id="returnBox"
+                    x="145"
+                    y="32"
+                    width="420"
+                    height="55"
+                    rx="7"
+                    fill="#7f1d1d"
+                    stroke="#ef4444"
+                />
+
+                <text
+                    x="160"
+                    y="54"
+                    class="mem-label"
+                >
+                    RETURN ADDRESS
+                </text>
+
+                <text
+                    id="returnValue"
+                    x="160"
+                    y="75"
+                    class="mem-value"
+                >
+                    0x00401234
+                </text>
+
+
+                <!-- FRAME POINTER -->
+
+                <text
+                    x="15"
+                    y="118"
+                    class="addr"
+                >
+                    0x7FFFFFFFE0
+                </text>
+
+                <rect
+                    id="frameBox"
+                    x="145"
+                    y="92"
+                    width="420"
+                    height="55"
+                    rx="7"
+                    fill="#5b21b6"
+                    stroke="#8b5cf6"
+                />
+
+                <text
+                    x="160"
+                    y="114"
+                    class="mem-label"
+                >
+                    SAVED FRAME POINTER
+                </text>
+
+                <text
+                    id="frameValue"
+                    x="160"
+                    y="135"
+                    class="mem-value"
+                >
+                    0x7FFFFFFF20
+                </text>
+
+
+                <!-- BUFFER -->
+
+                <text
+                    x="15"
+                    y="171"
+                    class="addr"
+                >
+                    BUFFER
+                </text>
+
+
+                <g id="buffer"></g>
+
+
+                <!-- BUFFER BOUNDARY -->
+
+                <line
+                    x1="135"
+                    y1="187"
+                    x2="570"
+                    y2="187"
+                    stroke="#facc15"
+                    stroke-width="2"
+                    stroke-dasharray="7 5"
+                />
+
+                <text
+                    x="400"
+                    y="181"
+                    class="arrow-label"
+                >
+                    BUFFER LIMIT
+                </text>
+
+
+                <!-- MOVING BYTE -->
+
+                <g
+                    id="movingByte"
+                    opacity="0"
+                >
+
+                    <circle
+                        id="byteCircle"
+                        cx="590"
+                        cy="470"
+                        r="22"
+                        fill="#facc15"
+                        filter="url(#glow)"
+                    />
+
+                    <text
+                        id="byteText"
+                        x="584"
+                        y="477"
+                        fill="#111827"
+                        font-family="monospace"
+                        font-size="17"
+                        font-weight="bold"
+                    >
+                        A
+                    </text>
+
+                </g>
+
+
+                <!-- WRITE ARROW -->
+
+                <line
+                    id="writeArrow"
+                    x1="590"
+                    y1="445"
+                    x2="590"
+                    y2="400"
+                    stroke="#facc15"
+                    stroke-width="3"
+                    marker-end="url(#arrow)"
+                />
+
+
+                <text
+                    x="15"
+                    y="480"
+                    class="addr"
+                >
+                    LOW MEMORY
+                </text>
+
+            </svg>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     PROGRAM MEMORY + CPU
+===================================================== -->
+
+<section class="panel">
+
+    <div class="panel-title">
+        Program Memory / CPU
+    </div>
+
+    <div class="panel-body">
+
+
+        <!-- PROGRAM MEMORY VISUAL -->
+
+        <div
+            style="
+                color:#64748b;
+                font-size:11px;
+                margin-bottom:7px;
+            "
+        >
+            PROGRAM MEMORY
+        </div>
+
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:1fr;
+                gap:7px;
+            "
+        >
+
+            <div
+                id="programMain"
+                class="function"
+            >
+
+                <div class="name">
+                    main()
+                </div>
+
+                <div class="address">
+                    0x00401000
+                </div>
+
+            </div>
+
+
+            <div
+                id="programNormal"
+                class="function normal"
+            >
+
+                <div class="name">
+                    normal_function()
+                </div>
+
+                <div class="address">
+                    0x00401234
+                </div>
+
+            </div>
+
+
+            <div
+                id="programMalicious"
+                class="function malicious"
+            >
+
+                <div class="name">
+                    malicious()
+                </div>
+
+                <div class="address">
+                    0x00409999
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTROL FLOW ARROW -->
+
+        <div
+            id="controlFlow"
+            style="
+                margin:12px 0;
+                padding:10px;
+                text-align:center;
+                border-radius:7px;
+                background:#020617;
+                border:1px solid #334155;
+                color:#facc15;
+                font-family:monospace;
+                font-size:12px;
+            "
+        >
+
+            return address
+            →
+            normal_function()
+
+        </div>
+
+
+        <!-- CPU -->
+
+        <div class="cpu">
+
+            <div class="cpu-label">
+                CPU operation
+            </div>
+
+            <div
+                class="cpu-value"
+                id="cpuOperation"
+            >
+                Waiting
+            </div>
+
+
+            <br>
+
+
+            <div class="cpu-label">
+                Current byte
+            </div>
+
+            <div
+                class="cpu-value"
+                id="cpuByte"
+            >
+                -
+            </div>
+
+
+            <br>
+
+
+            <div class="cpu-label">
+                Destination
+            </div>
+
+            <div
+                class="cpu-value"
+                id="cpuDestination"
+            >
+                -
+            </div>
+
+
+            <br>
+
+
+            <div class="cpu-label">
+                Return target
+            </div>
+
+            <div
+                class="cpu-value"
+                id="cpuReturn"
+            >
+                normal_function()
+            </div>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+</main>
+
+
+<!-- =======================================================
+     STATUS
+======================================================= -->
+
+<section class="status">
+
+    <div class="status-top">
+
+        <span>
+            SIMULATION STATUS
+        </span>
+
+        <span>
+            <span id="bytesInfo">0</span> input bytes
+        </span>
+
+    </div>
+
+
+    <div id="status">
+        Voer input in en klik op Start.
+    </div>
+
+
+    <div id="details">
+        De input wordt byte voor byte naar de buffer geschreven.
+    </div>
+
+
+    <div class="progress">
+
+        <div id="progress"></div>
+
+    </div>
+
+</section>
+
+
+<script>
+
+/* =========================================================
+   CONFIGURATION
+========================================================= */
+
+const BUFFER_SIZE = 8;
+
+const BUFFER_BASE = 0x7FFFFFFFD8;
+
+const NORMAL_ADDRESS = "0x00401234";
+
+const MALICIOUS_ADDRESS = "0x00409999";
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let bytes = [];
+
+let currentStep = 0;
+
+let timer = null;
+
+let playing = false;
+
+
+/* =========================================================
+   CREATE BUFFER
+========================================================= */
+
+function createBuffer() {
+
+    const container =
+        document.getElementById("buffer");
+
+
+    container.innerHTML = "";
+
+
+    for (
+        let i = 0;
+        i < BUFFER_SIZE;
+        i++
+    ) {
+
+        const y =
+            195 +
+            (
+                (BUFFER_SIZE - 1 - i)
+                * 31
+            );
+
+
+        const address =
+            BUFFER_BASE + i;
+
+
+        const group =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "g"
+            );
+
+
+        group.id =
+            "buffer" + i;
+
+
+        const addressText =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "text"
+            );
+
+
+        addressText.setAttribute(
+            "x",
+            "15"
+        );
+
+        addressText.setAttribute(
+            "y",
+            y + 21
+        );
+
+        addressText.setAttribute(
+            "class",
+            "addr"
+        );
+
+        addressText.textContent =
+            "0x"
+            +
+            address
+                .toString(16)
+                .toUpperCase();
+
+
+        const rect =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "rect"
+            );
+
+
+        rect.setAttribute(
+            "x",
+            "145"
+        );
+
+        rect.setAttribute(
+            "y",
+            y
+        );
+
+        rect.setAttribute(
+            "width",
+            "420"
+        );
+
+        rect.setAttribute(
+            "height",
+            "27"
+        );
+
+        rect.setAttribute(
+            "rx",
+            "4"
+        );
+
+        rect.setAttribute(
+            "fill",
+            "#1d4ed8"
+        );
+
+        rect.setAttribute(
+            "stroke",
+            "#60a5fa"
+        );
+
+
+        const label =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "text"
+            );
+
+
+        label.setAttribute(
+            "x",
+            "158"
+        );
+
+        label.setAttribute(
+            "y",
+            y + 18
+        );
+
+        label.setAttribute(
+            "class",
+            "mem-label"
+        );
+
+        label.textContent =
+            "buffer[" + i + "]";
+
+
+        const value =
+            document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "text"
+            );
+
+
+        value.id =
+            "value" + i;
+
+
+        value.setAttribute(
+            "x",
+            "470"
+        );
+
+        value.setAttribute(
+            "y",
+            y + 18
+        );
+
+        value.setAttribute(
+            "class",
+            "mem-value"
+        );
+
+        value.textContent =
+            "--";
+
+
+        group.appendChild(
+            addressText
+        );
+
+        group.appendChild(
+            rect
+        );
+
+        group.appendChild(
+            label
+        );
+
+        group.appendChild(
+            value
+        );
+
+
+        container.appendChild(
+            group
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOAD
+========================================================= */
+
+function load() {
+
+    stop();
+
+
+    const text =
+        document
+            .getElementById("input")
+            .value;
+
+
+    bytes =
+        Array.from(
+            new TextEncoder()
+                .encode(text)
+        );
+
+
+    currentStep = 0;
+
+
+    document
+        .getElementById("bytesInfo")
+        .textContent =
+        bytes.length;
+
+
+    render();
+
+}
+
+
+/* =========================================================
+   TOTAL STEPS
+========================================================= */
+
+function totalSteps() {
+
+    return (
+        4 +
+        bytes.length
+    );
+
+}
+
+
+/* =========================================================
+   RESET MEMORY
+========================================================= */
+
+function resetMemory() {
+
+    for (
+        let i = 0;
+        i < BUFFER_SIZE;
+        i++
+    ) {
+
+        const group =
+            document.getElementById(
+                "buffer" + i
+            );
+
+
+        if (!group)
+            continue;
+
+
+        group
+            .querySelector("rect")
+            .setAttribute(
+                "fill",
+                "#1d4ed8"
+            );
+
+
+        document
+            .getElementById(
+                "value" + i
+            )
+            .textContent =
+            "--";
+
+    }
+
+
+    document
+        .getElementById("frameBox")
+        .setAttribute(
+            "fill",
+            "#5b21b6"
+        );
+
+
+    document
+        .getElementById("frameValue")
+        .textContent =
+        "0x7FFFFFFF20";
+
+
+    document
+        .getElementById("returnBox")
+        .setAttribute(
+            "fill",
+            "#7f1d1d"
+        );
+
+
+    document
+        .getElementById("returnValue")
+        .textContent =
+        NORMAL_ADDRESS;
+
+
+    document
+        .getElementById("cpuReturn")
+        .textContent =
+        "normal_function()";
+
+
+    document
+        .getElementById("controlFlow")
+        .innerHTML =
+        "return address → normal_function()";
+
+
+    document
+        .getElementById("movingByte")
+        .setAttribute(
+            "opacity",
+            "0"
+        );
+
+
+    document
+        .getElementById("programNormal")
+        .classList
+        .remove("active");
+
+
+    document
+        .getElementById("programMalicious")
+        .classList
+        .remove("active");
+
+}
+
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+function render() {
+
+    resetMemory();
+
+    clearCode();
+
+
+    /* Zolang niets is overschreven wijst het
+       return address naar normal_function(). */
+
+    setSourceTarget("normal");
+
+
+    const total =
+        totalSteps();
+
+
+    document
+        .getElementById("stepNumber")
+        .textContent =
+        currentStep;
+
+
+    document
+        .getElementById("stepTotal")
+        .textContent =
+        total;
+
+
+    document
+        .getElementById("progress")
+        .style.width =
+        (
+            currentStep /
+            Math.max(
+                1,
+                total - 1
+            )
+            *
+            100
+        )
+        + "%";
+
+
+    /* -----------------------------------------------
+       STEP 0
+    ------------------------------------------------ */
+
+    if (
+        currentStep === 0
+    ) {
+
+        activate("c3");
+
+        setStatus(
+            "main() roept vulnerable() aan.",
+            "De normale control flow gaat naar de kwetsbare functie."
+        );
+
+        setCPU(
+            "CALL",
+            "-",
+            "vulnerable()",
+            "normal_function()"
+        );
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------
+       STEP 1
+    ------------------------------------------------ */
+
+    if (
+        currentStep === 1
+    ) {
+
+        activate("c8");
+
+        setStatus(
+            "De buffer wordt op de stack geplaatst.",
+            "buffer[8] kan maximaal acht bytes bevatten."
+        );
+
+        setCPU(
+            "ALLOCATE STACK FRAME",
+            "-",
+            "buffer[0..7]",
+            "normal_function()"
+        );
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------
+       STEP 2
+    ------------------------------------------------ */
+
+    if (
+        currentStep === 2
+    ) {
+
+        activate("c9");
+
+        setStatus(
+            "copy_input() begint de input te schrijven.",
+            "De bytes worden achter elkaar naar het geheugen geschreven."
+        );
+
+        setCPU(
+            "WRITE",
+            "-",
+            "buffer[0]",
+            "normal_function()"
+        );
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------
+       BYTE STEPS
+    ------------------------------------------------ */
+
+    const index =
+        currentStep - 3;
+
+
+    if (
+        index >= 0 &&
+        index < bytes.length
+    ) {
+
+        activate("c9");
+
+
+        writeBytes(index);
+
+
+        const value =
+            bytes[index];
+
+
+        const character =
+            printable(value);
+
+
+        const hex =
+            "0x"
+            +
+            value
+                .toString(16)
+                .padStart(
+                    2,
+                    "0"
+                )
+                .toUpperCase();
+
+
+        if (
+            index < BUFFER_SIZE
+        ) {
+
+            setStatus(
+                "Byte " +
+                (index + 1)
+                +
+                " wordt naar buffer[" +
+                index +
+                "] geschreven.",
+                character +
+                " = " +
+                hex +
+                " blijft binnen de buffer."
+            );
+
+
+            setCPU(
+                "WRITE BYTE",
+                character,
+                "buffer[" + index + "]",
+                "normal_function()"
+            );
+
+        }
+
+        else if (
+            index <
+            BUFFER_SIZE + 4
+        ) {
+
+            document
+                .getElementById("frameBox")
+                .setAttribute(
+                    "fill",
+                    "#dc2626"
+                );
+
+
+            document
+                .getElementById("frameValue")
+                .textContent =
+                "OVERWRITTEN";
+
+
+            setStatus(
+                "⚠ BUFFER OVERFLOW",
+                "De buffer is vol. De volgende bytes schrijven nu buiten het bedoelde buffergebied."
+            );
+
+
+            setCPU(
+                "WRITE OUTSIDE BUFFER",
+                character,
+                "adjacent stack data",
+                "normal_function()"
+            );
+
+        }
+
+        else {
+
+            document
+                .getElementById("returnBox")
+                .setAttribute(
+                    "fill",
+                    "#dc2626"
+                );
+
+
+            document
+                .getElementById("returnValue")
+                .textContent =
+                MALICIOUS_ADDRESS;
+
+
+            document
+                .getElementById("cpuReturn")
+                .textContent =
+                "malicious()";
+
+
+            document
+                .getElementById("controlFlow")
+                .innerHTML =
+                "return address → <strong style='color:#ef4444'>malicious()</strong>";
+
+
+            setSourceTarget("malicious");
+
+
+            setStatus(
+                "🚨 CONTROL-FLOW DATA IS GEWIJZIGD",
+                "De simulator koppelt de gewijzigde return target nu aan de reeds bestaande malicious() functie."
+            );
+
+
+            setCPU(
+                "CONTROL-FLOW DATA CHANGED",
+                character,
+                "return address",
+                "malicious()"
+            );
+
+        }
+
+
+        showByte(character);
+
+        return;
+
+    }
+
+
+    /* -----------------------------------------------
+       FINAL RETURN
+    ------------------------------------------------ */
+
+    if (
+        currentStep === total - 1
+    ) {
+
+        activate("c10");
+
+
+        /* Het return address ligt achter de buffer en de
+           saved frame pointer. Alleen als de input ook
+           daar voorbij schrijft, verandert de sprong. */
+
+        const returnOverwritten =
+            bytes.length >
+            BUFFER_SIZE + 4;
+
+
+        if (
+            !returnOverwritten
+        ) {
+
+            document
+                .getElementById("programNormal")
+                .classList
+                .add("active");
+
+
+            setSourceTarget("normal");
+
+            setSourceExecuting("normal");
+
+
+            setStatus(
+                "✓ Normale return.",
+                "Het oorspronkelijke return address is intact."
+            );
+
+
+            setCPU(
+                "RETURN",
+                "-",
+                "normal_function()",
+                "normal_function()"
+            );
+
+        }
+
+        else {
+
+            document
+                .getElementById("programMalicious")
+                .classList
+                .add("active");
+
+
+            setSourceTarget("malicious");
+
+            setSourceExecuting("malicious");
+
+
+            setStatus(
+                "🚨 CONTROL FLOW → malicious()",
+                "De functie retourneert conceptueel naar een andere bestaande functie in het programma."
+            );
+
+
+            setCPU(
+                "RETURN",
+                "-",
+                "malicious()",
+                "malicious()"
+            );
+
+
+            document
+                .getElementById("controlFlow")
+                .innerHTML =
+                "CPU RETURN → <strong style='color:#ef4444'>malicious()</strong>";
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   WRITE BYTES
+========================================================= */
+
+function writeBytes(
+    current
+) {
+
+    for (
+        let i = 0;
+        i <= current;
+        i++
+    ) {
+
+        const value =
+            bytes[i];
+
+
+        const character =
+            printable(value);
+
+
+        if (
+            i < BUFFER_SIZE
+        ) {
+
+            const group =
+                document.getElementById(
+                    "buffer" + i
+                );
+
+
+            const rect =
+                group.querySelector(
+                    "rect"
+                );
+
+
+            document
+                .getElementById(
+                    "value" + i
+                )
+                .textContent =
+                character
+                +
+                " / "
+                +
+                value
+                    .toString(16)
+                    .padStart(
+                        2,
+                        "0"
+                    )
+                    .toUpperCase();
+
+
+            if (
+                i === current
+            ) {
+
+                rect.setAttribute(
+                    "fill",
+                    "#f59e0b"
+                );
+
+                rect.setAttribute(
+                    "filter",
+                    "url(#glow)"
+                );
+
+            }
+
+        }
+
+        else if (
+            i <
+            BUFFER_SIZE + 4
+        ) {
+
+            document
+                .getElementById(
+                    "frameBox"
+                )
+                .setAttribute(
+                    "fill",
+                    "#dc2626"
+                );
+
+
+            document
+                .getElementById(
+                    "frameValue"
+                )
+                .textContent =
+                "OVERWRITTEN";
+
+        }
+
+        else {
+
+            document
+                .getElementById(
+                    "returnBox"
+                )
+                .setAttribute(
+                    "fill",
+                    "#dc2626"
+                );
+
+
+            document
+                .getElementById(
+                    "returnValue"
+                )
+                .textContent =
+                MALICIOUS_ADDRESS;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   BYTE
+========================================================= */
+
+function showByte(
+    character
+) {
+
+    const element =
+        document.getElementById(
+            "movingByte"
+        );
+
+
+    document
+        .getElementById(
+            "byteText"
+        )
+        .textContent =
+        character;
+
+
+    element.setAttribute(
+        "opacity",
+        "1"
+    );
+
+}
+
+
+/* =========================================================
+   CPU
+========================================================= */
+
+function setCPU(
+    operation,
+    byte,
+    destination,
+    returnTarget
+) {
+
+    document
+        .getElementById(
+            "cpuOperation"
+        )
+        .textContent =
+        operation;
+
+
+    document
+        .getElementById(
+            "cpuByte"
+        )
+        .textContent =
+        byte;
+
+
+    document
+        .getElementById(
+            "cpuDestination"
+        )
+        .textContent =
+        destination;
+
+
+    document
+        .getElementById(
+            "cpuReturn"
+        )
+        .textContent =
+        returnTarget;
+
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function setStatus(
+    title,
+    details
+) {
+
+    document
+        .getElementById(
+            "status"
+        )
+        .textContent =
+        title;
+
+
+    document
+        .getElementById(
+            "details"
+        )
+        .textContent =
+        details;
+
+}
+
+
+/* =========================================================
+   CODE
+========================================================= */
+
+function clearCode() {
+
+    document
+        .querySelectorAll(
+            ".code-line"
+        )
+        .forEach(
+            x =>
+                x.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .querySelectorAll(
+            ".code-func"
+        )
+        .forEach(
+            x =>
+                x.classList.remove(
+                    "target",
+                    "executing"
+                )
+        );
+
+}
+
+
+/* ---------------------------------------------------------
+   RETURN TARGET IN DE SOURCE MARKEREN
+--------------------------------------------------------- */
+
+function setSourceTarget(
+    which
+) {
+
+    document
+        .getElementById("fnNormal")
+        .classList
+        .toggle(
+            "target",
+            which === "normal"
+        );
+
+
+    document
+        .getElementById("fnMalicious")
+        .classList
+        .toggle(
+            "target",
+            which === "malicious"
+        );
+
+}
+
+
+/* ---------------------------------------------------------
+   SPRONG UITVOEREN: FUNCTIE OPLICHTEN EN IN BEELD BRENGEN
+--------------------------------------------------------- */
+
+function setSourceExecuting(
+    which
+) {
+
+    const element =
+        document.getElementById(
+            which === "malicious"
+                ? "fnMalicious"
+                : "fnNormal"
+        );
+
+
+    element
+        .classList
+        .add("executing");
+
+
+    element.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: "smooth"
+    });
+
+}
+
+
+function activate(id) {
+
+    const line =
+        document.getElementById(id);
+
+
+    if (!line)
+        return;
+
+
+    line
+        .classList
+        .add("active");
+
+
+    /* De actieve regel altijd in beeld houden. */
+
+    line.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: "smooth"
+    });
+
+}
+
+
+/* =========================================================
+   BYTE → CHARACTER
+========================================================= */
+
+function printable(
+    value
+) {
+
+    if (
+        value >= 32 &&
+        value <= 126
+    ) {
+
+        return String.fromCharCode(
+            value
+        );
+
+    }
+
+    return "·";
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function next() {
+
+    if (
+        bytes.length === 0
+    ) {
+
+        load();
+
+        return;
+
+    }
+
+
+    if (
+        currentStep <
+        totalSteps() - 1
+    ) {
+
+        currentStep++;
+
+        render();
+
+    }
+
+}
+
+
+function previous() {
+
+    if (
+        currentStep > 0
+    ) {
+
+        currentStep--;
+
+        render();
+
+    }
+
+}
+
+
+/* =========================================================
+   AUTOPLAY
+========================================================= */
+
+function togglePlay() {
+
+    if (
+        playing
+    ) {
+
+        stop();
+
+    }
+
+    else {
+
+        start();
+
+    }
+
+}
+
+
+function start() {
+
+    if (
+        bytes.length === 0
+    ) {
+
+        load();
+
+    }
+
+
+    playing = true;
+
+
+    document
+        .getElementById("playButton")
+        .textContent =
+        "⏸ Pause";
+
+
+    timer =
+        setInterval(
+            () => {
+
+                if (
+                    currentStep >=
+                    totalSteps() - 1
+                ) {
+
+                    stop();
+
+                    return;
+
+                }
+
+
+                currentStep++;
+
+                render();
+
+            },
+            750
+        );
+
+}
+
+
+function stop() {
+
+    if (
+        timer
+    ) {
+
+        clearInterval(timer);
+
+    }
+
+
+    timer = null;
+
+    playing = false;
+
+
+    document
+        .getElementById("playButton")
+        .textContent =
+        "Autoplay";
+
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function reset() {
+
+    stop();
+
+
+    bytes = [];
+
+    currentStep = 0;
+
+
+    resetMemory();
+
+    clearCode();
+
+
+    document
+        .getElementById("stepNumber")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("stepTotal")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("bytesInfo")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("progress")
+        .style.width =
+        "0%";
+
+
+    setStatus(
+        "Voer input in en klik op Start.",
+        "De input wordt byte voor byte naar de buffer geschreven."
+    );
+
+
+    setCPU(
+        "Waiting",
+        "-",
+        "-",
+        "normal_function()"
+    );
+
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+createBuffer();
+
+reset();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Timing Attack Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d18; color: #e5e7eb; font-family: Arial, Helvetica, sans-serif; }
+
+header {
+    height: 11vh; min-height: 72px; display: flex; align-items: center;
+    padding: 12px 22px; background: #111827; border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+.controls {
+    height: 11vh; min-height: 66px; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 8px 20px; background: #0f172a; border-bottom: 1px solid #334155;
+}
+input {
+    width: 160px; padding: 8px 10px; border: 1px solid #475569;
+    border-radius: 6px; background: #020617; color: white; font-family: monospace; font-size: 14px; letter-spacing: 2px;
+}
+.field { display: flex; flex-direction: column; gap: 2px; }
+.field label { font-size: 10px; color: #64748b; text-transform: uppercase; }
+button { border: 0; border-radius: 6px; padding: 9px 12px; background: #334155; color: white; cursor: pointer; font-size: 13px; }
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.mode { background: #1e293b; border: 1px solid #334155; }
+button.mode.vuln.active { background: #991b1b; border-color: #ef4444; }
+button.mode.safe.active { background: #166534; border-color: #22c55e; }
+.sep { width: 1px; height: 30px; background: #334155; margin: 0 4px; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+main { height: 63vh; display: grid; grid-template-columns: 26% 44% 30%; }
+.panel { min-width: 0; overflow: hidden; border-right: 1px solid #334155; background: #0f172a; display: flex; flex-direction: column; }
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px; padding: 9px 13px; background: #1e293b; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto;
+}
+.panel-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px; color: #64748b; font-size: 11px; line-height: 1.5;
+    border-top: 1px solid #1e293b; padding-top: 10px;
+}
+.src-note code { color: #fbbf24; }
+
+/* SECRET PROGRESS */
+.secret-box { margin-bottom: 12px; }
+.secret-label { color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+.secret-chars { display: flex; gap: 6px; }
+.schar {
+    width: 34px; height: 44px; display: flex; align-items: center; justify-content: center;
+    border-radius: 7px; border: 1px solid #334155; background: #020617;
+    font-family: monospace; font-size: 22px; font-weight: bold;
+}
+.schar.found { border-color: #22c55e; background: #052e16; color: #86efac; }
+.schar.current { border-color: #facc15; box-shadow: 0 0 12px rgba(250,204,21,.5); }
+.schar.hidden { color: #475569; }
+
+/* CANDIDATE BARS */
+.cand-label { color: #64748b; font-size: 11px; text-transform: uppercase; margin: 4px 0 8px; }
+.bars { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 4px; }
+.bar {
+    width: 30px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.bar .col {
+    width: 22px; background: #334155; border-radius: 3px 3px 0 0; transition: height .3s, background .3s;
+    min-height: 3px;
+}
+.bar.winner .col { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,.6); }
+.bar.tested .col { background: #475569; }
+.bar .ch { font-family: monospace; font-size: 12px; color: #94a3b8; }
+.bar.winner .ch { color: #fbbf24; font-weight: bold; }
+.bar .ms { font-family: monospace; font-size: 9px; color: #475569; }
+.bar.winner .ms { color: #fbbf24; }
+.bars-frame { height: 150px; display: flex; align-items: flex-end; margin-bottom: 6px; }
+
+.legend { margin-top: 10px; font-size: 11px; color: #64748b; line-height: 1.5; }
+
+/* RIGHT: measured + explanation */
+.recovered {
+    padding: 14px; border-radius: 10px; background: #020617; border: 1px solid #334155; margin-bottom: 12px; text-align: center;
+}
+.recovered .lbl { color: #64748b; font-size: 11px; text-transform: uppercase; }
+.recovered .val { font-family: monospace; font-size: 26px; font-weight: bold; letter-spacing: 4px; margin-top: 6px; color: #f87171; }
+.recovered.safe .val { color: #64748b; }
+.attempts { font-family: monospace; font-size: 11px; color: #94a3b8; line-height: 1.7; }
+.attempts .a { padding: 2px 0; }
+.attempts .a b { color: #fbbf24; }
+.info {
+    margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #111827;
+    border: 1px solid #334155; font-size: 12px; color: #cbd5e1; line-height: 1.5;
+}
+
+.status {
+    height: 15vh; min-height: 88px; padding: 11px 20px; background: #111827; border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>Timing Attack (Side-channel)</h1>
+        <p>De responstijd verraadt hoeveel tekens al kloppen → geheim teken-voor-teken herstellen</p>
+    </div>
+</header>
+
+<div class="controls">
+    <div class="field">
+        <label>geheime pincode/token</label>
+        <input id="secret" value="C0FFEE" maxlength="8">
+    </div>
+    <button class="mode vuln active" id="mVuln" onclick="setMode(false)">Kwetsbaar (early-return)</button>
+    <button class="mode safe" id="mSafe" onclick="setMode(true)">🛡 Constant-time</button>
+    <div class="sep"></div>
+    <button class="primary" onclick="load()">▶ Start aanval</button>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (Python)</div>
+    <div class="panel-body">
+        <div class="code" id="codeVuln">
+            <div class="code-line code-comment"># VULNERABLE</div>
+            <div class="code-line" id="cv1">def compare(guess, secret):</div>
+            <div class="code-line" id="cv2">  for i in range(len(secret)):</div>
+            <div class="code-line" id="cv3">    if guess[i] != secret[i]:</div>
+            <div class="code-line" id="cv4">      return False  # stopt!</div>
+            <div class="code-line" id="cv5">    sleep(0.1ms)  # per teken</div>
+            <div class="code-line" id="cv6">  return True</div>
+        </div>
+        <div class="code" id="codeSafe" style="display:none">
+            <div class="code-line code-comment"># SAFE</div>
+            <div class="code-line" id="cs1">def compare(guess, secret):</div>
+            <div class="code-line" id="cs2">  result = 0</div>
+            <div class="code-line" id="cs3">  for i in range(len(secret)):</div>
+            <div class="code-line" id="cs4">    result |= guess[i] ^ secret[i]</div>
+            <div class="code-line" id="cs5">  # altijd hele lengte</div>
+            <div class="code-line" id="cs6">  return result == 0</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> de kwetsbare vergelijking <code>return</code>t
+            zodra één teken niet klopt. Hoe meer tekens vooraan kloppen, hoe langer
+            de lus draait → hoe langer de responstijd. Die tijd is een
+            <em>side-channel</em>: de aanvaller leest er het geheim uit zonder het
+            ooit te zien. Constant-time vergelijkt altijd álle tekens, dus de tijd
+            lekt niets.
+        </div>
+    </div>
+</section>
+
+<!-- BARS -->
+<section class="panel">
+    <div class="panel-title">Meting: responstijd per kandidaat-teken</div>
+    <div class="panel-body">
+        <div class="secret-box">
+            <div class="secret-label">herstelde tekens</div>
+            <div class="secret-chars" id="secretChars"></div>
+        </div>
+        <div class="cand-label" id="candLabel">Positie 1 — welk teken geeft de langste tijd?</div>
+        <div class="bars-frame"><div class="bars" id="bars"></div></div>
+        <div class="legend" id="legend">
+            Elke balk = gemeten responstijd als we dat teken op de huidige positie proberen.
+            De langste balk = het teken dat één stap verder door de vergelijking kwam.
+        </div>
+    </div>
+</section>
+
+<!-- RECOVERED -->
+<section class="panel">
+    <div class="panel-title">Aanvaller</div>
+    <div class="panel-body">
+        <div class="recovered" id="recovered">
+            <div class="lbl">geheim (gereconstrueerd)</div>
+            <div class="val" id="recoveredVal">······</div>
+        </div>
+        <div class="secret-label">gekozen per positie</div>
+        <div class="attempts" id="attempts"><div class="a">— nog geen metingen —</div></div>
+        <div class="info" id="info">
+            De aanvaller kent het geheim niet, maar meet alleen tijd. Toch valt
+            het teken-voor-teken te reconstrueren.
+        </div>
+    </div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span>tekens gevonden: <span id="foundInfo">0</span></span>
+    </div>
+    <div id="status">Kies een geheim en klik op Start aanval.</div>
+    <div id="details">Per positie meet de aanvaller de tijd voor elk kandidaat-teken.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+const BASE_MS = 2.0;   /* vaste overhead */
+const UNIT_MS = 1.2;   /* tijd per kloppend teken */
+const MAXBAR = 140;    /* px voor hoogste balk */
+
+let safeMode = false;
+let secret = "";
+let measurements = [];   /* per position: {ch: ms} map + winner */
+let currentStep = 0, timer = null, playing = false;
+
+/* deterministic small noise so bars look "measured" but stable */
+function noise(seed) {
+    const x = Math.sin(seed * 12.9898) * 43758.5453;
+    return (x - Math.floor(x)) * 0.5; /* 0..0.5 ms */
+}
+
+function computeMeasurements() {
+    measurements = [];
+    for (let pos = 0; pos < secret.length; pos++) {
+        const row = {};
+        for (let a = 0; a < ALPHABET.length; a++) {
+            const ch = ALPHABET[a];
+            let ms;
+            if (safeMode) {
+                /* constant time: always full length, no per-char leak */
+                ms = BASE_MS + UNIT_MS * secret.length + noise(pos * 100 + a);
+            } else {
+                /* matched chars = pos (prefix already known correct) + 1 if this char correct */
+                const matched = pos + (ch === secret[pos] ? 1 : 0);
+                ms = BASE_MS + UNIT_MS * matched + noise(pos * 100 + a);
+            }
+            row[ch] = ms;
+        }
+        measurements.push(row);
+    }
+}
+
+function load() {
+    stop();
+    secret = document.getElementById("secret").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    document.getElementById("secret").value = secret;
+    if (!secret) return;
+    computeMeasurements();
+    currentStep = 0;
+    render();
+}
+
+function setMode(safe) {
+    safeMode = safe;
+    document.getElementById("mVuln").classList.toggle("active", !safe);
+    document.getElementById("mSafe").classList.toggle("active", safe);
+    document.getElementById("codeVuln").style.display = safe ? "none" : "block";
+    document.getElementById("codeSafe").style.display = safe ? "block" : "none";
+    if (secret) { computeMeasurements(); render(); }
+}
+
+function winnerAt(pos) {
+    /* the char with max measured time */
+    const row = measurements[pos];
+    let best = null, bestMs = -1;
+    ALPHABET.forEach(ch => { if (row[ch] > bestMs) { bestMs = row[ch]; best = ch; } });
+    return best;
+}
+
+function render() {
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+
+    const total = secret.length + 1; /* positions + final */
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = total - 1;
+    document.getElementById("progress").style.width = (currentStep / Math.max(1, total - 1) * 100) + "%";
+
+    /* recovered secret so far */
+    const foundCount = Math.min(currentStep, secret.length);
+    let recovered = "";
+    for (let i = 0; i < secret.length; i++) {
+        recovered += (i < foundCount && !safeMode) ? winnerAt(i) : "·";
+    }
+
+    /* secret char boxes */
+    const sc = document.getElementById("secretChars");
+    sc.innerHTML = "";
+    for (let i = 0; i < secret.length; i++) {
+        const box = document.createElement("div");
+        const isFound = i < foundCount && !safeMode;
+        const isCurrent = i === currentStep - 1 && currentStep <= secret.length;
+        box.className = "schar" + (isFound ? " found" : " hidden") + (isCurrent ? " current" : "");
+        box.textContent = isFound ? winnerAt(i) : "·";
+        sc.appendChild(box);
+    }
+
+    /* highlight source */
+    if (!safeMode) { ["cv2","cv3","cv5"].forEach(id => document.getElementById(id).classList.add("active")); }
+    else { ["cs3","cs4"].forEach(id => document.getElementById(id).classList.add("active")); }
+
+    /* bars for current position */
+    const pos = Math.min(currentStep - 1, secret.length - 1);
+    const barsEl = document.getElementById("bars");
+    const candLabel = document.getElementById("candLabel");
+
+    if (currentStep >= 1 && currentStep <= secret.length) {
+        const row = measurements[pos];
+        let maxMs = 0;
+        ALPHABET.forEach(ch => { if (row[ch] > maxMs) maxMs = row[ch]; });
+        const win = winnerAt(pos);
+
+        barsEl.innerHTML = "";
+        ALPHABET.forEach(ch => {
+            const ms = row[ch];
+            const h = Math.max(3, (ms / maxMs) * MAXBAR);
+            const isWin = !safeMode && ch === win;
+            const bar = document.createElement("div");
+            bar.className = "bar " + (isWin ? "winner" : "tested");
+            bar.innerHTML =
+                '<div class="col" style="height:' + h.toFixed(0) + 'px"></div>' +
+                '<div class="ch">' + ch + '</div>' +
+                '<div class="ms">' + ms.toFixed(1) + '</div>';
+            barsEl.appendChild(bar);
+        });
+
+        candLabel.innerHTML = "Positie " + (pos + 1) + " — " +
+            (safeMode ? "alle tijden gelijk, geen winnaar" : "langste tijd = <b style='color:#fbbf24'>'" + win + "'</b>");
+
+        if (safeMode) {
+            setStatus("🛡 Positie " + (pos + 1) + ": geen verschil",
+                "Alle kandidaten duren even lang (≈" + (BASE_MS + UNIT_MS * secret.length).toFixed(1) + " ms). De aanvaller kan niets onderscheiden.");
+        } else {
+            setStatus("Positie " + (pos + 1) + ": '" + win + "' gekozen",
+                "'" + win + "' kwam één teken verder door de vergelijking → ~" + UNIT_MS.toFixed(1) + " ms langer dan de rest. Vastgelegd.");
+        }
+    } else if (currentStep === 0) {
+        barsEl.innerHTML = "";
+        candLabel.textContent = "Klik op Start aanval om de eerste positie te meten.";
+        setStatus(safeMode ? "Constant-time modus" : "Kwetsbare modus",
+            "Per positie meet de aanvaller de responstijd voor elk mogelijk teken.");
+    } else {
+        /* final */
+        barsEl.innerHTML = "";
+        candLabel.textContent = "Aanval afgerond.";
+        if (safeMode) {
+            setStatus("🛡 Geheim NIET hersteld",
+                "De constant-time vergelijking lekte geen tijd. Na alle metingen weet de aanvaller nog niets.");
+        } else {
+            setStatus("🚨 Geheim volledig hersteld: " + secret,
+                "Puur op basis van responstijden — zonder het geheim ooit te zien — is elk teken gereconstrueerd.");
+        }
+    }
+
+    /* recovered panel */
+    const recEl = document.getElementById("recovered");
+    recEl.className = "recovered" + (safeMode ? " safe" : "");
+    document.getElementById("recoveredVal").textContent = recovered;
+    document.getElementById("foundInfo").textContent = safeMode ? 0 : foundCount;
+
+    /* attempts log */
+    const at = document.getElementById("attempts");
+    if (!safeMode && foundCount > 0) {
+        let html = "";
+        for (let i = 0; i < foundCount; i++) {
+            const win = winnerAt(i);
+            const ms = measurements[i][win];
+            html += '<div class="a">pos ' + (i + 1) + ': <b>' + win + '</b> (' + ms.toFixed(1) + ' ms)</div>';
+        }
+        at.innerHTML = html;
+    } else if (safeMode) {
+        at.innerHTML = '<div class="a">metingen tonen geen bruikbaar verschil</div>';
+    } else {
+        at.innerHTML = '<div class="a">— nog geen metingen —</div>';
+    }
+}
+
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+function next() {
+    if (!secret) { load(); return; }
+    if (currentStep < secret.length + 1 - 1) { currentStep++; render(); }
+}
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    if (!secret) load();
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= secret.length) { stop(); return; }
+        currentStep++; render();
+    }, 1200);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+function reset() {
+    stop();
+    currentStep = 0;
+    if (secret) render();
+    else {
+        document.getElementById("bars").innerHTML = "";
+        document.getElementById("secretChars").innerHTML = "";
+        document.getElementById("recoveredVal").textContent = "······";
+        document.getElementById("attempts").innerHTML = '<div class="a">— nog geen metingen —</div>';
+        document.getElementById("stepNumber").textContent = "0";
+        document.getElementById("progress").style.width = "0%";
+        document.getElementById("foundInfo").textContent = "0";
+    }
+    setStatus("Kies een geheim en klik op Start aanval.",
+        "Per positie meet de aanvaller de tijd voor elk kandidaat-teken.");
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SQL Injection Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d18; color: #e5e7eb; font-family: Arial, Helvetica, sans-serif; }
+
+header {
+    height: 11vh; min-height: 72px; display: flex; align-items: center;
+    padding: 12px 22px; background: #111827; border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+.controls {
+    height: 11vh; min-height: 66px; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 8px 20px; background: #0f172a; border-bottom: 1px solid #334155;
+}
+.field { display: flex; flex-direction: column; gap: 2px; }
+.field label { font-size: 10px; color: #64748b; text-transform: uppercase; }
+input {
+    width: 210px; max-width: 24vw; padding: 8px 10px; border: 1px solid #475569;
+    border-radius: 6px; background: #020617; color: white; font-family: monospace; font-size: 14px;
+}
+button {
+    border: 0; border-radius: 6px; padding: 9px 12px; background: #334155;
+    color: white; cursor: pointer; font-size: 13px;
+}
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.preset { background: #1e293b; border: 1px solid #334155; font-family: monospace; font-size: 11px; }
+button.preset.safe { border-color: #166534; color: #86efac; }
+button.preset.active { background: #2563eb; border-color: #2563eb; color: white; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+main { height: 63vh; display: grid; grid-template-columns: 27% 40% 33%; }
+.panel { min-width: 0; overflow: hidden; border-right: 1px solid #334155; background: #0f172a; display: flex; flex-direction: column; }
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px; padding: 9px 13px; background: #1e293b; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto;
+}
+.panel-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px; color: #64748b; font-size: 11px; line-height: 1.5;
+    border-top: 1px solid #1e293b; padding-top: 10px;
+}
+
+/* QUERY BUILD */
+.qlabel { color: #64748b; font-size: 11px; text-transform: uppercase; margin: 4px 0 6px; }
+.query {
+    padding: 14px; background: #000; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 14px; line-height: 1.8; word-break: break-word;
+    min-height: 90px;
+}
+.kw { color: #c084fc; font-weight: bold; }
+.str { color: #86efac; }
+.inj { background: #7f1d1d; color: #fecaca; padding: 1px 3px; border-radius: 3px; }
+.inj.hot { background: #dc2626; color: white; box-shadow: 0 0 12px rgba(220,38,38,.6); }
+.cursor { border-right: 2px solid #facc15; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { border-color: transparent; } }
+
+.logic {
+    margin-top: 14px; padding: 12px; background: #020617; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 13px;
+}
+.logic .row { display: flex; justify-content: space-between; padding: 3px 0; }
+.logic .t { color: #4ade80; font-weight: bold; }
+.logic .f { color: #f87171; font-weight: bold; }
+
+/* TABLE */
+.tbl { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; }
+.tbl th { text-align: left; padding: 6px 7px; color: #64748b; border-bottom: 1px solid #334155; font-weight: normal; }
+.tbl td { padding: 6px 7px; border-bottom: 1px solid #1e293b; }
+.tbl tr.match td { background: #052e16; color: #86efac; }
+.tbl tr.match.breach td { background: #450a0a; color: #fecaca; }
+.tbl tr .pw { color: #fbbf24; }
+.result-line { margin-top: 12px; font-family: monospace; font-size: 12px; color: #94a3b8; }
+
+.status {
+    height: 15vh; min-height: 88px; padding: 11px 20px; background: #111827; border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>SQL Injection</h1>
+        <p>Gebruikersinput wordt onderdeel van de SQL-query in plaats van alleen data</p>
+    </div>
+</header>
+
+<div class="controls">
+    <div class="field">
+        <label>username</label>
+        <input id="user" value="admin' OR '1'='1">
+    </div>
+    <div class="field">
+        <label>password</label>
+        <input id="pass" value="anything">
+    </div>
+    <button class="primary" onclick="load()">▶ Start</button>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+
+    <button class="preset" onclick="preset('user1','password1',false)">normaal</button>
+    <button class="preset" onclick="preset(&quot;admin' OR '1'='1&quot;,'anything',false)">OR 1=1</button>
+    <button class="preset" onclick="preset(&quot;x' UNION SELECT id,username,password,role,email FROM users --&quot;,'x',false)">UNION</button>
+    <button class="preset safe" onclick="preset(&quot;admin' OR '1'='1&quot;,'anything',true)">🛡 parameterized</button>
+
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (Python)</div>
+    <div class="panel-body">
+        <div class="code" id="codeVuln">
+            <div class="code-line code-comment"># VULNERABLE</div>
+            <div class="code-line" id="cv1">def vulnerable_login(u, p):</div>
+            <div class="code-line" id="cv2">  q = f"SELECT * FROM users</div>
+            <div class="code-line" id="cv3">      WHERE username = '{u}'</div>
+            <div class="code-line" id="cv4">      AND password = '{p}'"</div>
+            <div class="code-line" id="cv5">  cursor.execute(q)</div>
+        </div>
+        <div class="code" id="codeSafe" style="display:none">
+            <div class="code-line code-comment"># SAFE</div>
+            <div class="code-line" id="cs1">def safe_login(u, p):</div>
+            <div class="code-line" id="cs2">  q = "SELECT * FROM users</div>
+            <div class="code-line" id="cs3">      WHERE username = ?</div>
+            <div class="code-line" id="cs4">      AND password = ?"</div>
+            <div class="code-line" id="cs5">  cursor.execute(q, (u, p))</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> bij <em>f"...'{u}'..."</em> wordt de input
+            ín de SQL-tekst geplakt. Een <code>'</code> sluit de string vroegtijdig
+            af, waarna <code>OR '1'='1'</code> als <em>code</em> wordt uitgevoerd.
+            Een parameterized query stuurt de input apart mee als data (<code>?</code>),
+            dus quotes hebben geen betekenis meer.
+        </div>
+    </div>
+</section>
+
+<!-- QUERY -->
+<section class="panel">
+    <div class="panel-title">Opgebouwde Query</div>
+    <div class="panel-body">
+        <div class="qlabel">SQL die naar de database gaat</div>
+        <div class="query" id="query"></div>
+
+        <div class="logic" id="logic" style="display:none"></div>
+    </div>
+</section>
+
+<!-- TABLE -->
+<section class="panel">
+    <div class="panel-title">users tabel</div>
+    <div class="panel-body">
+        <table class="tbl">
+            <thead>
+                <tr><th>id</th><th>username</th><th>password</th><th>role</th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+        <div class="result-line" id="resultLine">Login result: —</div>
+    </div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span><span id="rowInfo">0</span> rijen terug</span>
+    </div>
+    <div id="status">Vul username/password in en klik op Start.</div>
+    <div id="details">De query wordt opgebouwd, geëvalueerd en tegen de tabel gedraaid.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+const USERS = [
+    { id: 1, username: "admin",      password: "admin123",   role: "administrator" },
+    { id: 2, username: "user1",      password: "password1",  role: "user" },
+    { id: 3, username: "user2",      password: "password2",  role: "user" },
+    { id: 4, username: "secretuser", password: "topsecret",  role: "admin" }
+];
+
+let safeMode = false;
+let uname = "", pword = "";
+let currentStep = 0, timer = null, playing = false;
+const TOTAL = 5; /* 0 input, 1 build, 2 inject-highlight, 3 evaluate, 4 rows */
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* classify: is this an injection (breaks the quotes)? */
+function isInjection(u) { return /'|--|union/i.test(u); }
+
+function buildRows() {
+    const tb = document.getElementById("rows");
+    tb.innerHTML = "";
+    USERS.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.id = "row" + u.id;
+        tr.innerHTML = "<td>" + u.id + "</td><td>" + esc(u.username) +
+            "</td><td class='pw'>" + esc(u.password) + "</td><td>" + u.role + "</td>";
+        tb.appendChild(tr);
+    });
+}
+
+function load() {
+    stop();
+    uname = document.getElementById("user").value;
+    pword = document.getElementById("pass").value;
+    currentStep = 0;
+    document.getElementById("codeVuln").style.display = safeMode ? "none" : "block";
+    document.getElementById("codeSafe").style.display = safeMode ? "block" : "none";
+    render();
+}
+
+function preset(u, p, safe) {
+    safeMode = safe;
+    document.getElementById("user").value = u;
+    document.getElementById("pass").value = p;
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    load();
+}
+
+/* which users match, given the input */
+function matchedUsers() {
+    if (safeMode) {
+        /* parameterized: input is literal data */
+        return USERS.filter(u => u.username === uname && u.password === pword);
+    }
+    const u = uname.toLowerCase();
+    if (/union\s+select/i.test(uname)) return USERS.slice(); /* union dumps all */
+    if (/'\s*or\s*'?1'?\s*=\s*'?1/i.test(uname)) return USERS.slice(); /* OR 1=1 */
+    return USERS.filter(x => x.username === uname && x.password === pword);
+}
+
+function render() {
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    USERS.forEach(u => {
+        const r = document.getElementById("row" + u.id);
+        if (r) r.className = "";
+    });
+
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("progress").style.width = (currentStep / (TOTAL - 1) * 100) + "%";
+
+    const injection = isInjection(uname) && !safeMode;
+    const isUnion = /union\s+select/i.test(uname);
+    const logicEl = document.getElementById("logic");
+    logicEl.style.display = (!safeMode && injection && currentStep >= 3) ? "block" : "none";
+    if (!safeMode && injection && currentStep >= 3) {
+        if (isUnion) {
+            logicEl.innerHTML =
+                '<div class="qlabel" style="margin-top:0">Wat de UNION doet</div>' +
+                '<div class="row"><span>1e SELECT (login-check)</span><span class="f">0 rijen</span></div>' +
+                '<div class="row"><span>UNION SELECT … FROM users</span><span class="t">alle rijen</span></div>' +
+                '<div class="row" style="border-top:1px solid #334155;margin-top:5px;padding-top:7px">' +
+                '<span><strong>-- comment</strong></span><span class="t">rest genegeerd</span></div>' +
+                '<div class="row"><span><strong>Resultaat</strong></span><span class="t">volledige tabel gedumpt</span></div>';
+        } else {
+            logicEl.innerHTML =
+                '<div class="qlabel" style="margin-top:0">WHERE-conditie evaluatie</div>' +
+                '<div class="row"><span>username = \'admin\'</span><span class="f">? (irrelevant)</span></div>' +
+                '<div class="row"><span>OR \'1\' = \'1\'</span><span class="t">altijd TRUE</span></div>' +
+                '<div class="row" style="border-top:1px solid #334155;margin-top:5px;padding-top:7px">' +
+                '<span><strong>Resultaat WHERE</strong></span><span class="t">TRUE → alle rijen</span></div>';
+        }
+    }
+
+    /* ---- QUERY STRING ---- */
+    const q = document.getElementById("query");
+    if (safeMode) {
+        if (currentStep >= 1) {
+            q.innerHTML =
+                '<span class="kw">SELECT</span> * <span class="kw">FROM</span> users\n' +
+                '<span class="kw">WHERE</span> username = <span class="str">?</span> ' +
+                '<span class="kw">AND</span> password = <span class="str">?</span>\n\n' +
+                'params = [' + '<span class="inj">' + esc(uname) + '</span>, ' + esc(pword) + ']';
+        } else {
+            q.innerHTML = '<span class="cursor">&nbsp;</span>';
+        }
+    } else {
+        if (currentStep === 0) {
+            q.innerHTML = '<span class="cursor">&nbsp;</span>';
+        } else {
+            const injClass = currentStep >= 2 ? "inj hot" : (injection ? "inj" : "str");
+            q.innerHTML =
+                '<span class="kw">SELECT</span> * <span class="kw">FROM</span> users\n' +
+                '<span class="kw">WHERE</span> username = <span class="str">\'</span>' +
+                '<span class="' + injClass + '">' + esc(uname) + '</span>' +
+                '<span class="str">\'</span>\n' +
+                '<span class="kw">AND</span> password = <span class="str">\'' + esc(pword) + '\'</span>';
+        }
+    }
+
+    /* ---- STEP LOGIC ---- */
+    if (currentStep === 0) {
+        setStatus("Input ontvangen",
+            "username = \"" + uname + "\", password = \"" + pword + "\". Nog niets uitgevoerd.");
+        document.getElementById("rowInfo").textContent = "0";
+        document.getElementById("resultLine").textContent = "Login result: —";
+        highlightCode(safeMode ? "cs1" : "cv1");
+        return;
+    }
+    if (currentStep === 1) {
+        highlightCode(safeMode ? "cs2" : "cv2");
+        setStatus(safeMode ? "Query met placeholders opgebouwd" : "Query opgebouwd met string-concatenatie",
+            safeMode ? "De ? plaatshouders staan vast; de input reist apart mee."
+                     : "De input is nu letterlijk in de SQL-tekst geplakt.");
+        return;
+    }
+    if (currentStep === 2) {
+        highlightCode(safeMode ? "cs3" : "cv3");
+        if (safeMode) {
+            setStatus("Input blijft data",
+                "De database ontvangt de input als parameter — quotes en OR hebben geen speciale betekenis.");
+        } else if (injection) {
+            setStatus("⚠ Input breekt uit de string",
+                "De ' sluit de username-string af; alles daarna wordt als SQL-code gelezen.");
+        } else {
+            setStatus("Normale input",
+                "Geen quotes of operators — de input blijft binnen de bedoelde string.");
+        }
+        return;
+    }
+    if (currentStep === 3) {
+        highlightCode(safeMode ? "cs4" : "cv4");
+        if (!safeMode && injection) {
+            setStatus("WHERE-conditie geëvalueerd",
+                "OR '1'='1' is altijd waar, dus de conditie levert TRUE op voor elke rij.");
+        } else {
+            setStatus("WHERE-conditie geëvalueerd",
+                "Alleen rijen waar username én password exact kloppen voldoen.");
+        }
+        return;
+    }
+
+    /* currentStep === 4 : run against table */
+    highlightCode(safeMode ? "cs5" : "cv5");
+    const matches = matchedUsers();
+    const breach = !safeMode && matches.length > 1;
+    matches.forEach(m => {
+        const r = document.getElementById("row" + m.id);
+        if (r) r.className = "match" + (breach ? " breach" : "");
+    });
+    document.getElementById("rowInfo").textContent = matches.length;
+    document.getElementById("resultLine").textContent =
+        "Login result: " + matches.length + " rij(en)" +
+        (matches.length ? " → ingelogd als " + matches[0].username : "");
+
+    if (safeMode) {
+        setStatus(matches.length ? "✓ Geldige login" : "🛡 Aanval geblokkeerd",
+            matches.length
+                ? "De input matchte een echte gebruiker met correct wachtwoord."
+                : "Er bestaat geen gebruiker met letterlijk die naam+wachtwoord. 0 rijen — de injectie deed niets.");
+    } else if (breach) {
+        setStatus("🚨 " + matches.length + " rijen — authenticatie omzeild",
+            /union/i.test(uname)
+                ? "De UNION SELECT plakt een tweede resultaatset erbij: alle wachtwoorden liggen op straat."
+                : "De query gaf elke gebruiker terug; de eerste (admin) logt in zonder geldig wachtwoord.");
+    } else {
+        setStatus(matches.length ? "✓ Normale login" : "✗ Login mislukt",
+            matches.length ? "Eén rij matchte, zoals bedoeld." : "Geen enkele rij voldeed aan de conditie.");
+    }
+}
+
+function highlightCode(id) { const e = document.getElementById(id); if (e) e.classList.add("active"); }
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+function next() { if (currentStep < TOTAL - 1) { currentStep++; render(); } }
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= TOTAL - 1) { stop(); return; }
+        currentStep++; render();
+    }, 1100);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+function reset() {
+    stop();
+    currentStep = 0;
+    buildRows();
+    document.getElementById("query").innerHTML = "";
+    document.getElementById("logic").style.display = "none";
+    document.getElementById("stepNumber").textContent = "0";
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("rowInfo").textContent = "0";
+    document.getElementById("resultLine").textContent = "Login result: —";
+    document.getElementById("progress").style.width = "0%";
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    setStatus("Vul username/password in en klik op Start.",
+        "De query wordt opgebouwd, geëvalueerd en tegen de tabel gedraaid.");
+}
+
+buildRows();
+reset();
+</script>
+</body>
+</html>

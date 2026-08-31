@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Format String Attack Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: #080d18;
+    color: #e5e7eb;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* HEADER */
+header {
+    height: 11vh;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    padding: 12px 22px;
+    background: #111827;
+    border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+/* CONTROLS */
+.controls {
+    height: 11vh;
+    min-height: 66px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 20px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+}
+input {
+    width: 240px;
+    max-width: 26vw;
+    padding: 9px 11px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    background: #020617;
+    color: white;
+    font-family: monospace;
+    font-size: 15px;
+}
+button {
+    border: 0;
+    border-radius: 6px;
+    padding: 9px 12px;
+    background: #334155;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.preset {
+    background: #1e293b;
+    border: 1px solid #334155;
+    font-family: monospace;
+    font-size: 12px;
+}
+button.preset.safe { border-color: #166534; color: #86efac; }
+button.preset.active { background: #2563eb; border-color: #2563eb; color: white; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+/* MAIN */
+main {
+    height: 63vh;
+    display: grid;
+    grid-template-columns: 28% 34% 38%;
+}
+.panel {
+    min-width: 0;
+    overflow: hidden;
+    border-right: 1px solid #334155;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+}
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px;
+    padding: 9px 13px;
+    background: #1e293b;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    flex: 0 0 auto;
+}
+.panel-body {
+    flex: 1 1 auto;
+    padding: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+/* SOURCE */
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 11px;
+    line-height: 1.5;
+    border-top: 1px solid #1e293b;
+    padding-top: 10px;
+}
+
+/* FORMAT STRING TAPE */
+.fmt-label { color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+.tape { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 16px; }
+.cell {
+    min-width: 20px;
+    height: 30px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    background: #020617;
+    font-family: monospace;
+    font-size: 14px;
+    transition: all .25s;
+}
+.cell.spec { border-color: #f59e0b; color: #fbbf24; }
+.cell.done { opacity: .4; }
+.cell.current {
+    border-color: #facc15;
+    background: #422006;
+    box-shadow: 0 0 12px rgba(250,204,21,.5);
+    transform: translateY(-3px);
+}
+.argptr { color: #facc15; font-family: monospace; font-size: 12px; margin-bottom: 6px; }
+
+/* CONSOLE */
+.console {
+    margin-top: 6px;
+    padding: 12px;
+    background: #000;
+    border: 1px solid #334155;
+    border-radius: 7px;
+    font-family: monospace;
+    font-size: 14px;
+    min-height: 70px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.console .prompt { color: #64748b; }
+.console .out { color: #4ade80; }
+.console .leak { color: #f87171; font-weight: bold; }
+
+/* STACK */
+.slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    padding: 9px 11px;
+    border: 1px solid #475569;
+    border-radius: 7px;
+    background: #111827;
+    font-family: monospace;
+    transition: all .25s;
+}
+.slot .idx { color: #64748b; font-size: 11px; width: 42px; flex: 0 0 auto; }
+.slot .val { font-size: 14px; font-weight: bold; color: #e2e8f0; }
+.slot .desc { margin-left: auto; color: #64748b; font-size: 11px; }
+.slot.read {
+    border-color: #f59e0b;
+    background: #422006;
+    box-shadow: 0 0 14px rgba(245,158,11,.35);
+}
+.slot.secret .val { color: #f87171; }
+.slot.pointer .desc { color: #fbbf24; }
+
+/* STATUS */
+.status {
+    height: 15vh;
+    min-height: 88px;
+    padding: 11px 20px;
+    background: #111827;
+    border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>Format String Attack</h1>
+        <p>printf(user_input) → de gebruiker bepaalt de format string → de stack lekt</p>
+    </div>
+</header>
+
+<div class="controls">
+    <input id="input" value="%x %x %x %x" maxlength="40">
+    <button class="primary" onclick="load()">▶ Start</button>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+
+    <button class="preset" onclick="preset('Hello World', false)">Hello World</button>
+    <button class="preset" onclick="preset('%x %x %x %x', false)">%x %x %x %x</button>
+    <button class="preset" onclick="preset('%s', false)">%s</button>
+    <button class="preset safe" onclick="preset('%x %x %x %x', true)">🛡 safe_printf</button>
+
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (C)</div>
+    <div class="panel-body">
+        <div class="code">
+            <div class="code-line code-comment">int secret_value = 0x12345678;</div>
+            <div class="code-line">&nbsp;</div>
+            <div class="code-line" id="cv1">void vulnerable_printf(char *user_input)</div>
+            <div class="code-line" id="cv2">{</div>
+            <div class="code-line" id="cv3">    printf("User input: ");</div>
+            <div class="code-line" id="cv4">    printf(user_input);   <span class="code-comment">// ⚠ user = format</span></div>
+            <div class="code-line" id="cv5">}</div>
+            <div class="code-line">&nbsp;</div>
+            <div class="code-line" id="cs1">void safe_printf(char *user_input)</div>
+            <div class="code-line" id="cs2">{</div>
+            <div class="code-line" id="cs3">    printf("%s", user_input);  <span class="code-comment">// 🛡 vast format</span></div>
+            <div class="code-line" id="cs4">}</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> in de kwetsbare versie is <em>user_input</em>
+            zélf de format string. Elke <code>%x</code> laat printf een woord van
+            de stack lezen dat er helemaal niet als argument bij hoort. Met
+            <code>%s</code> wordt zo'n woord als <em>pointer</em> gebruikt →
+            geheugen wordt uitgelezen (leak) of crasht.
+        </div>
+    </div>
+</section>
+
+<!-- FORMAT STRING + OUTPUT -->
+<section class="panel">
+    <div class="panel-title">Format String &amp; Output</div>
+    <div class="panel-body">
+        <div class="fmt-label">Format string (char voor char)</div>
+        <div class="tape" id="tape"></div>
+
+        <div class="argptr" id="argptr">Argument pointer → slot 0</div>
+
+        <div class="fmt-label">printf output</div>
+        <div class="console" id="console"><span class="prompt">$ ./demo</span></div>
+    </div>
+</section>
+
+<!-- STACK -->
+<section class="panel">
+    <div class="panel-title">Stack (varargs gebied)</div>
+    <div class="panel-body" id="stack"></div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span><span id="argInfo">0</span> stack-reads</span>
+    </div>
+    <div id="status">Kies een format string en klik op Start.</div>
+    <div id="details">Elke %-specifier leest het volgende woord van de stack.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+/* ---------- STACK MODEL (varargs) ---------- */
+const STACK = [
+    { val: "0x7ffe1a2b", desc: "stack ptr" },
+    { val: "0x12345678", desc: "secret_value", secret: true },
+    { val: "0x00601040", desc: "&secret_value" },
+    { val: "0x00400596", desc: "return addr" },
+    { val: "0x00602010", desc: "→ \"TOPSECRET\"", pointer: true, points: "TOPSECRET" },
+    { val: "0x00000000", desc: "NULL", points: null },
+    { val: "0x7ffe1b40", desc: "saved rbp" },
+    { val: "0x0000002a", desc: "loop counter" }
+];
+
+let safeMode = false;
+let tokens = [];      /* parsed format string */
+let currentStep = 0;
+let timer = null, playing = false;
+
+/* ---------- PARSE FORMAT STRING INTO TOKENS ---------- */
+function parse(text) {
+    const out = [];
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === "%" && i + 1 < text.length) {
+            const c = text[i + 1];
+            if ("xspd%".includes(c)) {
+                out.push({ type: "spec", spec: c, text: "%" + c });
+                i++;
+                continue;
+            }
+        }
+        out.push({ type: "lit", ch: text[i] });
+    }
+    return out;
+}
+
+/* ---------- BUILD TAPE ---------- */
+function buildTape() {
+    const tape = document.getElementById("tape");
+    tape.innerHTML = "";
+    tokens.forEach((t, i) => {
+        const c = document.createElement("div");
+        c.className = "cell" + (t.type === "spec" ? " spec" : "");
+        c.id = "cell" + i;
+        c.textContent = t.type === "spec" ? t.text : (t.ch === " " ? "␣" : t.ch);
+        tape.appendChild(c);
+    });
+}
+
+/* ---------- BUILD STACK ---------- */
+function buildStack() {
+    const s = document.getElementById("stack");
+    s.innerHTML = "";
+    STACK.forEach((slot, i) => {
+        const row = document.createElement("div");
+        row.className = "slot"
+            + (slot.secret ? " secret" : "")
+            + (slot.pointer ? " pointer" : "");
+        row.id = "slot" + i;
+        row.innerHTML =
+            '<span class="idx">slot ' + i + '</span>' +
+            '<span class="val">' + slot.val + '</span>' +
+            '<span class="desc">' + slot.desc + '</span>';
+        s.appendChild(row);
+    });
+}
+
+/* ---------- LOAD ---------- */
+function load() {
+    stop();
+    tokens = parse(document.getElementById("input").value);
+    currentStep = 0;
+    buildTape();
+    render();
+}
+
+function preset(text, safe) {
+    safeMode = safe;
+    document.getElementById("input").value = text;
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    load();
+}
+
+function totalSteps() { return tokens.length + 2; } /* enter + tokens + return */
+
+/* ---------- RENDER ---------- */
+function render() {
+    /* reset visuals */
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".cell").forEach(x => x.classList.remove("current", "done"));
+    document.querySelectorAll(".slot").forEach(x => x.classList.remove("read"));
+
+    const total = totalSteps();
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = total;
+    document.getElementById("progress").style.width =
+        (currentStep / Math.max(1, total - 1) * 100) + "%";
+
+    /* highlight source */
+    if (safeMode) {
+        ["cs1", "cs2", "cs3", "cs4"].forEach(id => document.getElementById(id).classList.add("active"));
+    } else {
+        document.getElementById("cv4").classList.add("active");
+    }
+
+    /* recompute output + arg pointer up to current token */
+    let argIndex = 0;
+    let html = '<span class="prompt">$ ./demo\nUser input: </span>';
+    const processedTokens = Math.min(Math.max(0, currentStep - 1), tokens.length);
+
+    for (let i = 0; i < processedTokens; i++) {
+        const t = tokens[i];
+        document.getElementById("cell" + i).classList.add("done");
+
+        if (safeMode) {
+            /* safe: everything printed literally */
+            html += '<span class="out">' + esc(t.type === "spec" ? t.text : t.ch) + '</span>';
+            continue;
+        }
+
+        if (t.type === "lit") {
+            html += '<span class="out">' + esc(t.ch) + '</span>';
+        } else if (t.spec === "%") {
+            html += '<span class="out">%</span>';
+        } else {
+            const slot = STACK[argIndex] || { val: "0x????", desc: "unknown" };
+            if (t.spec === "s") {
+                if (slot.points) {
+                    html += '<span class="leak">' + slot.points + '</span>';
+                } else if (slot.points === null && slot.desc === "NULL") {
+                    html += '<span class="out">(null)</span>';
+                } else {
+                    html += '<span class="leak">[SEGFAULT]</span>';
+                }
+            } else if (t.spec === "p") {
+                html += '<span class="leak">' + slot.val + '</span>';
+            } else if (t.spec === "d") {
+                html += '<span class="leak">' + parseInt(slot.val, 16) + '</span>';
+            } else { /* x */
+                html += '<span class="leak">' + slot.val.replace("0x", "") + '</span>';
+            }
+            argIndex++;
+        }
+    }
+    document.getElementById("console").innerHTML = html;
+
+    /* current-token highlight + stack read */
+    if (currentStep >= 1 && currentStep - 1 < tokens.length) {
+        const i = currentStep - 1;
+        const t = tokens[i];
+        document.getElementById("cell" + i).classList.add("current");
+
+        /* count args used before this token to know which slot is read now */
+        let usedArgs = 0;
+        for (let k = 0; k < i; k++) {
+            const tk = tokens[k];
+            if (tk.type === "spec" && "xspd".includes(tk.spec)) usedArgs++;
+        }
+
+        if (!safeMode && t.type === "spec" && "xspd".includes(t.spec)) {
+            const slotEl = document.getElementById("slot" + usedArgs);
+            if (slotEl) slotEl.classList.add("read");
+            document.getElementById("argptr").textContent = "Argument pointer → slot " + usedArgs;
+
+            const slot = STACK[usedArgs] || {};
+            document.getElementById("argInfo").textContent = usedArgs + 1;
+
+            if (t.spec === "s") {
+                setStatus("⚠ %s dereferentie",
+                    slot.points
+                        ? "Slot " + usedArgs + " wordt als pointer gebruikt en het geheugen erachter (\"" + slot.points + "\") wordt uitgelezen."
+                        : "Slot " + usedArgs + " wordt als pointer gebruikt — in de praktijk vaak een crash of (null).");
+            } else {
+                setStatus("Stack read: " + t.text,
+                    "printf leest slot " + usedArgs + " (" + slot.val + ", " + slot.desc + ") en print het als " + t.text + ".");
+            }
+        } else if (t.type === "lit") {
+            setStatus("Letterlijk teken",
+                "'" + (t.ch === " " ? "spatie" : t.ch) + "' is geen specifier en wordt gewoon geprint.");
+            document.getElementById("argptr").textContent = "Argument pointer → slot " + usedArgs;
+        } else if (safeMode) {
+            setStatus("Veilig: vast format",
+                "Bij printf(\"%s\", user_input) is user_input dáta. " + t.text + " wordt letterlijk geprint, geen stack read.");
+        }
+        return;
+    }
+
+    /* step 0 = call */
+    if (currentStep === 0) {
+        document.getElementById("argptr").textContent = "Argument pointer → slot 0";
+        document.getElementById("argInfo").textContent = "0";
+        setStatus(safeMode ? "safe_printf(user_input) aangeroepen" : "vulnerable_printf(user_input) aangeroepen",
+            safeMode ? "Het format is hard \"%s\" — de input is alleen data." : "De gebruikersinput wordt straks als format string gebruikt.");
+        return;
+    }
+
+    /* final step = return / summary */
+    tokens.forEach((t, i) => document.getElementById("cell" + i).classList.add("done"));
+    let reads = tokens.filter(t => t.type === "spec" && "xspd".includes(t.spec)).length;
+    if (safeMode) {
+        setStatus("✓ Veilig afgerond",
+            "De input is letterlijk geprint. Nul stack-reads, geen informatielek.");
+    } else if (reads > 0) {
+        setStatus("🚨 " + reads + " stack-woorden gelekt",
+            "Zonder eigen argumenten heeft printf toch " + reads + " woorden van de stack geprint — inclusief secret_value en pointers.");
+    } else {
+        setStatus("✓ Geen specifiers",
+            "Deze input bevatte geen %-specifiers, dus er lekte niets. Probeer eens \"%x %x %x %x\".");
+    }
+}
+
+function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+/* ---------- NAV ---------- */
+function next() {
+    if (tokens.length === 0) { load(); return; }
+    if (currentStep < totalSteps() - 1) { currentStep++; render(); }
+}
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    if (tokens.length === 0) load();
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= totalSteps() - 1) { stop(); return; }
+        currentStep++; render();
+    }, 700);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+
+function reset() {
+    stop();
+    tokens = [];
+    currentStep = 0;
+    document.getElementById("tape").innerHTML = "";
+    document.getElementById("console").innerHTML = '<span class="prompt">$ ./demo</span>';
+    document.getElementById("stepNumber").textContent = "0";
+    document.getElementById("stepTotal").textContent = "0";
+    document.getElementById("argInfo").textContent = "0";
+    document.getElementById("progress").style.width = "0%";
+    document.getElementById("argptr").textContent = "Argument pointer → slot 0";
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll(".slot").forEach(x => x.classList.remove("read"));
+    setStatus("Kies een format string en klik op Start.",
+        "Elke %-specifier leest het volgende woord van de stack.");
+}
+
+/* ---------- INIT ---------- */
+buildStack();
+reset();
+</script>
+</body>
+</html>

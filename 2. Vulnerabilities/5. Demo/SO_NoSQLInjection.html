@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>NoSQL Injection Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d18; color: #e5e7eb; font-family: Arial, Helvetica, sans-serif; }
+
+header {
+    height: 11vh; min-height: 72px; display: flex; align-items: center;
+    padding: 12px 22px; background: #111827; border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+.controls {
+    height: 11vh; min-height: 66px; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 8px 20px; background: #0f172a; border-bottom: 1px solid #334155;
+}
+.field { display: flex; flex-direction: column; gap: 2px; }
+.field label { font-size: 10px; color: #64748b; text-transform: uppercase; }
+input {
+    width: 200px; max-width: 24vw; padding: 8px 10px; border: 1px solid #475569;
+    border-radius: 6px; background: #020617; color: white; font-family: monospace; font-size: 14px;
+}
+button { border: 0; border-radius: 6px; padding: 9px 12px; background: #334155; color: white; cursor: pointer; font-size: 13px; }
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.preset { background: #1e293b; border: 1px solid #334155; font-family: monospace; font-size: 11px; }
+button.preset.safe { border-color: #166534; color: #86efac; }
+button.preset.active { background: #2563eb; border-color: #2563eb; color: white; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+main { height: 63vh; display: grid; grid-template-columns: 27% 36% 37%; }
+.panel { min-width: 0; overflow: hidden; border-right: 1px solid #334155; background: #0f172a; display: flex; flex-direction: column; }
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px; padding: 9px 13px; background: #1e293b; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto;
+}
+.panel-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px; color: #64748b; font-size: 11px; line-height: 1.5;
+    border-top: 1px solid #1e293b; padding-top: 10px;
+}
+
+.qlabel { color: #64748b; font-size: 11px; text-transform: uppercase; margin: 4px 0 6px; }
+
+/* INPUT TYPE INDICATOR */
+.typebox { display: flex; gap: 8px; margin-bottom: 12px; }
+.typechip {
+    flex: 1; padding: 8px; border-radius: 7px; border: 1px solid #334155; background: #020617;
+    font-family: monospace; font-size: 12px; text-align: center;
+}
+.typechip .k { color: #64748b; font-size: 10px; display: block; }
+.typechip.str { border-color: #166534; }
+.typechip.str .v { color: #86efac; }
+.typechip.obj { border-color: #dc2626; }
+.typechip.obj .v { color: #fca5a5; }
+
+/* QUERY JSON */
+.query {
+    padding: 14px; background: #000; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 14px; line-height: 1.7; white-space: pre; min-height: 90px;
+}
+.jkey { color: #93c5fd; }
+.jstr { color: #86efac; }
+.jop { color: #fca5a5; font-weight: bold; }
+.jop.hot { background: #dc2626; color: white; padding: 0 3px; border-radius: 3px; }
+
+.explain {
+    margin-top: 12px; padding: 11px; background: #020617; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 12px; color: #cbd5e1; line-height: 1.6;
+}
+.explain .hl { color: #fbbf24; }
+
+/* DOCS */
+.doc {
+    margin-bottom: 8px; padding: 9px 11px; border: 1px solid #475569; border-radius: 7px;
+    background: #111827; font-family: monospace; font-size: 12px; transition: all .2s;
+}
+.doc .u { font-weight: bold; color: #e2e8f0; }
+.doc .r { color: #64748b; font-size: 11px; }
+.doc .test { float: right; color: #64748b; font-size: 11px; }
+.doc.match { border-color: #22c55e; background: #052e16; }
+.doc.match .test { color: #4ade80; }
+.doc.match.breach { border-color: #ef4444; background: #450a0a; }
+.doc.match.breach .test { color: #fca5a5; }
+.doc.checking { border-color: #facc15; box-shadow: 0 0 10px rgba(250,204,21,.35); }
+.doc .secret { color: #fbbf24; }
+.result-line { margin-top: 12px; font-family: monospace; font-size: 12px; color: #94a3b8; }
+
+.status {
+    height: 15vh; min-height: 88px; padding: 11px 20px; background: #111827; border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>NoSQL Injection</h1>
+        <p>Een JSON-object i.p.v. een string verandert de betekenis van de query</p>
+    </div>
+</header>
+
+<div class="controls">
+    <div class="field">
+        <label>username (JSON)</label>
+        <input id="user" value='{"$ne": ""}'>
+    </div>
+    <div class="field">
+        <label>password (JSON)</label>
+        <input id="pass" value='{"$ne": ""}'>
+    </div>
+    <button class="primary" onclick="load()">▶ Start</button>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+
+    <button class="preset" onclick="preset('&quot;user1&quot;','&quot;wrong&quot;',false)">normaal</button>
+    <button class="preset" onclick="preset('{&quot;$ne&quot;: &quot;&quot;}','{&quot;$ne&quot;: &quot;&quot;}',false)">$ne bypass</button>
+    <button class="preset" onclick="preset('{&quot;$regex&quot;: &quot;^admin&quot;}','{&quot;$ne&quot;: &quot;&quot;}',false)">$regex</button>
+    <button class="preset safe" onclick="preset('{&quot;$ne&quot;: &quot;&quot;}','{&quot;$ne&quot;: &quot;&quot;}',true)">🛡 type-check</button>
+
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (Python)</div>
+    <div class="panel-body">
+        <div class="code" id="codeVuln">
+            <div class="code-line code-comment"># VULNERABLE</div>
+            <div class="code-line" id="cv1">def login(u, p):</div>
+            <div class="code-line" id="cv2">  q = {"username": u,</div>
+            <div class="code-line" id="cv3">       "password": p}</div>
+            <div class="code-line" id="cv4">  # u/p direct in query</div>
+            <div class="code-line" id="cv5">  return db.find(q)</div>
+        </div>
+        <div class="code" id="codeSafe" style="display:none">
+            <div class="code-line code-comment"># SAFE</div>
+            <div class="code-line" id="cs1">def login(u, p):</div>
+            <div class="code-line" id="cs2">  if not isinstance(u,str) \</div>
+            <div class="code-line" id="cs3">     or not isinstance(p,str):</div>
+            <div class="code-line" id="cs4">    return "invalid input"</div>
+            <div class="code-line" id="cs5">  q = {"username": u,</div>
+            <div class="code-line" id="cs6">       "password": p}</div>
+            <div class="code-line" id="cs7">  return db.find(q)</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> de API verwacht strings, maar accepteert
+            ongefilterd JSON. Stuur je in plaats van <code>"admin"</code> het object
+            <code>{"$ne": ""}</code> ("not equal to empty"), dan wordt dat een
+            MongoDB-<em>operator</em> die op élk document waar is. De veilige versie
+            controleert eerst of de input echt een string is.
+        </div>
+    </div>
+</section>
+
+<!-- QUERY -->
+<section class="panel">
+    <div class="panel-title">MongoDB Query</div>
+    <div class="panel-body">
+        <div class="qlabel">Type van de input</div>
+        <div class="typebox" id="typebox"></div>
+
+        <div class="qlabel">db.users.find( … )</div>
+        <div class="query" id="query"></div>
+
+        <div class="explain" id="explain"></div>
+    </div>
+</section>
+
+<!-- DOCS -->
+<section class="panel">
+    <div class="panel-title">users collection</div>
+    <div class="panel-body" id="docs"></div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span><span id="matchInfo">0</span> documenten matchen</span>
+    </div>
+    <div id="status">Vul JSON-input in en klik op Start.</div>
+    <div id="details">De input wordt een query-object en tegen elk document getest.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+const DOCS = [
+    { username: "admin",       password: "5e884898…d1542d8", role: "administrator" },
+    { username: "user1",       password: "ef92b778…473e94f", role: "user" },
+    { username: "user2",       password: "secret123_hashed",  role: "user" },
+    { username: "api_service", password: "service_key_hash",  role: "service", api_key: "sk_live_abc123xyz789" }
+];
+
+let safeMode = false;
+let rawU = "", rawP = "";
+let parsedU = null, parsedP = null, uIsStr = true, pIsStr = true;
+let currentStep = 0, timer = null, playing = false;
+const TOTAL = 5; /* 0 input, 1 parse type, 2 build query, 3 evaluate, 4 result */
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function tryParse(raw) {
+    const t = raw.trim();
+    /* quoted string → plain string */
+    if (/^".*"$/.test(t)) return { val: t.slice(1, -1), isStr: true };
+    try {
+        const v = JSON.parse(t);
+        if (typeof v === "string") return { val: v, isStr: true };
+        return { val: v, isStr: false };
+    } catch (e) {
+        return { val: t, isStr: true };
+    }
+}
+
+/* does a single field value (query part) match a doc's field? */
+function fieldMatches(qval, docval, isStr) {
+    if (isStr) return docval === qval;
+    /* object operator */
+    if (qval && typeof qval === "object") {
+        if ("$ne" in qval) return docval !== qval["$ne"];
+        if ("$regex" in qval) { try { return new RegExp(qval["$regex"]).test(docval); } catch(e){ return false; } }
+        if ("$gt" in qval) return docval > qval["$gt"];
+        if ("$exists" in qval) return (docval !== undefined) === qval["$exists"];
+    }
+    return false;
+}
+
+function docMatches(doc) {
+    return fieldMatches(parsedU, doc.username, uIsStr) &&
+           fieldMatches(parsedP, doc.password, pIsStr);
+}
+
+function buildDocs() {
+    const c = document.getElementById("docs");
+    c.innerHTML = "";
+    DOCS.forEach((d, i) => {
+        const el = document.createElement("div");
+        el.className = "doc";
+        el.id = "doc" + i;
+        el.innerHTML =
+            '<span class="test" id="test' + i + '"></span>' +
+            '<div class="u">' + esc(d.username) + '</div>' +
+            '<div class="r">role: ' + d.role +
+            (d.api_key ? ' &nbsp; <span class="secret">api_key: ' + d.api_key + '</span>' : '') + '</div>';
+        c.appendChild(el);
+    });
+}
+
+function load() {
+    stop();
+    rawU = document.getElementById("user").value;
+    rawP = document.getElementById("pass").value;
+    const pu = tryParse(rawU), pp = tryParse(rawP);
+    parsedU = pu.val; uIsStr = pu.isStr;
+    parsedP = pp.val; pIsStr = pp.isStr;
+    currentStep = 0;
+    document.getElementById("codeVuln").style.display = safeMode ? "none" : "block";
+    document.getElementById("codeSafe").style.display = safeMode ? "block" : "none";
+    render();
+}
+
+function preset(u, p, safe) {
+    safeMode = safe;
+    document.getElementById("user").value = u;
+    document.getElementById("pass").value = p;
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    load();
+}
+
+function jsonHtml(raw, isStr, hot) {
+    const t = raw.trim();
+    if (isStr) return '<span class="jstr">"' + esc(t.replace(/^"|"$/g,"")) + '"</span>';
+    /* object: color operators */
+    return t.replace(/(\$\w+)/g, '<span class="jop' + (hot ? ' hot' : '') + '">$1</span>')
+            .replace(/"(?!\$)([^"]*)"/g, '<span class="jstr">"$1"</span>');
+}
+
+function render() {
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    DOCS.forEach((d, i) => {
+        const el = document.getElementById("doc" + i);
+        if (el) el.className = "doc";
+        const t = document.getElementById("test" + i);
+        if (t) t.textContent = "";
+    });
+
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("progress").style.width = (currentStep / (TOTAL - 1) * 100) + "%";
+
+    const injecting = (!uIsStr || !pIsStr);
+
+    /* type chips */
+    const tb = document.getElementById("typebox");
+    if (currentStep >= 1) {
+        tb.innerHTML =
+            typeChip("username", uIsStr) + typeChip("password", pIsStr);
+    } else {
+        tb.innerHTML = '<div class="typechip"><span class="k">wacht op start…</span></div>';
+    }
+
+    /* query json */
+    const q = document.getElementById("query");
+    if (currentStep >= 2) {
+        const hot = currentStep >= 3;
+        q.innerHTML =
+            '{\n' +
+            '  <span class="jkey">"username"</span>: ' + jsonHtml(rawU, uIsStr, hot) + ',\n' +
+            '  <span class="jkey">"password"</span>: ' + jsonHtml(rawP, pIsStr, hot) + '\n' +
+            '}';
+    } else {
+        q.innerHTML = '<span style="color:#64748b">query nog niet opgebouwd</span>';
+    }
+
+    /* explain */
+    const ex = document.getElementById("explain");
+    ex.style.display = (currentStep >= 3 && injecting && !safeMode) ? "block" : "none";
+    if (currentStep >= 3 && injecting && !safeMode) {
+        let msg = "";
+        if (!uIsStr && parsedU && "$ne" in parsedU)
+            msg = 'username: <span class="hl">$ne ""</span> betekent "niet gelijk aan lege string" → waar voor <span class="hl">elk</span> document.';
+        else if (!uIsStr && parsedU && "$regex" in parsedU)
+            msg = 'username: <span class="hl">$regex "' + esc(parsedU["$regex"]) + '"</span> matcht elke gebruikersnaam die op het patroon past.';
+        else msg = 'De operator maakt de conditie waar zonder een geldige waarde te kennen.';
+        ex.innerHTML = msg;
+    }
+
+    /* STEPS */
+    if (currentStep === 0) {
+        highlight(safeMode ? "cs1" : "cv1");
+        setStatus("Input ontvangen",
+            "username = " + rawU + " , password = " + rawP);
+        document.getElementById("matchInfo").textContent = "0";
+        return;
+    }
+    if (currentStep === 1) {
+        highlight(safeMode ? "cs2" : "cv2");
+        if (safeMode) highlight("cs3");
+        setStatus(injecting ? "⚠ Input is een object, geen string" : "Input is een gewone string",
+            injecting ? "Er is JSON met een operator meegestuurd i.p.v. tekst."
+                      : "Beide velden zijn strings, zoals verwacht.");
+        return;
+    }
+    if (currentStep === 2) {
+        highlight(safeMode ? "cs5" : "cv2");
+        /* safe mode: blocked before building */
+        if (safeMode && injecting) {
+            highlight("cs4");
+            setStatus("🛡 Type-check faalt",
+                "isinstance(u, str) is False → de aanvraag wordt geweigerd vóór de database.");
+            return;
+        }
+        setStatus("Query-object opgebouwd",
+            "De velden zijn in het query-object geplaatst dat naar MongoDB gaat.");
+        return;
+    }
+    if (currentStep === 3) {
+        if (safeMode && injecting) {
+            highlight("cs4");
+            setStatus("🛡 Geblokkeerd",
+                "De veilige versie kwam niet eens tot een database-query.");
+            return;
+        }
+        highlight(safeMode ? "cs7" : "cv5");
+        setStatus(injecting ? "Operator wordt geëvalueerd" : "Exacte match wordt getest",
+            injecting ? "Elk document wordt tegen de operator getest i.p.v. tegen een vaste waarde."
+                      : "Elk document wordt op exacte username+password gecontroleerd.");
+        return;
+    }
+
+    /* step 4: evaluate all docs */
+    if (safeMode && injecting) {
+        highlight("cs4");
+        setStatus("🛡 Aanval geblokkeerd",
+            "Non-string input werd geweigerd. 0 documenten geraadpleegd.");
+        document.getElementById("matchInfo").textContent = "0";
+        return;
+    }
+    highlight(safeMode ? "cs7" : "cv5");
+
+    const matches = [];
+    DOCS.forEach((d, i) => {
+        const ok = docMatches(d);
+        const el = document.getElementById("doc" + i);
+        const t = document.getElementById("test" + i);
+        if (ok) { matches.push(d); }
+        if (el) el.className = "doc" + (ok ? " match" + (injecting ? " breach" : "") : "");
+        if (t) t.textContent = ok ? "✓ match" : "✗";
+    });
+
+    document.getElementById("matchInfo").textContent = matches.length;
+
+    if (matches.length && injecting) {
+        const leaked = matches.find(m => m.api_key);
+        setStatus("🚨 " + matches.length + " documenten — authenticatie omzeild",
+            "Zonder geldig wachtwoord matcht de query " + matches.length + " gebruikers. Ingelogd als " +
+            matches[0].username + " (" + matches[0].role + ")" +
+            (leaked ? " — zelfs de api_key van api_service ligt bloot." : "."));
+    } else if (matches.length) {
+        setStatus("✓ Normale login",
+            "Eén document matchte op exacte username+password, zoals bedoeld.");
+    } else {
+        setStatus("✗ Geen match",
+            "Geen document voldeed aan de query.");
+    }
+}
+
+function typeChip(name, isStr) {
+    return '<div class="typechip ' + (isStr ? "str" : "obj") + '">' +
+        '<span class="k">' + name + '</span>' +
+        '<span class="v">' + (isStr ? "string ✓" : "object ⚠") + '</span></div>';
+}
+function highlight(id) { const e = document.getElementById(id); if (e) e.classList.add("active"); }
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+function next() { if (currentStep < TOTAL - 1) { currentStep++; render(); } }
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= TOTAL - 1) { stop(); return; }
+        currentStep++; render();
+    }, 1100);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+function reset() {
+    stop();
+    currentStep = 0;
+    buildDocs();
+    document.getElementById("typebox").innerHTML = '<div class="typechip"><span class="k">wacht op start…</span></div>';
+    document.getElementById("query").innerHTML = '<span style="color:#64748b">query nog niet opgebouwd</span>';
+    document.getElementById("explain").style.display = "none";
+    document.getElementById("stepNumber").textContent = "0";
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("matchInfo").textContent = "0";
+    document.getElementById("progress").style.width = "0%";
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    setStatus("Vul JSON-input in en klik op Start.",
+        "De input wordt een query-object en tegen elk document getest.");
+}
+
+buildDocs();
+reset();
+</script>
+</body>
+</html>

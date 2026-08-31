@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Race Condition Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d18; color: #e5e7eb; font-family: Arial, Helvetica, sans-serif; }
+
+header {
+    height: 11vh; min-height: 72px; display: flex; align-items: center;
+    padding: 12px 22px; background: #111827; border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+.controls {
+    height: 11vh; min-height: 66px; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 8px 20px; background: #0f172a; border-bottom: 1px solid #334155;
+}
+button { border: 0; border-radius: 6px; padding: 9px 12px; background: #334155; color: white; cursor: pointer; font-size: 13px; }
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.mode { background: #1e293b; border: 1px solid #334155; }
+button.mode.unsafe.active { background: #991b1b; border-color: #ef4444; }
+button.mode.safe.active { background: #166534; border-color: #22c55e; }
+.sep { width: 1px; height: 30px; background: #334155; margin: 0 4px; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+main { height: 63vh; display: grid; grid-template-columns: 27% 44% 29%; }
+.panel { min-width: 0; overflow: hidden; border-right: 1px solid #334155; background: #0f172a; display: flex; flex-direction: column; }
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px; padding: 9px 13px; background: #1e293b; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto;
+}
+.panel-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px; color: #64748b; font-size: 11px; line-height: 1.5;
+    border-top: 1px solid #1e293b; padding-top: 10px;
+}
+.src-note code { color: #fbbf24; }
+
+/* THREAD LANES */
+.lanes-head { display: grid; grid-template-columns: 44px 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.lane-title { text-align: center; font-family: monospace; font-size: 12px; font-weight: bold; padding: 5px; border-radius: 6px; }
+.lane-title.t0 { background: #1e3a5f; color: #93c5fd; }
+.lane-title.t1 { background: #422006; color: #fbbf24; }
+.lane-title.t2 { background: #3b0764; color: #d8b4fe; }
+.tick { color: #64748b; font-size: 11px; text-align: center; }
+
+.row { display: grid; grid-template-columns: 44px 1fr 1fr 1fr; gap: 6px; margin-bottom: 5px; align-items: stretch; }
+.row .no { color: #475569; font-family: monospace; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.cell { min-height: 34px; border-radius: 6px; }
+.evt {
+    height: 100%; padding: 6px 8px; border-radius: 6px; font-family: monospace; font-size: 12px;
+    border: 1px solid #334155; background: #111827; transition: all .2s;
+}
+.evt.check { border-color: #3b82f6; }
+.evt.use { border-color: #f59e0b; }
+.evt.acquire, .evt.release { border-color: #22c55e; color: #86efac; }
+.evt.fail { border-color: #64748b; color: #94a3b8; }
+.evt.cur { box-shadow: 0 0 12px rgba(250,204,21,.5); transform: scale(1.03); }
+.evt .sub { color: #64748b; font-size: 10px; }
+.evt.use .amt { color: #fca5a5; font-weight: bold; }
+
+.toctou {
+    margin-top: 8px; padding: 9px 11px; border-radius: 7px; font-size: 12px; line-height: 1.5;
+    background: #422006; border: 1px solid #b45309; color: #fde68a; display: none;
+}
+
+/* SHARED STATE */
+.shared-label { color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; }
+.balance {
+    padding: 16px; border-radius: 10px; background: #020617; border: 2px solid #334155;
+    text-align: center; margin-bottom: 12px; transition: all .3s;
+}
+.balance .amt { font-family: monospace; font-size: 34px; font-weight: bold; }
+.balance.neg { border-color: #ef4444; background: #2a0a0a; }
+.balance.neg .amt { color: #f87171; }
+.balance.pos .amt { color: #4ade80; }
+.lockstate {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px;
+    background: #111827; border: 1px solid #334155; font-family: monospace; font-size: 13px; margin-bottom: 12px;
+}
+.lockstate.held { border-color: #22c55e; color: #86efac; }
+.lockstate.free { color: #64748b; }
+.ledger { font-family: monospace; font-size: 11px; line-height: 1.7; }
+.ledger .li { color: #94a3b8; }
+.ledger .li.bad { color: #fca5a5; }
+.ledger .li.ok { color: #86efac; }
+
+.status {
+    height: 15vh; min-height: 88px; padding: 11px 20px; background: #111827; border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>Race Condition — Bank Account (TOCTOU)</h1>
+        <p>3 threads nemen €800 op van €1000 · time-of-check vs time-of-use</p>
+    </div>
+</header>
+
+<div class="controls">
+    <button class="mode unsafe active" id="mUnsafe" onclick="setMode(false)">Unsafe (geen lock)</button>
+    <button class="mode safe" id="mSafe" onclick="setMode(true)">🔒 Safe (met lock)</button>
+    <div class="sep"></div>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (Python)</div>
+    <div class="panel-body">
+        <div class="code" id="codeUnsafe">
+            <div class="code-line code-comment"># UNSAFE</div>
+            <div class="code-line" id="u1">def withdraw(amount):</div>
+            <div class="code-line" id="u2">  # time-of-check</div>
+            <div class="code-line" id="u3">  if balance >= amount:</div>
+            <div class="code-line" id="u4">    sleep(...)  # vertraging</div>
+            <div class="code-line" id="u5">    balance -= amount  # use</div>
+            <div class="code-line" id="u6">    return True</div>
+            <div class="code-line" id="u7">  return False</div>
+        </div>
+        <div class="code" id="codeSafe" style="display:none">
+            <div class="code-line code-comment"># SAFE</div>
+            <div class="code-line" id="s1">def withdraw(amount):</div>
+            <div class="code-line" id="s2">  with self.lock:   # 🔒</div>
+            <div class="code-line" id="s3">    if balance >= amount:</div>
+            <div class="code-line" id="s4">      sleep(...)</div>
+            <div class="code-line" id="s5">      balance -= amount</div>
+            <div class="code-line" id="s6">      return True</div>
+            <div class="code-line" id="s7">    return False</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> tussen de <code>check</code> (balance ≥ amount)
+            en de <code>use</code> (balance -= amount) zit een gaatje. Zonder lock
+            kunnen alle threads eerst checken — allemaal zien ze €1000 — en pas
+            daarna afschrijven. De <code>with lock</code> maakt check+use
+            ondeelbaar: maar één thread tegelijk in het kritieke gebied.
+        </div>
+    </div>
+</section>
+
+<!-- INTERLEAVING -->
+<section class="panel">
+    <div class="panel-title">Uitvoering (interleaving)</div>
+    <div class="panel-body">
+        <div class="lanes-head">
+            <div class="tick">tijd</div>
+            <div class="lane-title t0">Thread 1</div>
+            <div class="lane-title t1">Thread 2</div>
+            <div class="lane-title t2">Thread 3</div>
+        </div>
+        <div id="rows"></div>
+        <div class="toctou" id="toctou"></div>
+    </div>
+</section>
+
+<!-- SHARED STATE -->
+<section class="panel">
+    <div class="panel-title">Gedeelde toestand</div>
+    <div class="panel-body">
+        <div class="shared-label">balance (gedeeld tussen threads)</div>
+        <div class="balance pos" id="balance"><div class="amt">€1000</div></div>
+
+        <div class="shared-label">lock</div>
+        <div class="lockstate free" id="lockstate">🔓 vrij</div>
+
+        <div class="shared-label">grootboek</div>
+        <div class="ledger" id="ledger"><div class="li">— nog geen transacties —</div></div>
+    </div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span>eindsaldo: <span id="finalInfo">—</span></span>
+    </div>
+    <div id="status">Kies Unsafe of Safe en stap door de uitvoering.</div>
+    <div id="details">Elke stap is één thread-operatie op het gedeelde saldo.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+const START = 1000, AMOUNT = 800;
+
+/* Each event: t=thread index, act, reads (balance seen at check),
+   ok (check result), newBalance (after use), line (source id) */
+const UNSAFE = [
+    { t: 0, act: "check", reads: 1000, ok: true,  line: "u3" },
+    { t: 1, act: "check", reads: 1000, ok: true,  line: "u3" },
+    { t: 2, act: "check", reads: 1000, ok: true,  line: "u3" },
+    { t: 0, act: "use",   newBalance: 200,   line: "u5" },
+    { t: 1, act: "use",   newBalance: -600,  line: "u5" },
+    { t: 2, act: "use",   newBalance: -1400, line: "u5" }
+];
+const SAFE = [
+    { t: 0, act: "acquire", line: "s2" },
+    { t: 0, act: "check", reads: 1000, ok: true, line: "s3" },
+    { t: 0, act: "use",   newBalance: 200, line: "s5" },
+    { t: 0, act: "release", line: "s2" },
+    { t: 1, act: "acquire", line: "s2" },
+    { t: 1, act: "check", reads: 200, ok: false, line: "s3" },
+    { t: 1, act: "release", line: "s2" },
+    { t: 2, act: "acquire", line: "s2" },
+    { t: 2, act: "check", reads: 200, ok: false, line: "s3" },
+    { t: 2, act: "release", line: "s2" }
+];
+
+let safeMode = false;
+let events = UNSAFE;
+let currentStep = 0, timer = null, playing = false;
+
+function setMode(safe) {
+    stop();
+    safeMode = safe;
+    events = safe ? SAFE : UNSAFE;
+    currentStep = 0;
+    document.getElementById("mUnsafe").classList.toggle("active", !safe);
+    document.getElementById("mSafe").classList.toggle("active", safe);
+    document.getElementById("codeUnsafe").style.display = safe ? "none" : "block";
+    document.getElementById("codeSafe").style.display = safe ? "block" : "none";
+    render();
+}
+
+function evtLabel(e) {
+    if (e.act === "check") return '<div>CHECK</div><div class="sub">ziet €' + e.reads + ' → ' + (e.ok ? '€' + e.reads + ' ≥ €800 ✓' : '€' + e.reads + ' ≥ €800 ✗ te weinig') + '</div>';
+    if (e.act === "use") return '<div>USE</div><div class="sub">balance −€800 = <span class="amt">€' + e.newBalance + '</span></div>';
+    if (e.act === "acquire") return '<div>🔒 ACQUIRE</div><div class="sub">lock verkregen</div>';
+    if (e.act === "release") return '<div>🔓 RELEASE</div><div class="sub">lock vrijgegeven</div>';
+    return '<div>' + e.act + '</div>';
+}
+
+function render() {
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+
+    const total = events.length + 1;
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = total - 1;
+    document.getElementById("progress").style.width = (currentStep / (total - 1) * 100) + "%";
+
+    /* build rows for executed events */
+    const rowsEl = document.getElementById("rows");
+    rowsEl.innerHTML = "";
+    for (let i = 0; i < currentStep; i++) {
+        const e = events[i];
+        const cls = e.act === "check" && e.ok === false ? "fail" : e.act;
+        const row = document.createElement("div");
+        row.className = "row";
+        let cells = '<div class="no">t' + (i + 1) + '</div>';
+        for (let c = 0; c < 3; c++) {
+            if (c === e.t) {
+                cells += '<div class="cell"><div class="evt ' + cls + (i === currentStep - 1 ? ' cur' : '') + '">' + evtLabel(e) + '</div></div>';
+            } else {
+                cells += '<div class="cell"></div>';
+            }
+        }
+        row.innerHTML = cells;
+        rowsEl.appendChild(row);
+    }
+    if (currentStep > 0) rowsEl.lastChild.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+    /* highlight active source line */
+    if (currentStep > 0) {
+        const e = events[currentStep - 1];
+        const el = document.getElementById(e.line);
+        if (el) el.classList.add("active");
+    }
+
+    /* compute shared balance + lock from executed events */
+    let balance = START, locked = false, held = -1;
+    let ledger = [];
+    for (let i = 0; i < currentStep; i++) {
+        const e = events[i];
+        if (e.act === "acquire") { locked = true; held = e.t; }
+        if (e.act === "release") { locked = false; held = -1; }
+        if (e.act === "use") {
+            balance = e.newBalance;
+            ledger.push({ txt: "T" + (e.t + 1) + ": −€800  → €" + balance, cls: balance < 0 ? "bad" : "ok" });
+        }
+        if (e.act === "check" && e.ok === false) {
+            ledger.push({ txt: "T" + (e.t + 1) + ": geweigerd (saldo €" + e.reads + ")", cls: "ok" });
+        }
+    }
+
+    const balEl = document.getElementById("balance");
+    balEl.className = "balance " + (balance < 0 ? "neg" : "pos");
+    balEl.innerHTML = '<div class="amt">€' + balance + '</div>';
+
+    const lockEl = document.getElementById("lockstate");
+    if (safeMode) {
+        lockEl.style.display = "flex";
+        lockEl.className = "lockstate " + (locked ? "held" : "free");
+        lockEl.textContent = locked ? "🔒 in bezit van Thread " + (held + 1) : "🔓 vrij";
+    } else {
+        lockEl.style.display = "flex";
+        lockEl.className = "lockstate free";
+        lockEl.textContent = "— geen lock gebruikt —";
+    }
+
+    const ledEl = document.getElementById("ledger");
+    ledEl.innerHTML = ledger.length
+        ? ledger.map(l => '<div class="li ' + l.cls + '">' + l.txt + '</div>').join("")
+        : '<div class="li">— nog geen transacties —</div>';
+
+    /* TOCTOU banner (unsafe, after all 3 checks, before uses) */
+    const banner = document.getElementById("toctou");
+    if (!safeMode && currentStep === 3) {
+        banner.style.display = "block";
+        banner.innerHTML = "⚠ <strong>Time-of-check:</strong> alle drie de threads zagen €1000 en vonden €800 haalbaar — er was nog niets afgeschreven. De checks zijn nu waardeloos geworden.";
+    } else if (!safeMode && currentStep > 3 && currentStep < events.length) {
+        banner.style.display = "block";
+        banner.innerHTML = "🚨 <strong>Time-of-use:</strong> elke afschrijving gebruikt het inmiddels gewijzigde saldo — het zakt onder nul.";
+    } else {
+        banner.style.display = "none";
+    }
+
+    /* status */
+    document.getElementById("finalInfo").textContent = currentStep >= events.length ? "€" + balance : "—";
+
+    if (currentStep === 0) {
+        setStatus(safeMode ? "Safe modus — met lock" : "Unsafe modus — geen lock",
+            safeMode ? "Slechts één thread mag tegelijk het kritieke gebied in." :
+                       "Drie threads draaien door elkaar heen op hetzelfde saldo.");
+        return;
+    }
+    if (currentStep >= events.length) {
+        if (safeMode) {
+            setStatus("✓ Eindsaldo €" + balance + " — correct",
+                "De lock serialiseerde de threads: T1 nam op, T2 en T3 kregen 'te weinig saldo'.");
+        } else {
+            setStatus("🚨 Eindsaldo €" + balance + " — geld uit het niets",
+                "Drie keer €800 opgenomen van €1000. De race condition liet de rekening €" + Math.abs(balance) + " in de min duiken.");
+        }
+        return;
+    }
+    const e = events[currentStep - 1];
+    const name = "Thread " + (e.t + 1);
+    if (e.act === "check") setStatus(name + ": time-of-check", e.ok ? name + " ziet €" + e.reads + " en besluit door te gaan." : name + " ziet €" + e.reads + " → te weinig, geweigerd.");
+    else if (e.act === "use") setStatus(name + ": time-of-use", name + " schrijft €800 af → nieuw saldo €" + e.newBalance + ".");
+    else if (e.act === "acquire") setStatus(name + ": lock verkregen", name + " mag nu als enige check+use uitvoeren.");
+    else if (e.act === "release") setStatus(name + ": lock vrijgegeven", "Het kritieke gebied komt vrij voor de volgende thread.");
+}
+
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+function next() { if (currentStep < events.length) { currentStep++; render(); } }
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= events.length) { stop(); return; }
+        currentStep++; render();
+    }, 1000);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+function reset() {
+    stop();
+    currentStep = 0;
+    render();
+    setStatus("Kies Unsafe of Safe en stap door de uitvoering.",
+        "Elke stap is één thread-operatie op het gedeelde saldo.");
+}
+
+setMode(false);
+</script>
+</body>
+</html>

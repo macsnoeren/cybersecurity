@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Path Traversal Simulator</title>
+
+<style>
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d18; color: #e5e7eb; font-family: Arial, Helvetica, sans-serif; }
+
+header {
+    height: 11vh; min-height: 72px; display: flex; align-items: center;
+    padding: 12px 22px; background: #111827; border-bottom: 1px solid #334155;
+}
+.title h1 { margin: 0; font-size: clamp(19px, 2vw, 28px); }
+.title p { margin: 5px 0 0; color: #94a3b8; font-size: 13px; }
+
+.controls {
+    height: 11vh; min-height: 66px; display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 8px 20px; background: #0f172a; border-bottom: 1px solid #334155;
+}
+input {
+    width: 300px; max-width: 32vw; padding: 8px 10px; border: 1px solid #475569;
+    border-radius: 6px; background: #020617; color: white; font-family: monospace; font-size: 14px;
+}
+button { border: 0; border-radius: 6px; padding: 9px 12px; background: #334155; color: white; cursor: pointer; font-size: 13px; }
+button:hover { background: #475569; }
+button.primary { background: #2563eb; }
+button.danger { background: #991b1b; }
+button.preset { background: #1e293b; border: 1px solid #334155; font-family: monospace; font-size: 11px; }
+button.preset.safe { border-color: #166534; color: #86efac; }
+button.preset.active { background: #2563eb; border-color: #2563eb; color: white; }
+.step-info { margin-left: auto; color: #94a3b8; font-family: monospace; font-size: 13px; }
+
+main { height: 63vh; display: grid; grid-template-columns: 26% 37% 37%; }
+.panel { min-width: 0; overflow: hidden; border-right: 1px solid #334155; background: #0f172a; display: flex; flex-direction: column; }
+.panel:last-child { border-right: 0; }
+.panel-title {
+    height: 34px; padding: 9px 13px; background: #1e293b; font-size: 12px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .5px; flex: 0 0 auto;
+}
+.panel-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+.panel-body::-webkit-scrollbar { width: 9px; }
+.panel-body::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+.panel-body::-webkit-scrollbar-track { background: #0b1220; }
+
+.code { font-family: Consolas, Monaco, monospace; font-size: clamp(11px, .95vw, 13px); }
+.code-line { padding: 3px 6px; border-radius: 4px; white-space: pre-wrap; }
+.code-line.active { background: #1e3a5f; box-shadow: inset 3px 0 #3b82f6; }
+.code-comment { color: #64748b; }
+.src-note {
+    margin-top: 12px; color: #64748b; font-size: 11px; line-height: 1.5;
+    border-top: 1px solid #1e293b; padding-top: 10px;
+}
+
+/* PATH RESOLUTION */
+.qlabel { color: #64748b; font-size: 11px; text-transform: uppercase; margin: 4px 0 6px; }
+.pathbox {
+    padding: 12px; background: #000; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 13px; word-break: break-all; margin-bottom: 12px;
+}
+.pathbox .base { color: #64748b; }
+.pathbox .seg { color: #e2e8f0; }
+.pathbox .up { color: #fbbf24; font-weight: bold; }
+.pathbox .up.hot { background: #dc2626; color: white; padding: 0 3px; border-radius: 3px; }
+
+.stack-view { font-family: monospace; font-size: 13px; }
+.stack-view .qlabel { margin-top: 4px; }
+.crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; }
+.crumb {
+    padding: 4px 8px; border: 1px solid #334155; border-radius: 5px; background: #111827;
+    font-family: monospace; font-size: 12px; transition: all .2s;
+}
+.crumb.root { color: #64748b; }
+.crumb.public { border-color: #2563eb; color: #93c5fd; }
+.crumb.pop { border-color: #dc2626; color: #fca5a5; text-decoration: line-through; opacity: .5; }
+.crumb.cur { border-color: #facc15; box-shadow: 0 0 10px rgba(250,204,21,.4); }
+.arrow { color: #475569; }
+
+/* TREE */
+.tree { font-family: monospace; font-size: 12px; line-height: 1.9; }
+.node { padding: 1px 6px; border-radius: 4px; }
+.node.dir { color: #93c5fd; }
+.node.pub { color: #86efac; }
+.node.priv { color: #fca5a5; }
+.node.sys { color: #fca5a5; }
+.node.target { background: #422006; box-shadow: inset 3px 0 #facc15; }
+.node.opened { background: #450a0a; box-shadow: inset 3px 0 #ef4444; }
+.node.safe-open { background: #052e16; box-shadow: inset 3px 0 #22c55e; }
+
+.filebox {
+    margin-top: 12px; padding: 12px; background: #000; border: 1px solid #334155; border-radius: 8px;
+    font-family: monospace; font-size: 12px; white-space: pre-wrap; min-height: 60px;
+}
+.filebox.breach { border-color: #dc2626; }
+.filebox.denied { border-color: #166534; }
+.leak { color: #f87171; }
+.ok { color: #4ade80; }
+
+.status {
+    height: 15vh; min-height: 88px; padding: 11px 20px; background: #111827; border-top: 1px solid #334155;
+}
+.status-top { display: flex; justify-content: space-between; color: #64748b; font-family: monospace; font-size: 11px; }
+#status { margin-top: 5px; font-size: clamp(14px, 1.4vw, 19px); font-weight: bold; }
+#details { margin-top: 4px; color: #94a3b8; font-size: 12px; }
+.progress { height: 5px; margin-top: 9px; border-radius: 5px; background: #1e293b; overflow: hidden; }
+#progress { width: 0%; height: 100%; background: #2563eb; transition: width .2s; }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="title">
+        <h1>Path Traversal</h1>
+        <p>Met ../ klimt de gebruiker uit de web-root naar bestanden die verboden zijn</p>
+    </div>
+</header>
+
+<div class="controls">
+    <input id="input" value="../config.ini">
+    <button class="primary" onclick="load()">▶ Start</button>
+    <button onclick="previous()">◀</button>
+    <button class="primary" onclick="next()">▶</button>
+    <button id="playButton" onclick="togglePlay()">Autoplay</button>
+    <button class="danger" onclick="reset()">Reset</button>
+
+    <button class="preset" onclick="preset('welcome.txt', false)">welcome.txt</button>
+    <button class="preset" onclick="preset('../config.ini', false)">../config.ini</button>
+    <button class="preset" onclick="preset('../private/admin_passwords.txt', false)">../private/…</button>
+    <button class="preset" onclick="preset('../../etc/shadow', false)">../../etc/shadow</button>
+    <button class="preset safe" onclick="preset('../config.ini', true)">🛡 met validatie</button>
+
+    <div class="step-info">STEP <span id="stepNumber">0</span> / <span id="stepTotal">0</span></div>
+</div>
+
+<main>
+
+<!-- SOURCE -->
+<section class="panel">
+    <div class="panel-title">Source Code (Python)</div>
+    <div class="panel-body">
+        <div class="code" id="codeVuln">
+            <div class="code-line code-comment"># VULNERABLE</div>
+            <div class="code-line" id="cv1">def read(filename):</div>
+            <div class="code-line" id="cv2">  path = join(webroot,</div>
+            <div class="code-line" id="cv3">              "public", filename)</div>
+            <div class="code-line" id="cv4">  # geen validatie</div>
+            <div class="code-line" id="cv5">  return open(path).read()</div>
+        </div>
+        <div class="code" id="codeSafe" style="display:none">
+            <div class="code-line code-comment"># SAFE</div>
+            <div class="code-line" id="cs1">def read(filename):</div>
+            <div class="code-line" id="cs2">  path = abspath(join(</div>
+            <div class="code-line" id="cs3">    webroot,"public",filename))</div>
+            <div class="code-line" id="cs4">  if not path.startswith(</div>
+            <div class="code-line" id="cs5">      webroot+"/public"):</div>
+            <div class="code-line" id="cs6">    return "ACCESS DENIED"</div>
+            <div class="code-line" id="cs7">  return open(path).read()</div>
+        </div>
+        <div class="src-note">
+            <strong>Kern:</strong> de server plakt de bestandsnaam achter
+            <em>/webroot/public/</em>. Een <code>../</code> in de naam laat het
+            besturingssysteem één map omhoog gaan — buiten de bedoelde map.
+            De veilige versie normaliseert het pad éérst en controleert dan
+            of het nog binnen <em>/public</em> valt.
+        </div>
+    </div>
+</section>
+
+<!-- PATH RESOLUTION -->
+<section class="panel">
+    <div class="panel-title">Pad-resolutie</div>
+    <div class="panel-body">
+        <div class="qlabel">Samengesteld pad</div>
+        <div class="pathbox" id="rawpath"></div>
+
+        <div class="qlabel">Normaliseren (../ verwerken)</div>
+        <div class="stack-view">
+            <div class="crumbs" id="crumbs"></div>
+        </div>
+
+        <div class="qlabel">Uiteindelijk pad</div>
+        <div class="pathbox" id="finalpath"></div>
+    </div>
+</section>
+
+<!-- FILESYSTEM + FILE -->
+<section class="panel">
+    <div class="panel-title">Bestandssysteem</div>
+    <div class="panel-body">
+        <div class="tree" id="tree">
+            <div class="node dir">/webroot/</div>
+            <div class="node dir" id="n_public">&nbsp;&nbsp;├─ public/</div>
+            <div class="node pub" id="n_welcome">&nbsp;&nbsp;│&nbsp;&nbsp;├─ welcome.txt</div>
+            <div class="node pub" id="n_info">&nbsp;&nbsp;│&nbsp;&nbsp;└─ info.html</div>
+            <div class="node priv" id="n_private">&nbsp;&nbsp;├─ private/</div>
+            <div class="node priv" id="n_admin">&nbsp;&nbsp;│&nbsp;&nbsp;└─ admin_passwords.txt 🔒</div>
+            <div class="node priv" id="n_config">&nbsp;&nbsp;└─ config.ini 🔒</div>
+            <div class="node dir" style="margin-top:6px">/etc/</div>
+            <div class="node sys" id="n_shadow">&nbsp;&nbsp;└─ shadow 🔒</div>
+        </div>
+
+        <div class="filebox" id="filebox">Nog geen bestand geopend.</div>
+    </div>
+</section>
+
+</main>
+
+<section class="status">
+    <div class="status-top">
+        <span>SIMULATION STATUS</span>
+        <span id="escInfo">binnen /public</span>
+    </div>
+    <div id="status">Vul een bestandsnaam in en klik op Start.</div>
+    <div id="details">Het pad wordt samengesteld, genormaliseerd en geopend.</div>
+    <div class="progress"><div id="progress"></div></div>
+</section>
+
+<script>
+/* File contents keyed by the normalized path we can reach */
+const FILES = {
+    "/webroot/public/welcome.txt": { node: "n_welcome", safe: true, body: "Welcome to our public website!\nThis file is safe to access." },
+    "/webroot/public/info.html":   { node: "n_info",    safe: true, body: "<html><body><h1>Public Information</h1></body></html>" },
+    "/webroot/private/admin_passwords.txt": { node: "n_admin", safe: false, body: "ADMIN PASSWORDS - CONFIDENTIAL\nadmin:super_secret_password_123\nroot:another_secret_pass_456" },
+    "/webroot/config.ini": { node: "n_config", safe: false, body: "[DATABASE]\npassword=secret_db_password_xyz\n[API_KEYS]\naws_secret=wJalrXUtnFEMI/K7..." },
+    "/etc/shadow": { node: "n_shadow", safe: false, body: "root:$6$randomsalt$hashedpassword:18000:0:99999:7:::" }
+};
+
+/* base directory as path segments */
+const BASE = ["webroot", "public"];
+
+let safeMode = false;
+let filename = "";
+let currentStep = 0, timer = null, playing = false;
+const TOTAL = 5; /* 0 input, 1 join, 2 normalize, 3 boundary check, 4 open */
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+/* Split the filename into segments incl. ".." tokens */
+function inputSegments() {
+    return filename.split("/").filter(s => s.length > 0);
+}
+
+/* Resolve base + filename into a normalized absolute path */
+function resolvePath() {
+    const segs = BASE.slice();
+    inputSegments().forEach(s => {
+        if (s === "..") { if (segs.length) segs.pop(); }
+        else if (s === ".") { /* stay */ }
+        else segs.push(s);
+    });
+    return "/" + segs.join("/");
+}
+
+function load() {
+    stop();
+    filename = document.getElementById("input").value.trim();
+    currentStep = 0;
+    document.getElementById("codeVuln").style.display = safeMode ? "none" : "block";
+    document.getElementById("codeSafe").style.display = safeMode ? "block" : "none";
+    render();
+}
+
+function preset(f, safe) {
+    safeMode = safe;
+    document.getElementById("input").value = f;
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    load();
+}
+
+function clearTree() {
+    ["n_public","n_welcome","n_info","n_private","n_admin","n_config","n_shadow"]
+        .forEach(id => { const e = document.getElementById(id); if (e) e.className = e.className.replace(/ (target|opened|safe-open)/g,""); });
+}
+
+function render() {
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    clearTree();
+
+    document.getElementById("stepNumber").textContent = currentStep;
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("progress").style.width = (currentStep / (TOTAL - 1) * 100) + "%";
+
+    /* raw joined path */
+    let rawHtml = '<span class="base">/webroot/public/</span>';
+    const segs = inputSegments();
+    segs.forEach(s => {
+        if (s === "..") rawHtml += '<span class="up' + (currentStep >= 2 ? " hot" : "") + '">../</span>';
+        else rawHtml += '<span class="seg">' + esc(s) + (s === segs[segs.length-1] ? "" : "/") + '</span>';
+    });
+    document.getElementById("rawpath").innerHTML = currentStep >= 1 ? rawHtml : '<span class="base">wacht op start…</span>';
+
+    /* crumbs: show normalization */
+    const crumbs = document.getElementById("crumbs");
+    if (currentStep >= 2) {
+        crumbs.innerHTML = "";
+        /* simulate the walk */
+        let walk = BASE.slice();
+        addCrumb(crumbs, "/", "root");
+        BASE.forEach(b => addCrumb(crumbs, b, b === "public" ? "public" : "dir"));
+        segs.forEach(s => {
+            addArrow(crumbs);
+            if (s === "..") {
+                const popped = walk.pop();
+                addCrumb(crumbs, ".. (uit " + (popped || "?") + ")", "pop cur");
+            } else if (s === ".") {
+                addCrumb(crumbs, ".", "dir");
+            } else {
+                walk.push(s);
+                addCrumb(crumbs, s, "cur");
+            }
+        });
+    } else {
+        crumbs.innerHTML = '<span style="color:#64748b">nog niet genormaliseerd</span>';
+    }
+
+    const finalPath = resolvePath();
+    document.getElementById("finalpath").innerHTML =
+        currentStep >= 2 ? '<span class="seg">' + esc(finalPath) + '</span>' : '<span class="base">—</span>';
+
+    const escaped = !finalPath.startsWith("/webroot/public");
+    document.getElementById("escInfo").textContent = escaped ? "⚠ buiten /public" : "binnen /public";
+    document.getElementById("escInfo").style.color = escaped ? "#f87171" : "#64748b";
+
+    /* ---- STEPS ---- */
+    if (currentStep === 0) {
+        highlight(safeMode ? "cs1" : "cv1");
+        document.getElementById("filebox").className = "filebox";
+        document.getElementById("filebox").textContent = "Nog geen bestand geopend.";
+        setStatus("Aanvraag: " + filename,
+            "De webserver gaat dit pad t.o.v. /webroot/public/ oplossen.");
+        return;
+    }
+    if (currentStep === 1) {
+        highlight(safeMode ? "cs2" : "cv2");
+        setStatus("Pad samengesteld",
+            "De bestandsnaam is achter /webroot/public/ geplakt — inclusief eventuele ../.");
+        return;
+    }
+    if (currentStep === 2) {
+        highlight(safeMode ? "cs3" : "cv3");
+        const ups = segs.filter(s => s === "..").length;
+        setStatus(ups ? "Normaliseren: " + ups + "× omhoog" : "Normaliseren",
+            ups ? "Elke ../ verwijdert de laatste map. Zo verlaat het pad de public-map."
+                : "Geen ../ aanwezig; het pad blijft binnen public.");
+        return;
+    }
+    if (currentStep === 3) {
+        if (safeMode) {
+            highlight("cs4"); highlight("cs5");
+            setStatus(escaped ? "🛡 Grenscontrole: geweigerd" : "🛡 Grenscontrole: toegestaan",
+                escaped ? "Het pad valt buiten /webroot/public → de server weigert de aanvraag."
+                        : "Het pad blijft binnen /webroot/public → toegestaan.");
+        } else {
+            highlight("cv4");
+            setStatus(escaped ? "⚠ Geen enkele controle" : "Geen controle nodig",
+                escaped ? "De kwetsbare server controleert niets en opent het pad gewoon."
+                        : "Het pad bleef toevallig binnen public.");
+        }
+        return;
+    }
+
+    /* step 4: open */
+    highlight(safeMode ? "cs7" : "cv5");
+    const box = document.getElementById("filebox");
+    const file = FILES[finalPath];
+
+    if (safeMode && escaped) {
+        box.className = "filebox denied";
+        box.innerHTML = '<span class="ok">🚫 ACCESS DENIED — path traversal geblokkeerd</span>';
+        setStatus("🛡 Aanval geblokkeerd",
+            "De grenscontrole ving de ../ op. Geen gevoelige data prijsgegeven.");
+        return;
+    }
+
+    if (!file) {
+        box.className = "filebox";
+        box.textContent = "❌ Bestand niet gevonden: " + finalPath;
+        setStatus("Bestand niet gevonden",
+            "Op dit pad staat geen bestand in deze demo.");
+        return;
+    }
+
+    const node = document.getElementById(file.node);
+    if (node) node.className += file.safe ? " safe-open" : " opened";
+    node && node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+    if (file.safe) {
+        box.className = "filebox";
+        box.innerHTML = '<span class="ok">' + esc(file.body) + '</span>';
+        setStatus("✓ Publiek bestand geopend",
+            "Dit bestand hoort openbaar te zijn — normale toegang.");
+    } else {
+        box.className = "filebox breach";
+        box.innerHTML = '📄 ' + finalPath + '\n\n<span class="leak">' + esc(file.body) + '</span>';
+        setStatus("🚨 GEVOELIG BESTAND GELEKT",
+            finalPath + " ligt buiten de web-root en is nu uitgelezen — wachtwoorden/keys op straat.");
+    }
+}
+
+function addCrumb(parent, text, cls) {
+    const c = document.createElement("span");
+    c.className = "crumb " + cls;
+    c.textContent = text;
+    parent.appendChild(c);
+}
+function addArrow(parent) {
+    const a = document.createElement("span");
+    a.className = "arrow"; a.textContent = "›";
+    parent.appendChild(a);
+}
+function highlight(id) { const e = document.getElementById(id); if (e) e.classList.add("active"); }
+function setStatus(t, d) {
+    document.getElementById("status").textContent = t;
+    document.getElementById("details").textContent = d;
+}
+
+function next() { if (currentStep < TOTAL - 1) { currentStep++; render(); } }
+function previous() { if (currentStep > 0) { currentStep--; render(); } }
+function togglePlay() { playing ? stop() : start(); }
+function start() {
+    playing = true;
+    document.getElementById("playButton").textContent = "⏸ Pause";
+    timer = setInterval(() => {
+        if (currentStep >= TOTAL - 1) { stop(); return; }
+        currentStep++; render();
+    }, 1100);
+}
+function stop() {
+    if (timer) clearInterval(timer);
+    timer = null; playing = false;
+    document.getElementById("playButton").textContent = "Autoplay";
+}
+function reset() {
+    stop();
+    currentStep = 0;
+    clearTree();
+    document.getElementById("rawpath").innerHTML = '<span class="base">wacht op start…</span>';
+    document.getElementById("crumbs").innerHTML = '<span style="color:#64748b">nog niet genormaliseerd</span>';
+    document.getElementById("finalpath").innerHTML = '<span class="base">—</span>';
+    document.getElementById("filebox").className = "filebox";
+    document.getElementById("filebox").textContent = "Nog geen bestand geopend.";
+    document.getElementById("stepNumber").textContent = "0";
+    document.getElementById("stepTotal").textContent = TOTAL;
+    document.getElementById("escInfo").textContent = "binnen /public";
+    document.getElementById("escInfo").style.color = "#64748b";
+    document.getElementById("progress").style.width = "0%";
+    document.querySelectorAll(".code-line").forEach(x => x.classList.remove("active"));
+    setStatus("Vul een bestandsnaam in en klik op Start.",
+        "Het pad wordt samengesteld, genormaliseerd en geopend.");
+}
+
+reset();
+</script>
+</body>
+</html>
