@@ -1,0 +1,25 @@
+# Local security-research lab -- isolated by design.
+#
+# The port is published ONLY on the loopback interface (127.0.0.1) so the
+# deliberately vulnerable, end-of-life PHP runtime is never reachable from the
+# LAN or the internet. Do not change this to 0.0.0.0 or a public interface.
+services:
+  php-lab:
+    build:
+      context: .
+      args:
+        # Defaults to a PRE-FIX PHP so the lab is a PHP2Shell study target.
+        # For a patched build: PHP_VERSION=8.3-apache docker compose up --build
+        PHP_VERSION: ${PHP_VERSION:-8.3.35-apache}
+    image: cybersecurity-php-lab:latest
+    container_name: cybersecurity-php-lab
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: "no"
+    # Keep the lab off any shared/proxy network; it lives on its own bridge.
+    networks:
+      - phplab
+
+networks:
+  phplab:
+    driver: bridge
