@@ -1,0 +1,28 @@
+# DELIBERATELY VULNERABLE sshd configuration for the SSHole lab.
+#
+# The settings that matter for CVE-2026-123158:
+#   * PasswordAuthentication yes  -> the attack surface
+#   * Built --without-pam on musl -> forces the crypt() verification path
+#   * A target account with a "*" password field exists (deploy)
+#   * A borrow account with a real hash exists (alice)
+#
+# Do NOT copy this onto a real host.
+
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+PermitRootLogin no
+
+# --- The vulnerable setting ---------------------------------------------------
+PasswordAuthentication yes
+# ------------------------------------------------------------------------------
+
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+
+# Verbose logging so the SSHole login shows up clearly for the detection
+# exercise (inspect with: docker logs sshole-lab-vulnerable).
+LogLevel VERBOSE
+
+Subsystem sftp /usr/lib/ssh/sftp-server

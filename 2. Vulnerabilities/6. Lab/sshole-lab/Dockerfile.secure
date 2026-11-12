@@ -1,0 +1,34 @@
+# SSHole — NON-vulnerable Alpine / OpenSSH target for comparison.
+#
+# Same accounts as the vulnerable image, but safe because:
+#   * Uses Alpine's PACKAGED openssh (which carries the backported fix)
+#   * PasswordAuthentication no (the recommended mitigation)
+#
+# Either of these alone defeats the bypass; this image applies both.
+ARG ALPINE_VERSION=3.21
+FROM alpine:${ALPINE_VERSION}
+
+RUN apk add --no-cache openssh openssl shadow apache2-utils
+
+RUN ssh-keygen -A
+
+# Hardened sshd configuration (password authentication disabled).
+COPY config/sshd_config.secure /etc/ssh/sshd_config
+
+# Identical accounts to the vulnerable image (so the only difference is
+# the sshd build and configuration).
+RUN adduser -D alice \
+    && H="$(htpasswd -nbB x correcthorsebatterystaple | cut -d: -f2)" \
+    && echo "alice:$H" | chpasswd -e
+
+RUN adduser -D deploy \
+    && sed -i 's/^deploy:[^:]*:/deploy:*:/' /etc/shadow
+
+COPY scripts/assess.sh /opt/assess.sh
+RUN chmod +x /opt/assess.sh
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]

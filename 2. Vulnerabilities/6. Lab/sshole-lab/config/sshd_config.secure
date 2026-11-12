@@ -1,0 +1,26 @@
+# HARDENED sshd configuration for the SSHole lab (non-vulnerable target).
+#
+# Primary mitigation on a musl/Alpine host where PAM is unavailable:
+#   * PasswordAuthentication no   -> removes the entire attack surface
+#
+# Combined with a patched OpenSSH (newer Alpine release) this account is not
+# reachable via the SSHole password bypass. Key-based auth still works.
+
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+PermitRootLogin no
+
+# --- The mitigation ------------------------------------------------------
+PasswordAuthentication no
+# -------------------------------------------------------------------------
+
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+KbdInteractiveAuthentication no
+
+LogLevel VERBOSE
+
+Subsystem sftp /usr/lib/ssh/sftp-server

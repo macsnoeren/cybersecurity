@@ -1,0 +1,74 @@
+# SSHole / CVE-2026-123158 — DELIBERATELY VULNERABLE Alpine / OpenSSH target.
+#
+# Alpine's packaged openssh already carries the backported fix on every
+# supported branch (e.g. openssh-9.6_p1-r3 on Alpine 3.19). To reproduce
+# the actual bug we compile UPSTREAM OpenSSH 9.6p1 from source with
+# --without-pam, so the unpatched crypt() comparison is present.
+#
+# Mechanism (why the bypass works):
+#   1. deploy's /etc/shadow field is "*" (locked / key-only).
+#   2. sshd finds no real hash for deploy, so pick_salt() borrows alice's
+#      salt and calls crypt(password, borrowed_salt).
+#   3. musl's crypt() returns the literal string "*" on failure:
+#      - a $6$ sha512 salt fails for any password > 256 bytes
+#      - a pick_salt-mangled bcrypt salt fails always
+#   4. sshd compares "*" (crypt result) with "*" (deploy's field) -> match.
+#   5. Authentication succeeds. A locked account just accepted a login.
+#
+# This image is INTENTIONALLY INSECURE. It must NEVER be exposed to a real
+# network. docker-compose.yml binds it to 127.0.0.1 only -- keep it that way.
+ARG ALPINE_VERSION=3.19
+FROM alpine:${ALPINE_VERSION}
+
+# Build dependencies for compiling OpenSSH from source.
+RUN apk add --no-cache \
+      build-base openssl-dev zlib-dev linux-headers wget \
+      apache2-utils shadow
+
+WORKDIR /build
+
+# Download and extract upstream OpenSSH 9.6p1 (UNPATCHED).
+RUN wget -q https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.6p1.tar.gz \
+    && tar xzf openssh-9.6p1.tar.gz
+
+# Privilege-separation: the sshd user and /var/empty.
+RUN (id sshd >/dev/null 2>&1 || adduser -D -H -s /sbin/nologin sshd) \
+    && mkdir -p /var/empty && chown root:root /var/empty && chmod 755 /var/empty
+
+WORKDIR /build/openssh-9.6p1
+
+# --without-pam is the crux: it forces the musl crypt() verification path.
+RUN ./configure --prefix=/usr --sysconfdir=/etc/ssh --without-pam >/dev/null \
+    && make -j"$(nproc)" >/dev/null \
+    && make install >/dev/null
+
+# Generate host keys.
+RUN ssh-keygen -A
+
+# ---- Accounts ---------------------------------------------------------------
+# alice: a NORMAL account with a real bcrypt password hash. sshd borrows her
+# salt via pick_salt(). (A $6$ SHA-512 account works identically.)
+RUN adduser -D alice \
+    && H="$(htpasswd -nbB x correcthorsebatterystaple | cut -d: -f2)" \
+    && echo "alice:$H" | chpasswd -e
+
+# deploy: the TARGET. Shadow field forced to a bare "*" (locked, key-only).
+RUN adduser -D deploy \
+    && sed -i 's/^deploy:[^:]*:/deploy:*:/' /etc/shadow
+
+# ---- sshd config ------------------------------------------------------------
+COPY config/sshd_config.vulnerable /etc/ssh/sshd_config
+
+# Defensive self-assessment, available inside the container.
+COPY scripts/assess.sh /opt/assess.sh
+RUN chmod +x /opt/assess.sh
+
+# Diagnostic: probe musl's crypt() directly.
+COPY scripts/probe.sh /opt/probe.sh
+RUN chmod +x /opt/probe.sh
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]

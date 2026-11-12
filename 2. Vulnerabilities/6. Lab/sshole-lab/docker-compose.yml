@@ -1,0 +1,43 @@
+# SSHole -- local security-research lab, isolated by design.
+#
+# Two Alpine targets side by side:
+#   * sshole-vulnerable (127.0.0.1:2222) -- reproduces CVE-2026-123158
+#   * sshole-secure     (127.0.0.1:2223) -- patched + mitigated, for comparison
+#
+# Both ports are published ONLY on the loopback interface (127.0.0.1) so the
+# deliberately vulnerable target is never reachable from the LAN or internet.
+# Do not change this to 0.0.0.0 or a public interface.
+services:
+  sshole-vulnerable:
+    build:
+      context: .
+      dockerfile: Dockerfile.vulnerable
+      args:
+        # PRE-FIX Alpine by default (OpenSSH/musl from before the SSHole fix).
+        ALPINE_VERSION: ${VULN_ALPINE_VERSION:-3.19}
+    image: sshole-lab-vulnerable:latest
+    container_name: sshole-lab-vulnerable
+    ports:
+      - "127.0.0.1:2222:22"
+    restart: "no"
+    networks:
+      - ssholelab
+
+  sshole-secure:
+    build:
+      context: .
+      dockerfile: Dockerfile.secure
+      args:
+        # PATCHED Alpine by default (OpenSSH contains the SSHole fix).
+        ALPINE_VERSION: ${SECURE_ALPINE_VERSION:-3.21}
+    image: sshole-lab-secure:latest
+    container_name: sshole-lab-secure
+    ports:
+      - "127.0.0.1:2223:22"
+    restart: "no"
+    networks:
+      - ssholelab
+
+networks:
+  ssholelab:
+    driver: bridge
