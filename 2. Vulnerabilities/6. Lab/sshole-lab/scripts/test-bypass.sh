@@ -76,4 +76,9 @@ if [ "${rc}" -eq 0 ]; then
 else
   echo ">>> RESULT: login failed (exit ${rc}) -- target is NOT vulnerable."
 fi
+
+echo
+echo "Exit code: ${rc}"
+echo "Druk op ENTER om af te sluiten..."
+read -r
 exit "${rc}"
